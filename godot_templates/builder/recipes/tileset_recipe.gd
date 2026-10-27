@@ -877,11 +877,14 @@ func _build_iso_source(ctx: BuildContext, ts: TileSet, def: Dictionary, s: Dicti
 			issues.append(ctx.make_issue("CAT-004", {"asset": asset_id, "file": "(catalog)"}))
 			continue
 		var eff: Dictionary = ctx.catalog.effective(asset)
-		if (coords.x + 1) * atlas_cell.x > tex.get_width() or (coords.y + 1) * atlas_cell.y > tex.get_height():
+		var frames: int = tile["frames"]
+		if (coords.x + frames) * atlas_cell.x > tex.get_width() or (coords.y + 1) * atlas_cell.y > tex.get_height():
 			issues.append(ctx.make_issue("TILE-002", {"asset": atlas_id, "coords": "%d,%d" % [coords.x, coords.y]}, tex_path))
 			continue
 		placed[coords] = true
 		var is_new := IsoTileset.configure_tile(ts, src, coords, at, atlas_cell, asset, eff)
+		var fps: float = tile["fps"]
+		IsoTileset.animate(src, coords, frames, fps)
 		var td := src.get_tile_data(coords, 0)
 		var iso_terrain: Variant = eff.get("iso_terrain")
 		if iso_terrain is Dictionary and (is_new or td.terrain_set == -1):

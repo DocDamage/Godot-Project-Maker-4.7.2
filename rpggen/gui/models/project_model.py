@@ -713,7 +713,8 @@ def config_with_packs(state: WizardState) -> config_mod.GeneratorConfig:
         pack_id = state.pack_updates.get(str(source))
         if pack_id is None:
             whole = source.is_dir() or pack_sniff.split_member(source) is not None
-            stem = source.name if whole else source.stem  # a pack of a bundle: its folder
+            # a pack of a bundle: its folder
+            stem = source.name if whole else archive.pack_name(source)
             pack_id = ids.pack_id_from_name(stem, used)
             used.add(pack_id)
         refs.append(config_mod.pack_ref_from_source(source, pack_id, analysed_hash(state, index)))

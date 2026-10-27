@@ -437,7 +437,21 @@ func _collect_visuals(node: Node, out: Array) -> void:
 ## The meta of an object scene that was drawn for the isometric view (object_scenes_recipe.gd).
 const ISO_META := &"iso"
 
+## How far below its origin a figure's feet may be drawn: in an isometric project half a diamond
+## (the origin is the ground under the middle of the figure, Gridwright's feet point, and the
+## front foot is drawn lower, 2026-10-26), else the tolerance of every visual.
+func _feet_slack() -> float:
+	if JsonUtil.to_str(_ctx.config.get("projection", "")) != "isometric":
+		return ORIGIN_TOLERANCE
+	for def in _ctx.catalog.tileset_defs():
+		if JsonUtil.to_str(def.get("projection", "")) == "isometric":
+			var size := JsonUtil.to_array(def.get("tile_size", []))
+			if size.size() == 2:
+				return maxf(ORIGIN_TOLERANCE, JsonUtil.to_float(size[1]) / 2.0)
+	return ORIGIN_TOLERANCE
+
 func _check_ysort_origins() -> void:
+	var feet_slack := _feet_slack()
 	for dir_path in ENTITY_DIRS:
 		for path in _list_files(dir_path.trim_suffix("/"), ["tscn"]):
 			var packed := load(path) as PackedScene
@@ -447,15 +461,20 @@ func _check_ysort_origins() -> void:
 			var visuals: Array[Node2D] = []
 			# an isometric object (T17.14) stands on the middle of its diamond, not on the
 			# bottom of its picture: it is sorted by the line through the diamond's corners
-			if not inst.has_meta(ISO_META):
+			# what flies and what bursts is put where it is by its middle (2026-10-26)
+			var middle := JsonUtil.to_str(inst.get_meta(&"role", "")) in ["EFFECT", "PROJECTILE"]
+			if not inst.has_meta(ISO_META) and not middle:
 				_collect_visuals(inst, visuals)
 			var ok := true
 			for v in visuals:
+				if v.name == &"Shadow":
+					continue  # a pack's shadow lies on the ground round the feet (ActorBuild.add_shadow)
 				# on its origin by the bottom of its frame (an object), or by its feet (a figure
 				# drawn above empty rows, which rpggen stands on its feet)
 				var bottom := visual_bottom(v, inst)
 				var feet := visual_bottom(v, inst, true)
-				if not is_nan(bottom) and absf(bottom) > ORIGIN_TOLERANCE and absf(feet) > ORIGIN_TOLERANCE:
+				var feet_off := feet > feet_slack or feet < -ORIGIN_TOLERANCE
+				if not is_nan(bottom) and absf(bottom) > ORIGIN_TOLERANCE and feet_off:
 					_fail("VAL-014", {"file": path, "y": "%.1f" % bottom}, path)
 					ok = false
 			inst.free()

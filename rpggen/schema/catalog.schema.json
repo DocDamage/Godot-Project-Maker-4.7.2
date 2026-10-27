@@ -497,6 +497,11 @@
         "roof_rise": {"type": "integer", "minimum": 1},
         "iso_terrain": {"type": "object"},
         "post": {"enum": ["nw", "ne", "es", "sw"]},
+        "lift": {"type": "integer", "minimum": 0},
+        "stack": {"enum": ["block", "ramp", "storey", "roof", "on_roof", "on_storey", "on_wall", "overlay"]},
+        "tile_frames": {"type": "array", "items": {"type": "string"}, "minItems": 1},
+        "tile_fps": {"type": "number", "exclusiveMinimum": 0},
+        "shadow": {"type": "string"},
         "stands_on": {"type": "array", "items": {"type": "integer", "minimum": 1}, "minItems": 2, "maxItems": 2},
         "character_index": {
           "type": "integer",
@@ -835,6 +840,11 @@
         "roof": {"anyOf": [{"type": "null"}, {"type": "string", "pattern": "^(slope:[nesw]|hip:(nw|ne|es|sw)|valley:(nw|ne|es|sw)|ridge:(ew|ns)|peak)$"}]},
         "roof_rise": {"anyOf": [{"type": "null"}, {"type": "integer", "minimum": 1}]},
         "post": {"anyOf": [{"type": "null"}, {"enum": ["nw", "ne", "es", "sw"]}]},
+        "lift": {"anyOf": [{"type": "null"}, {"type": "integer", "minimum": 0}]},
+        "stack": {"anyOf": [{"type": "null"}, {"enum": ["block", "ramp", "storey", "roof", "on_roof", "on_storey", "on_wall", "overlay"]}]},
+        "tile_frames": {"anyOf": [{"type": "null"}, {"type": "array", "items": {"type": "string"}, "minItems": 1}]},
+        "tile_fps": {"anyOf": [{"type": "null"}, {"type": "number", "exclusiveMinimum": 0}]},
+        "shadow": {"anyOf": [{"type": "null"}, {"type": "string"}]},
         "stands_on": {"anyOf": [{"type": "null"}, {"type": "array", "items": {"type": "integer", "minimum": 1}, "minItems": 2, "maxItems": 2}]},
         "character_index": {
           "anyOf": [
@@ -1320,7 +1330,9 @@
               "coords": {"type": "array", "items": {"type": "integer", "minimum": 0}, "minItems": 2, "maxItems": 2},
               "at": {"type": "array", "items": {"type": "integer", "minimum": 0}, "minItems": 2, "maxItems": 2},
               "of": {"type": "string"},
-              "maps_only": {"type": "boolean", "description": "T17.28: in the set only for an imported map that paints it"}
+              "maps_only": {"type": "boolean", "description": "T17.28: in the set only for an imported map that paints it"},
+              "frames": {"type": "integer", "minimum": 2, "description": "a tile that moves: its frames, in the cells after its own"},
+              "fps": {"type": "number", "exclusiveMinimum": 0}
             },
             "additionalProperties": false,
             "required": ["source", "coords", "at"]
@@ -1382,6 +1394,7 @@
               "rows": {"type": "integer", "minimum": 1},
               "next_cell": {"type": "integer", "minimum": 0},
               "cells": {"type": "object", "additionalProperties": {"type": "integer", "minimum": 0}},
+              "spans": {"type": "object", "additionalProperties": {"type": "integer", "minimum": 2}},
               "sources": {"type": "array", "items": {"type": "integer", "minimum": 0}}
             },
             "additionalProperties": false,
@@ -1580,6 +1593,11 @@
         "roof_rise": {"type": "integer", "minimum": 1},
         "iso_terrain": {"type": "object"},
         "post": {"enum": ["nw", "ne", "es", "sw"]},
+        "lift": {"type": "integer", "minimum": 0},
+        "stack": {"enum": ["block", "ramp", "storey", "roof", "on_roof", "on_storey", "on_wall", "overlay"]},
+        "tile_frames": {"type": "array", "items": {"type": "string"}, "minItems": 1},
+        "tile_fps": {"type": "number", "exclusiveMinimum": 0},
+        "shadow": {"type": "string"},
         "stands_on": {"type": "array", "items": {"type": "integer", "minimum": 1}, "minItems": 2, "maxItems": 2},
         "character_index": {
           "type": "integer",

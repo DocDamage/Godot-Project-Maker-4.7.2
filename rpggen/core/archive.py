@@ -794,6 +794,29 @@ def lone_archive(folder: Path) -> Path | None:
 _EXTRACTORS = {"zip": _extract_zip, "7z": _extract_7z, "rar": _extract_rar}
 
 
+def pack_name(source: Path) -> str:
+    """What a new pack's id is made from (``ids.pack_id_from_name``): a folder's name, an
+    archive's stem; but a zip whose stem is longer than an id and that holds one folder and
+    nothing beside it is named by that folder (2026-10-26: a shop's file name,
+    ``isometric-map-builder-pixel-art-godot-tiled-pack-isometric-tiles``, whose ends alone
+    tell thirteen packs apart, holds ``Gridwright Isometric Tiles``)."""
+    source = Path(source)
+    if source.is_dir():
+        return source.name
+    stem = source.stem
+    if len(ids.slug(stem)) <= ids.PACK_ID_LENGTH or source.suffix.lower() != ".zip":
+        return stem
+    try:
+        with zipfile.ZipFile(source) as zf:
+            names = [n for n in zf.namelist() if not n.startswith("__MACOSX/")]
+    except (OSError, zipfile.BadZipFile):
+        return stem
+    tops = {n.split("/", 1)[0] for n in names}
+    if len(tops) == 1 and all("/" in n for n in names):
+        return next(iter(tops))
+    return stem
+
+
 def _kind_of(source: Path) -> Literal["zip", "7z", "rar", "folder"]:
     if source.is_dir():
         return "folder"
@@ -857,9 +880,7 @@ def open_pack(
         raise RpgGenError("ARCH-001", path=str(source), reason="does not exist")
     kind = _kind_of(source)
     inner = pack_sniff.folder_in_bundle(source, folder).path if folder else ""
-    pack_id = pack_id or ids.pack_id_from_name(
-        folder or (source.name if kind == "folder" else source.stem), existing_ids
-    )
+    pack_id = pack_id or ids.pack_id_from_name(folder or pack_name(source), existing_ids)
     if inner and pack_sniff.is_inner_archive(inner):
         # a zip of zips (T16.21): the pack is an archive inside, opened as an archive is
         return pack_sniff.open_inner_archive(

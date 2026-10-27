@@ -590,7 +590,6 @@
         "tags": [
           "unused_because:other_layout"
         ],
-        "tileset": "overworld",
         "usage": "tiles"
       },
       "detected_by": "generic_grid",
@@ -674,7 +673,6 @@
         "tags": [
           "unused_because:other_engine"
         ],
-        "tileset": "overworld",
         "usage": "tiles"
       },
       "detected_by": "generic_grid",
@@ -711,7 +709,6 @@
         "tags": [
           "unused_because:other_engine"
         ],
-        "tileset": "overworld",
         "usage": "tiles"
       },
       "detected_by": "generic_grid",
@@ -748,7 +745,6 @@
         "tags": [
           "unused_because:other_engine"
         ],
-        "tileset": "overworld",
         "usage": "tiles"
       },
       "detected_by": "generic_grid",
@@ -798,7 +794,7 @@
     "entities": {},
     "tilesets": {
       "overworld": {
-        "next_source_id": 6,
+        "next_source_id": 2,
         "retired": []
       }
     }
@@ -864,24 +860,8 @@
           "source_id": 0
         },
         {
-          "asset": "multi_engine.engines.godot.autotiles.n2x2.n01_grass",
-          "source_id": 1
-        },
-        {
           "asset": "multi_engine.engines.godot.autotiles.n3x3.n01_grass",
-          "source_id": 2
-        },
-        {
-          "asset": "multi_engine.engines.rpg_maker_mv_mz.tiles.grass",
-          "source_id": 3
-        },
-        {
-          "asset": "multi_engine.engines.rpg_maker_vx_vxace.tiles.grass",
-          "source_id": 4
-        },
-        {
-          "asset": "multi_engine.engines.rpg_maker_xp.tiles.grass",
-          "source_id": 5
+          "source_id": 1
         }
       ],
       "terrain_sets": [],

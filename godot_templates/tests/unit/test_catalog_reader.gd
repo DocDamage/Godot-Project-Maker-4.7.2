@@ -35,3 +35,21 @@ func test_merge_does_not_mutate_inputs(t) -> void:
 	var out := CatalogReader.merge(base, over)
 	t.eq(base, {"grid": {"cell": [16, 16]}})
 	t.eq(out, {"grid": {"margin": [1, 1]}})
+
+## An asset is found by its id through an index (2026-10-26), and the index follows the
+## catalog: a list replaced or grown is indexed again, an entry changed in place is found by its
+## new id, a missing id is none; the first of two assets of one id is the one found, as before.
+func test_asset_by_id_follows_the_catalog(t) -> void:
+	var cat := {"assets": [{"id": "a", "n": 1}, {"id": "b", "n": 2}, {"id": "a", "n": 3}]}
+	var reader := CatalogReader.new(cat)
+	t.eq(reader.asset("b")["n"], 2)
+	t.eq(reader.asset("a")["n"], 1, "the first of one id")
+	t.eq(reader.asset("z"), {}, "none")
+	(cat["assets"] as Array).append({"id": "c", "n": 4})
+	t.eq(reader.asset("c")["n"], 4, "a list that grew")
+	cat["assets"] = [{"id": "d", "n": 5}]
+	t.eq(reader.asset("d")["n"], 5, "another list")
+	t.eq(reader.asset("a"), {}, "gone with the old list")
+	(cat["assets"] as Array)[0]["id"] = "e"
+	t.eq(reader.asset("e")["n"], 5, "an entry changed in place")
+	t.eq(reader.asset("d"), {}, "not by its old id")

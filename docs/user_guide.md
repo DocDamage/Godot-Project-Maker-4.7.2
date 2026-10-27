@@ -1282,6 +1282,31 @@ What the other pages do for it:
 From the command line it is `rpggen generate --archetype assets`, with `--view top` or
 `--view side` to choose the view instead of the packs.
 
+**Stacking in an isometric level.** Some isometric packs draw pieces you stack: blocks that
+raise the ground, half blocks, ramps and stairs, the storeys of a building and its roof,
+awnings and signs on a storey's front, things for a roof, lanterns on a wall, and pieces laid
+over other tiles (shore foam, waterfalls, mist, mine rails, road markings). Gridwright's
+isometric kits are drawn that way. Each such piece is a tile of the project's tile set that
+says how high it lifts what stands on it. To stack:
+
+1. In the **RPG Project Tools** dock, under *World tools*, press **Suggest** next to *Height
+   layer at*, then **Add height layer**. The first layer is at 0 px: paint blocks, walls and the
+   ground storeys of houses on it.
+2. Press **Suggest** again. It proposes the top of the highest layer: 16 px on a block, 20 px
+   more on a storey. **Add height layer** makes it. Paint the next storey there, then a roof
+   on the layer above that. An awning goes on the layer of the storey whose front it hangs on.
+3. Things you place from the library on a cell with a stack stand on its top: a crate on a
+   block, an air conditioner on a roof. Each sits in a node called *Raised* that keeps it
+   sorted with the people walking past.
+
+A height layer is an ordinary TileMapLayer drawn higher (its position) that sorts as its
+cells' ground does (its *Y Sort Origin*). Change both and the meta `rpg_height` together if you
+move one by hand. Tiles that move in the pack (water, lava, foam, a fire) play in the editor
+and in the game, and things and characters whose pack draws a shadow have it under them.
+
+A pack that ships every picture again (in 2x and 3x, or a sheet's frames one by one) has those
+folders marked with a `.gdignore`, so Godot does not import them. Delete the file to use them.
+
 ## 4. In Godot
 
 The game's *Settings* have a **Language** choice: *System* and every language of the project's

@@ -20,6 +20,11 @@ bottom of its cell again.
 ``starter.ground``, else of the first isometric ground tile; once the tile set exists, of the
 tile set. Isometric tiles drawn on another diamond are left out (``TILE-012``).
 
+**A tile that moves** (its facet ``tile_frames``, 2026-10-26) is given as many cells in a row
+as it has frames, its later frames in the cells after its own, so that Godot plays them
+(``frames`` and ``fps`` of its entry); a run never wraps to the next row. A tile that had one
+cell keeps it and does not move.
+
 Nothing here looks at a pixel to decide anything: the layout follows from the catalog alone,
 so the dry run, which has no pack files in front of it, describes the same tile set (and the
 same fingerprint) as the run that writes the pictures.
@@ -50,6 +55,7 @@ ALLOCATIONS = "iso_atlases"  # the key in ``Catalog.id_allocations``
 MAX_COLUMNS = 8
 MAX_ROWS = 8
 MAX_SIDE = 2048
+DEFAULT_TILE_FPS = 8.0  # a tile that moves and says no speed
 # What the maps ask a tile (as the top-down tile set and the farm's soil have them): which
 # asset it is, what it sounds like underfoot, what it costs to cross, whether a hoe can till it
 # and whether it fills a watering can.
@@ -57,6 +63,10 @@ CUSTOM_DATA: list[dict[str, str]] = [
     *catalog_mod.DEFAULT_CUSTOM_DATA,
     {"name": "tillable", "type": "bool"},
     {"name": "water", "type": "bool"},
+    # what a level's height layers ask (2026-10-26): how high a piece raises what stands on it,
+    # and where it goes in a stack (a block, a storey, a roof, ...: the catalog's ``stack``)
+    {"name": "lift", "type": "int"},
+    {"name": "stack", "type": "string"},
 ]
 _INACTIVE = {"UNUSED", "MISSING"}
 
@@ -190,10 +200,17 @@ def _grid(cell: tuple[int, int]) -> tuple[int, int]:
     return columns, rows
 
 
+def frames_of(asset: catalog_mod.Asset) -> list[str]:
+    """The project paths of the later frames of a tile that moves (``tile_frames``)."""
+    found = catalog_mod.effective(asset).get("tile_frames")
+    return [str(p) for p in found] if isinstance(found, list) else []
+
+
 def allocate(entry: dict[str, Any], members: list[catalog_mod.Asset]) -> None:
     """Give every tile of ``members`` (one pack's, in the order of their ids) a cell in the
-    pack's record ``entry``: a tile that has one keeps it, a new tile gets the next. The cell
-    grows to the largest picture and never shrinks."""
+    pack's record ``entry``: a tile that has one keeps it, a new tile gets the next, a new tile
+    that moves as many in a row as it has frames (``spans``). The cell grows to the largest
+    picture and never shrinks."""
     cell = list(entry.get("cell") or [0, 0])
     for asset in members:
         w, h = _size(asset)
@@ -201,13 +218,23 @@ def allocate(entry: dict[str, Any], members: list[catalog_mod.Asset]) -> None:
     entry["cell"] = cell
     if not entry.get("columns"):
         entry["columns"], entry["rows"] = _grid((cell[0], cell[1]))
+    columns = int(entry["columns"])
     cells: dict[str, int] = entry.setdefault("cells", {})
+    spans: dict[str, int] = dict(entry.get("spans") or {})
     following = int(entry.get("next_cell", 0))
     for asset in members:
-        if asset.id not in cells:
-            cells[asset.id] = following
-            following += 1
+        if asset.id in cells:
+            continue
+        span = 1 + len(frames_of(asset))
+        if span > 1 and span <= columns:
+            if following % columns + span > columns:
+                following += columns - following % columns  # a run stays on one row
+            spans[asset.id] = span
+        cells[asset.id] = following
+        following += spans.get(asset.id, 1)
     entry["next_cell"] = following
+    if spans:  # only a pack with a tile that moves has them: the others' records are as they were
+        entry["spans"] = spans
     entry.setdefault("sources", [])
 
 
@@ -312,12 +339,20 @@ def add(catalog: catalog_mod.Catalog, cfg: GeneratorConfig, staging_root: Path) 
                     tdef.tiles[asset.id]["of"] = turned[asset.id]
                 if asset.id in only_maps:
                     tdef.tiles[asset.id]["maps_only"] = True
-                layout["tiles"].append([where[1], where[2], at[0], at[1], asset.sha256])
-                file = Path(staging_root) / asset.path
-                if writes and file.is_file():
-                    with Image.open(file) as opened:
-                        picture = opened.convert("RGBA")
-                    sheet.paste(picture, (where[1] * cell_w + at[0], where[2] * cell_h + at[1]))
+                span = int(entry.get("spans", {}).get(asset.id, 1))
+                later = frames_of(asset)[: span - 1]
+                if span > 1:
+                    fps = catalog_mod.effective(asset).get("tile_fps") or DEFAULT_TILE_FPS
+                    tdef.tiles[asset.id]["frames"] = span
+                    tdef.tiles[asset.id]["fps"] = float(fps)
+                layout["tiles"].append([where[1], where[2], at[0], at[1], asset.sha256, *later])
+                for index, rel_file in enumerate([asset.path, *later]):
+                    file = Path(staging_root) / rel_file
+                    if writes and file.is_file():
+                        with Image.open(file) as opened:
+                            picture = opened.convert("RGBA")
+                        x = (where[1] + index) * cell_w + (cell_w - picture.width) // 2
+                        sheet.paste(picture, (x, where[2] * cell_h + cell_h - picture.height))
             rel = f"{ATLAS_DIR}/{pack_id}_{page}.png"
             if writes:
                 target = Path(staging_root) / rel

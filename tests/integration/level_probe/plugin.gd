@@ -35,6 +35,7 @@ const TEMPLATE := "res://rpggen/level_probe_template.tscn"
 const PLACEMENT := "res://addons/rpg_project_tools/dock/placement.gd"
 const INDEX := "res://addons/rpg_project_tools/dock/index.gd"
 const CATALOG_EDIT := "res://addons/rpg_project_tools/tools/catalog_edit.gd"
+const HEIGHT_LAYERS := "res://addons/rpg_project_tools/tools/height_layers.gd"
 
 ## The sides and corners of a cell, in turn round it, on squares and on diamonds; each corner
 ## lies between the side before it and the side after it.
@@ -109,6 +110,8 @@ func _run() -> void:
 		painted = _paint_top(ground, details, base, size, iso)
 	for done in painted:
 		(report["terrains"] as Array).append(_judge(done["layer"], done["cells"], done["set"], done["terrain"], ts, bool(done.get("strip", false))))
+	if iso:
+		report["stack"] = _stack(root, ts)
 	await _frames(2)
 	_furnish(root, size, side, report)
 	EditorInterface.save_scene_as(str(wanted["out"]))
@@ -513,6 +516,146 @@ func _judge(layer: TileMapLayer, cells: Array[Vector2i], set_index: int, terrain
 
 # ------------------------------------------------------------------ furnishing from the dock
 
+# ------------------------------------------------------------------ what is stacked (2026-10-26)
+
+## The cells of the tiles of the tile set by their asset id: {asset_id: [source, coords]}.
+func _tiles_by_id(ts: TileSet) -> Dictionary:
+	var out := {}
+	if ts.get_custom_data_layer_by_name("asset_id") == -1:
+		return out
+	for i in ts.get_source_count():
+		var source_id := ts.get_source_id(i)
+		var src := ts.get_source(source_id) as TileSetAtlasSource
+		if src == null:
+			continue
+		for t in src.get_tiles_count():
+			var coords := src.get_tile_id(t)
+			out[str(src.get_tile_data(coords, 0).get_custom_data("asset_id"))] = [source_id, coords]
+	return out
+
+## The tiles of `stack` (the custom data) whose asset id has every word of `words`, by id.
+func _stack_tiles(ts: TileSet, by_id: Dictionary, stack: String, words: Array = []) -> Array[String]:
+	var out: Array[String] = []
+	if ts.get_custom_data_layer_by_name("stack") == -1:
+		return out
+	for id: String in by_id:
+		var at: Array = by_id[id]
+		var src := ts.get_source(int(at[0])) as TileSetAtlasSource
+		if str(src.get_tile_data(at[1], 0).get_custom_data("stack")) != stack:
+			continue
+		var fits := true
+		for word: String in words:
+			if not id.contains(word):
+				fits = false
+		if fits:
+			out.append(id)
+	out.sort()
+	return out
+
+## Paints `id` on `cell` of `layer`; false when the tile set has no such tile.
+func _put(layer: TileMapLayer, by_id: Dictionary, id: String, cell: Vector2i) -> bool:
+	if id == "" or not by_id.has(id):
+		return false
+	var at: Array = by_id[id]
+	layer.set_cell(cell, int(at[0]), at[1])
+	return true
+
+## What a user stacks, as the dock's height layers make it (tools/height_layers.gd): a hill of
+## blocks with a ramp up to it, and a house of storeys on blocks under a roof whose pieces join,
+## with an awning on its front and a thing on its roof, each layer at the height the dock
+## suggests. {layers: [{name, height, cells}], tiles: {what: asset id}, top_of_house,
+## top_of_hill} for what the tile set has.
+func _stack(root: Node, ts: TileSet) -> Dictionary:
+	var heights: GDScript = load(HEIGHT_LAYERS)
+	var by_id := _tiles_by_id(ts)
+	var blocks := _stack_tiles(ts, by_id, "block")
+	var storeys := _stack_tiles(ts, by_id, "storey")
+	var out := {"layers": [], "tiles": {}}
+	if blocks.is_empty():
+		return out
+	var manager := get_undo_redo()
+	var hill: Array[Vector2i] = [Vector2i(9, 8), Vector2i(10, 8), Vector2i(9, 9), Vector2i(10, 9)]
+	var house: Array[Vector2i] = [Vector2i(3, 3), Vector2i(4, 3), Vector2i(3, 4), Vector2i(4, 4)]
+	var block := blocks[0]
+	for id in blocks:  # a block of the ground's own kind first, a pavement under a house
+		if id.contains("grass") or id.contains("pavement"):
+			block = id
+			break
+	out["tiles"]["block"] = block
+	var base: int = heights.call("suggested", root)
+	var first: TileMapLayer = heights.call("add_layer", root, base, manager)
+	for cell in hill:
+		_put(first, by_id, block, cell)
+	if not storeys.is_empty():
+		var pavement := _stack_tiles(ts, by_id, "block", ["sidewalk"]) + _stack_tiles(ts, by_id, "block", ["pavement"])
+		var footing: String = pavement[0] if not pavement.is_empty() else block
+		out["tiles"]["footing"] = footing
+		for cell in house:  # a house stands on a block of pavement (Gridwright City's README)
+			_put(first, by_id, footing, cell)
+	# up to the hill towards row - 1: a low ramp and a high one (Gridwright Tiles' README), else
+	# stairs, else any ramp
+	var low := _stack_tiles(ts, by_id, "ramp", ["grass", "up_ne_low"])
+	var high := _stack_tiles(ts, by_id, "ramp", ["grass", "up_ne_high"])
+	var stairs := _stack_tiles(ts, by_id, "ramp", ["stairs", "up_ne"])
+	var ramps := _stack_tiles(ts, by_id, "ramp")
+	if not low.is_empty() and not high.is_empty():
+		_put(first, by_id, low[0], Vector2i(9, 11))
+		_put(first, by_id, high[0], Vector2i(9, 10))
+		out["tiles"]["ramp"] = high[0]
+	elif not stairs.is_empty():
+		_put(first, by_id, stairs[0], Vector2i(9, 10))
+		out["tiles"]["ramp"] = stairs[0]
+	elif not ramps.is_empty():
+		_put(first, by_id, ramps[0], Vector2i(9, 10))
+		out["tiles"]["ramp"] = ramps[0]
+	(out["layers"] as Array).append({"name": String(first.name), "height": base, "cells": first.get_used_cells().size()})
+	out["top_of_hill"] = heights.call("top_at", root, Vector2i(9, 9))
+	if storeys.is_empty():
+		return out
+	var ground_floor := _stack_tiles(ts, by_id, "storey", ["ground", "windows"])
+	var door := _stack_tiles(ts, by_id, "storey", ["ground", "door_sw"])
+	var upper := _stack_tiles(ts, by_id, "storey", ["upper", "windows"])
+	var wall: String = ground_floor[0] if not ground_floor.is_empty() else storeys[0]
+	out["tiles"]["storey"] = wall
+	for k in 3:
+		var height: int = heights.call("suggested", root)
+		var layer: TileMapLayer = heights.call("add_layer", root, height, manager)
+		for cell in house:
+			var id := wall if k == 0 else (upper[0] if not upper.is_empty() else wall)
+			if k == 0 and cell == Vector2i(3, 4) and not door.is_empty():
+				id = door[0]  # the face towards row + 1
+			_put(layer, by_id, id, cell)
+		(out["layers"] as Array).append({"name": String(layer.name), "height": height, "cells": layer.get_used_cells().size()})
+		if k == 0:
+			var awnings := _stack_tiles(ts, by_id, "on_storey", ["_sw"])
+			if not awnings.is_empty():
+				var front: TileMapLayer = heights.call("add_layer", root, height, manager)
+				_put(front, by_id, awnings[0], Vector2i(4, 4))
+				out["tiles"]["awning"] = awnings[0]
+	var roofs := _stack_tiles(ts, by_id, "roof")
+	if not roofs.is_empty():
+		var height: int = heights.call("suggested", root)
+		var roof_layer: TileMapLayer = heights.call("add_layer", root, height, manager)
+		for cell in house:
+			# NE = 1 (row - 1), SE = 2 (col + 1), SW = 4 (row + 1), NW = 8 (col - 1)
+			var mask := 0
+			for pair: Array in [[Vector2i(0, -1), 1], [Vector2i(1, 0), 2], [Vector2i(0, 1), 4], [Vector2i(-1, 0), 8]]:
+				if house.has(cell + (pair[0] as Vector2i)):
+					mask += int(pair[1])
+			var named := _stack_tiles(ts, by_id, "roof", ["roof_%02d" % mask])
+			_put(roof_layer, by_id, named[0] if not named.is_empty() else roofs[0], cell)
+		out["tiles"]["roof"] = roofs[0]
+		(out["layers"] as Array).append({"name": String(roof_layer.name), "height": height, "cells": roof_layer.get_used_cells().size()})
+		var tops := _stack_tiles(ts, by_id, "on_roof")
+		if not tops.is_empty():
+			var top_height: int = heights.call("top_at", root, Vector2i(3, 3))
+			var on_roof: TileMapLayer = heights.call("add_layer", root, top_height, manager)
+			_put(on_roof, by_id, tops[0], Vector2i(3, 3))
+			out["tiles"]["on_roof"] = tops[0]
+			(out["layers"] as Array).append({"name": String(on_roof.name), "height": top_height, "cells": 1})
+	out["top_of_house"] = heights.call("top_at", root, Vector2i(4, 4))
+	return out
+
 func _cell_world(root: Node, cell: Vector2i) -> Vector2:
 	var ground := root.get_node("Ground") as TileMapLayer
 	return ground.to_global(ground.map_to_local(cell))
@@ -587,6 +730,7 @@ func _looks(node: Node2D) -> Dictionary:
 	var shapes := node.find_children("*", "CollisionShape2D", true, false).size() + node.find_children("*", "CollisionPolygon2D", true, false).size()
 	return {
 		"node": String(node.name), "parent": String(node.get_parent().name), "x": node.global_position.x, "y": node.global_position.y,
+		"raised": int(node.get_parent().get_meta("rpg_height", 0)),
 		"scales": scales, "filters": filters, "animated": animated, "frames": frames, "shapes": shapes,
 		"script": node.get_script().resource_path if node.get_script() != null else "",
 	}

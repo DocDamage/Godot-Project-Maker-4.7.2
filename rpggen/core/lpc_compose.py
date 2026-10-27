@@ -528,13 +528,21 @@ def build_asset(
                          {"w": sheet.width, "h": sheet.height})  # fmt: skip
     if layered is not None:
         animations, frame = layered
+        own = catalog_mod.effective(body)
         facets: dict[str, Any] = {
             "usage": "sprite",
             "grid": {"cell": list(frame), "margin": [0, 0], "separation": [0, 0]},
             "frame": list(frame),
-            "origin": [frame[0] // 2, frame[1] - 1],
+            # the body's feet, where its pack says them in a frame of this size (Gridwright's
+            # creators: 32, 46 of 64)
+            "origin": list(own["origin"])
+            if own.get("origin") and list(own.get("frame") or []) == list(frame)
+            else [frame[0] // 2, frame[1] - 1],
             "animations": animations,
         }
+        for key in ("directions", "projection", "shadow"):  # of a body that says them
+            if key in own:
+                facets[key] = copy.deepcopy(own[key])
         feet = _feet_width(sheet, frame, animations)
         if feet:
             facets["feet"] = feet

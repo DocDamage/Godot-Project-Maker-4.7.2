@@ -48,9 +48,12 @@ def disambiguate(ids_in_order: list[str]) -> list[str]:
     return out
 
 
+PACK_ID_LENGTH = 40  # the longest a pack's id is
+
+
 def pack_id_from_name(name: str, existing: set[str]) -> str:
     """Slug of the archive/folder stem (max 40 chars), unique against ``existing``."""
-    base = slug(PurePosixPath(name.replace("\\", "/")).stem)[:40]
+    base = slug(PurePosixPath(name.replace("\\", "/")).stem)[:PACK_ID_LENGTH]
     if base not in existing:
         return base
     n = 2

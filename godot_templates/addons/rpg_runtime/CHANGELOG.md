@@ -705,6 +705,36 @@ in a farm that has them.
   whose folder shares the most with the ground's sheet (in its pack first, else the first by
   name); layers without a set are taken as before.
 
+**Stacking, tiles that move and shadows (Gridwright's kits, 2026-10-26).** Nothing of the
+runtime changes. A project whose packs have none of it is built as before. Every new key is
+written only for a piece that has it, and the hashes change only where it is.
+
+* The tile set `iso` has two more custom data layers, `lift` (int) and `stack` (string)
+  (`IsoTileset.custom_data`). A tile whose definition has `frames` and `fps` is animated
+  across the cells after its own (`IsoTileset.animate`, from `tileset_recipe.gd`).
+* `tools/height_layers.gd` (rpg_project_tools, new): a level's height layers are TileMapLayers
+  drawn `height` px higher (`position.y = -height`) with `y_sort_origin = height` and the meta
+  `rpg_height`, under the level's YSorted node. `top_at` is a cell's stack (a layer's height
+  and its tile's `lift`), and `suggested` the next layer. The dock's *World tools* add them
+  (*Height layer at*, **Suggest**, **Add height layer**, with undo).
+* `dock/placement.gd`: `plan` has `raise`, the top of the stack on the cell of an isometric
+  map. `apply` puts an instance with a raise into a new Node2D `Raised` (meta `rpg_height`) on
+  the cell's middle, and the instance `raise` px higher in it, with undo. With no stack (every
+  map before) it is applied as before.
+* `ActorBuild.add_shadow`: a Sprite2D `Shadow` (35 % opacity) under the picture of an actor,
+  an enemy or an object whose catalog entry has `shadow`. An object's shadow lies at the
+  object's offset (it is drawn with the object's anchor), an actor's is centred on its feet.
+* `ObjectEntries` in an assets-only project: a thing that moves is an entry with
+  `frames_path` and `animation`, and its scene has an AnimatedSprite2D `Sprite` that plays it.
+  A PROJECTILE and an EFFECT are entries too. A piece of a stack that is only painted
+  (`on_storey`, `on_wall`, `overlay`) is none. A game's entries are as before.
+* `CatalogReader.asset` finds an asset through an index by id (made again when the list is
+  another or grew; a miss scans the list as before). What it answers is unchanged; a build of a
+  catalog of 100,000 assets no longer spends 40 s on each actor scene.
+* The validator (VAL-014): a `Shadow` is not checked. An EFFECT or a PROJECTILE stands on its
+  middle. In an isometric project a figure's drawn feet may lie up to half a diamond below its
+  origin (the ground point under the figure's middle, as Gridwright draws it).
+
 ## 1.4.0
 
 (There is no 1.3.0 entry: release 1.3.0 changed the wizard only.)

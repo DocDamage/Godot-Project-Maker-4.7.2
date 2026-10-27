@@ -389,6 +389,12 @@ def phase_catalog(state: _State) -> None:
         assert state.old_ledger is not None
         keep = state.pack_files | {a.path for a in catalog.assets if a.status == "MISSING"}
         state.issues.extend(staging.prune_packs(state.staging, state.old_ledger, keep))
+    # the folders of copies a pack ships again (other sizes, frames of its sheets) are not
+    # imported by Godot (2026-10-26); the markers are the packs' files as their pictures are
+    ignored = staging.ignore_copies(state.staging, catalog)
+    state.pack_files.update(ignored)
+    if ignored:
+        state.cb.on_log(f"{len(ignored)} folder(s) of copies left out of Godot's import")
     # A required role without any asset stops generation before Godot runs.
     state.issues.extend(requirements.check(catalog, state.cfg))
     state.issues.extend(staging.write_project_files(state.staging, state.cfg, catalog))
@@ -1788,7 +1794,6 @@ def default_config_for_pack(
 ) -> config_mod.GeneratorConfig:
     """Config for a single pack folder or archive (used by ``rpggen generate --pack``)."""
     pack_dir = Path(pack_dir)
-    stem = pack_dir.name if pack_dir.is_dir() else pack_dir.stem
-    pack_id = ids.pack_id_from_name(stem, set())
+    pack_id = ids.pack_id_from_name(archive.pack_name(pack_dir), set())
     ref = config_mod.pack_ref_from_source(pack_dir, pack_id)
     return config_mod.default_for(name, [ref], archetype=archetype, base_tile_size=tile_size)

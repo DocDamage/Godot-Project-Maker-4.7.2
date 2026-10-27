@@ -9,35 +9,55 @@ the tiles, the 1x ones as copies of the sheets), so this reader takes the pack a
 * **A tile kit** has a manifest (``isometric.json``) whose ``sprites`` give every piece its
   ``file`` (at 1x), ``size``, ``footprint`` (cells along col and row), ``anchor`` (the back
   corner of the cells it stands on, at the height of the ground) and ``height``, and for some
-  ``frame``, ``joins`` (fences: NE = 1, SE = 2, SW = 4, NW = 8), ``corners`` (paths), ``up``
-  (ramps) and ``shadow``. A flat piece (a floor, a path, a shore of water) is a tile of the
-  ground; a fence a tile along the sides it joins; a block, a half block and lava are tiles
-  that stand up from the ground (decorations, as a block of stone is); a tree, a prop, a crop
-  and a building are things standing on their cells. The ``origin`` is the middle of the cell
+  ``frame``, ``joins`` (fences, roofs: NE = 1, SE = 2, SW = 4, NW = 8), ``corners`` (paths),
+  ``up`` (ramps), ``wall`` (the edge it stands on or hangs from), ``on_storey`` and ``shadow``.
+  A flat piece (a floor, a path, a shore of water) is a tile of the ground; a fence a tile along
+  the sides it joins; a wall a tile on its edge, a door one with an opening; a tree, a prop, a
+  crop and a building things standing on their cells. The ``origin`` is the middle of the cell
   nearest the camera (``iso_tileset.stand``), the ``rise`` the height of the anchor.
+* **What is stacked** (2026-10-26) is a tile with the facet ``stack``, painted on a height
+  layer of the level (a TileMapLayer drawn higher by its height, ``rpg_project_tools``): a
+  block (``block``) and a ramp or a stair (``ramp``, its tag ``up:<side>``) of the ground, a
+  storey of a building (``storey``, its tags ``facade:``, ``level:`` and ``storey:``), a roof
+  (``roof``), what stands on a roof (``on_roof``), an awning or a sign on a storey's face
+  (``on_storey``, ``face:``), a lantern or a picture on a wall (``on_wall``, ``wall:<side>``),
+  and what lies over another tile (``overlay``: shore foam, waterfalls, mist, mine rails, road
+  markings). ``lift`` is how high a piece raises what stands on it (a block 16 px, a storey
+  20), what a height layer above it is drawn at.
+* **What moves**: the frames of a piece (``_f1`` to ``_f4``) are one tile that Godot animates
+  (``tile_frames``, ``tile_fps``) or one thing whose strip is put together from them
+  (``idle_down``). A door, a gate or a siege engine whose frames are poses (``open_degrees``,
+  ``raised_degrees``, ``arm_degrees``) is a tile a pose, or a thing that plays them once.
+  ``shadow`` names the picture drawn under a thing or a character.
 * **A character** has a JSON of its own (``Sheets/1x/knight/knight.json``) with its ``cell``,
   its ``anchor`` (the feet), its ``rows`` (the eight directions, ``s`` first) and an
   ``animations`` table: a sheet each, of ``frames`` columns, with its ``fps`` and ``loop``. The
   character is one asset, the picture of its first animation; the others are the sources of
-  their animations. Its role is its ``side`` (hero, npc, enemy), else the pack's name's (the
-  animals, the monsters).
+  their animations. Its role is its ``side`` (hero, npc, enemy), else what its JSON says of it
+  (``role_of``), else the pack's name's (the animals, the monsters).
+* **A creator** (``layers.json``) has layers, a sheet each with every animation side by side:
+  they are the pieces of a layered character (``lpc_compose``), a body a build and its clothes,
+  hair and weapons the choices; its ready-made characters are characters.
+* **The effects** of a character pack (an arrow, bolts, impacts) are sprites that play.
 
-What is set aside: the 2x and 3x copies (``other_size``), the sheets that hold the tile
-kit's pieces again (``atlas_copy``), the shadow sprites, the frames of an animated tile after
-its first (rpggen's isometric tiles do not animate), the pieces laid over another tile (shore
-foam, waterfalls) and the ramps and stairs (its maps are flat), the single frames a character
-pack has as well as its sheets, and the layers of the creators (their ready-made characters
-are read). The pictures of the effects are left to the other readers. No Qt, no Godot.
+What is set aside is only what another picture of the pack shows again: the 2x and 3x copies
+(``other_size``), the sheets that hold the tile kit's pieces (``atlas_copy``), the single frames
+a character pack has as well as its sheets (``sheet_frame``), the later frames of an animation
+(drawn by its first) and the shadows (drawn under what they belong to). No Qt, no Godot.
 """
 
 from __future__ import annotations
 
+import hashlib
 import json
 import posixpath
 import re
 from pathlib import Path
 from typing import Any
 
+from PIL import Image
+
+from rpggen import paths
 from rpggen.core import classifier
 from rpggen.core.adapters.base import AdapterContext, AdapterResult, AssetFragment
 from rpggen.core.adapters.kenney_atlas import UNUSED_ATLAS_COPY
@@ -54,16 +74,13 @@ CONFIDENCE = 0.9
 UNUSED_OTHER_SIZE = "other_size"  # pack_forms.OTHER_SIZE
 UNUSED_SHADOW = "shadow"
 UNUSED_FRAME = "animation_frame"
-UNUSED_OVERLAY = "overlay_tile"
-UNUSED_RAMP = "ramp"
 UNUSED_SHEET_FRAME = "sheet_frame"
 UNUSED_SOURCE = "animation_sheet"
-UNUSED_LAYER = "layered_piece"
-UNUSED_STACKED = "building_piece"
-UNUSED_ON_WALL = "on_wall"
 _SCALE_FOLDER = re.compile(r"^(\d+)x$")
 _FRAME = re.compile(r"_f(\d+)$")
 _DIAMOND = re.compile(r"(\d+)\s*x\s*(\d+)")
+WORK_FOLDER = "gridwright_strips"
+STRIP_DIR = "generated/frame_strips"  # sequences.FRAME_STRIP_DIR: the strips put together
 # a manifest's rows, ``s`` (towards the viewer) first, as rpggen names its directions
 DIRECTIONS = {
     "s": "down", "sw": "down_left", "w": "left", "nw": "up_left",
@@ -71,21 +88,58 @@ DIRECTIONS = {
 }  # fmt: skip
 # the sides of a diamond in rpggen's names (``n`` the upper right, ``e`` the lower right)
 JOIN_SIDES = ((1, "n"), (2, "e"), (4, "s"), (8, "w"))
+# the screen's directions of a manifest (``ne`` towards row - 1) as the sides of a diamond
+SCREEN_SIDES = {"ne": "n", "se": "e", "sw": "s", "nw": "w"}
 SIDE_ROLES = {"hero": "PLAYER", "player": "PLAYER", "npc": "NPC", "enemy": "ENEMY"}
 PACK_ROLES = (
     (frozenset({"animal", "animals"}), "ANIMAL"),
     (frozenset({"monster", "monsters"}), "ENEMY"),
 )
+# what a character that names no side is, by what its JSON says of it instead: an animal by its
+# group (a pet walks about as a farm animal does but lives in no coop or barn, as in the farm
+# reader; of the wild ones the beasts that hunt are enemies), a unit of an army by whether it
+# fights, a ready-made character of a creator by the creator it is of
+ANIMAL_GROUPS = {"farm": ("ANIMAL", "animal"), "pets": ("DECORATION", "pet"),
+                 "pet": ("DECORATION", "pet"), "wild": ("DECORATION", "wild")}  # fmt: skip
+PREDATORS = frozenset({"bear", "wolf", "boar"})
+HERO_WORDS = frozenset({"hero", "heroes"})
+# the effects of a character pack (``Effects/1x/arrow.png``): cells of 32 px, a row a direction
+# (in the characters' order) for what flies, one row for what bursts where it happens
+EFFECTS_FOLDER = "effects"
+EFFECT_CELL = 32
+PROJECTILE_WORDS = frozenset({"arrow", "arrows", "bolt", "bolts", "fireball", "missile"})
+EFFECT_FPS = 12.0
+TILE_FPS = 8.0  # the kits' water, foam, flames and fountains (their READMEs: 4 to 8)
+# a piece whose frames are poses, the key that says so, and what the poses do played in turn
+POSE_KEYS = {"open_degrees": "open", "raised_degrees": "open", "portcullis_lift": "open",
+             "arm_degrees": "use"}  # fmt: skip
 # what a manifest's categories hold beside its things: the ground, its blocks, the pieces that
 # join (paths, roads, fences, walls), and the pieces of a building stacked on each other
 GROUND_CATEGORIES = frozenset({"floors"})
 BLOCK_CATEGORIES = frozenset({"blocks"})
 LIQUID_CATEGORIES = frozenset({"liquids"})
 ROAD_CATEGORIES = frozenset({"paths", "roads"})
-STACKED_CATEGORIES = frozenset({"storeys", "roofs", "rooftop", "facade"})
+RAMP_CATEGORIES = frozenset({"ramps"})
+STOREY_CATEGORIES = frozenset({"storeys"})
+ROOF_CATEGORIES = frozenset({"roofs"})
+ROOFTOP_CATEGORIES = frozenset({"rooftop"})
+FACADE_CATEGORIES = frozenset({"facade"})
+DOOR_CATEGORIES = frozenset({"doors"})  # a door stands in a wall: a wall piece with an opening
+WALL_CATEGORIES = frozenset({"walls"})
 OVERLAY_WORDS = frozenset({"foam", "waterfall", "waterfalls", "mist", "rail", "rails"})
 WATER_WORDS = frozenset({"water", "cavewater", "ice"})
 WALL_EDGES = {"ne": "n", "nw": "w"}  # a wall on the back edge towards row - 1, col - 1
+# a post, and a corner where the walls of both back edges meet, stand on the back corner of
+# their cell, between the sides n and w (a ``wall`` that names its stuff, ``scrap``, says none)
+WALL_POSTS = {"post": "nw", "ne+nw": "nw"}
+# the groups of a creator's layers as the parts of a layered character (lpc_compose.PART_ORDER)
+GROUP_PARTS = {
+    "body": "body", "shoes": "feet", "legs": "legs", "bottom": "legs", "chest": "torso",
+    "top": "torso", "gloves": "arms", "cape": "cape", "shoulders": "shoulders",
+    "accessory": "neck", "facial": "facial", "hair": "hair", "helmet": "hat",
+    "headwear": "hat", "weapon": "weapon", "held": "tools",
+}  # fmt: skip
+SHADOW_FILES = ("Effects/1x/shadow.png", "Effects/shadow_1x.png")
 
 
 def _load(root: Path, f: InventoryFile) -> dict[str, Any] | None:
@@ -120,6 +174,18 @@ def is_character(data: dict[str, Any]) -> bool:
     )
 
 
+def is_layer_kit(data: dict[str, Any]) -> bool:
+    """A creator's ``layers.json``: builds of layers, the animations' columns, the order."""
+    anims = data.get("animations")
+    return (
+        isinstance(data.get("layers"), dict)
+        and isinstance(anims, list)
+        and all(isinstance(a, dict) and {"name", "frames", "column"} <= set(a) for a in anims)
+        and isinstance(data.get("rows"), list)
+        and all(r in DIRECTIONS for r in data["rows"])
+    )
+
+
 def _scale(path: str) -> int | None:
     """The scale of the folder a picture lies in (``PNG/2x/...``), None when it says none."""
     for part in path.split("/")[:-1]:
@@ -129,8 +195,11 @@ def _scale(path: str) -> int | None:
     return None
 
 
-def _manifests(inv: Inventory, root: Path) -> tuple[list[tuple[str, dict]], list[tuple[str, dict]]]:
-    tiles, characters = [], []
+Manifests = tuple[list[tuple[str, dict]], list[tuple[str, dict]], list[tuple[str, dict]]]
+
+
+def _manifests(inv: Inventory, root: Path) -> Manifests:
+    tiles, characters, layers = [], [], []
     for f in sorted(inv.files, key=lambda f: f.path):
         if f.ext != ".json":
             continue
@@ -141,7 +210,9 @@ def _manifests(inv: Inventory, root: Path) -> tuple[list[tuple[str, dict]], list
             tiles.append((f.path, data))
         elif is_character(data):
             characters.append((f.path, data))
-    return tiles, characters
+        elif is_layer_kit(data):
+            layers.append((f.path, data))
+    return tiles, characters, layers
 
 
 def _aside(f: InventoryFile, reason: str) -> AssetFragment:
@@ -171,6 +242,13 @@ def _pair(value: Any, default: tuple[int, int]) -> tuple[int, int]:
     return default
 
 
+def _top(height: Any) -> int:
+    """The highest point of a piece's ``height``: a number, or [low, high] of a ramp."""
+    if isinstance(height, list):
+        return max([int(v) for v in height if isinstance(v, int | float)] or [0])
+    return int(height) if isinstance(height, int | float) else 0
+
+
 def origin_of(
     anchor: tuple[int, int], footprint: tuple[int, int], diamond: tuple[int, int]
 ) -> list[int]:
@@ -186,75 +264,178 @@ def joins_of(mask: int) -> list[str]:
     return [side for bit, side in JOIN_SIDES if mask & bit]
 
 
+def project_path(pack_id: str, rel: str) -> str:
+    return f"assets/packs/{pack_id}/{rel}"
+
+
 def tile_facets(
-    name: str, sprite: dict[str, Any], diamond: tuple[int, int]
+    name: str, sprite: dict[str, Any], diamond: tuple[int, int], pose: bool = False
 ) -> tuple[dict[str, Any], str]:
     """The facets of one piece of a tile kit, and the reason it is set aside ("" when it is
-    used). What the manifest says decides, then its category: a later frame, a shadow, a ramp,
-    an overlay, a piece of a building stacked on others and a thing hung on a wall are set
-    aside; a floor is ground (water a liquid's), a path or a road a road, a piece that joins or
-    stands on a cell's edge a wall, a block a decoration standing up from the ground, and the
-    rest things standing on their cells."""
+    used). A later frame (unless the frames are poses: ``pose``) is drawn by the first and a
+    shadow under what it belongs to; the rest is used. What the manifest says decides, then
+    its category: a ramp, a storey, a roof, what stands on a roof or on a storey's face, what
+    hangs on a wall and what lies over another tile are stacked (the module's docstring); a
+    floor is ground (water a liquid's), a path or a road a road, a piece that joins or stands on
+    a cell's edge a wall (a door one with an opening; a post, or the corner of two walls, on the
+    back corner), a block a decoration standing up from the ground, and the rest things
+    standing on their cells."""
     category = sprite["file"].split("/")[-2] if "/" in sprite["file"] else ""
     words = {category} | set(classifier.name_words(name))
     frame = sprite.get("frame")
-    if isinstance(frame, int) and frame > 1:
+    if isinstance(frame, int) and frame > 1 and not pose:
         return {}, UNUSED_FRAME
     if category == "shadows":
         return {}, UNUSED_SHADOW
-    if sprite.get("up") or category == "ramps":
-        return {}, UNUSED_RAMP
-    if sprite.get("overlay") and category not in ROAD_CATEGORIES or "tile" in sprite:
-        return {}, UNUSED_OVERLAY
-    if words & OVERLAY_WORDS:
-        return {}, UNUSED_OVERLAY
-    if category in STACKED_CATEGORIES or sprite.get("on_storey") or "storey" in sprite:
-        return {}, UNUSED_STACKED
-    wall = str(sprite.get("wall") or "")
-    if sprite.get("on_wall") or (wall and category != "walls"):
-        return {}, UNUSED_ON_WALL
     w, h = _pair(sprite.get("size"), (diamond[0], diamond[1]))
     anchor = _pair(sprite.get("anchor"), (w // 2, 0))
     footprint = _pair(sprite.get("footprint"), (1, 1))
+    tags = [MANIFEST_TAG]
+    if pose and isinstance(frame, int):
+        tags.append(f"pose:{frame}")
     facets: dict[str, Any] = {
         "projection": PROJECTION,
         "canvas": [w, h],
         "footprint": [diamond[0], diamond[1]],
         "origin": origin_of(anchor, footprint, diamond),
         "rise": max(0, anchor[1]),
-        "tags": [MANIFEST_TAG],
+        "tags": tags,
     }
     tile = {**facets, "usage": USAGE_TILE}
     height = sprite.get("height")
-    flat = height in (0, None) and anchor[1] == 0
+    lift = _top(height)
+
+    def stacked(role: str, stack: str, *more: str) -> dict[str, Any]:
+        out = {**tile, "role": role, "stack": stack, "tags": [*tags, *more]}
+        if lift > 0 and stack in ("block", "ramp", "storey", "roof"):
+            out["lift"] = lift
+        if isinstance(sprite.get("joins"), int) and joins_of(int(sprite["joins"])):
+            out["joins"] = joins_of(int(sprite["joins"]))
+        return out
+
+    wall = str(sprite.get("wall") or "")
+    if sprite.get("up") or category in RAMP_CATEGORIES:
+        up = SCREEN_SIDES.get(str(sprite.get("up") or ""), "n")
+        return stacked("GROUND", "ramp", f"up:{up}"), ""
+    if category in STOREY_CATEGORIES or "storey" in sprite:
+        said = [f"{k}:{sprite[k]}" for k in ("facade", "level", "storey") if sprite.get(k)]
+        return stacked("BUILDING", "storey", *said), ""
+    if category in ROOF_CATEGORIES:
+        return stacked("BUILDING", "roof"), ""
+    if category in ROOFTOP_CATEGORIES:
+        return stacked("DECORATION", "on_roof"), ""
+    if category in FACADE_CATEGORIES or sprite.get("on_storey"):
+        face = SCREEN_SIDES.get(str(sprite.get("face") or ""), "")
+        return stacked("DECORATION", "on_storey", *([f"face:{face}"] if face else [])), ""
+    overlay = bool(sprite.get("overlay")) and category not in ROAD_CATEGORIES
+    if overlay or "tile" in sprite or words & OVERLAY_WORDS:
+        if words & {"rail", "rails"} and isinstance(sprite.get("joins"), int):
+            return stacked("ROAD", "overlay", "rail"), ""  # a mine's track: a road of rails
+        return stacked("DECORATION", "overlay"), ""
+    door = category in DOOR_CATEGORIES and wall in WALL_EDGES
+    hung = sprite.get("on_wall") or (
+        wall and category not in WALL_CATEGORIES and not door and "against" not in sprite
+    )
+    if hung:
+        side = WALL_EDGES.get(wall, "")
+        return stacked("DECORATION", "on_wall", *([f"wall:{side}"] if side else [])), ""
     if category in ROAD_CATEGORIES or "corners" in sprite:
         out = {**tile, "role": "ROAD"}
-        if isinstance(sprite.get("joins"), int):
+        if isinstance(sprite.get("joins"), int) and joins_of(int(sprite["joins"])):
             out["joins"] = joins_of(int(sprite["joins"]))
         return out, ""
-    if footprint == (1, 1) and (isinstance(sprite.get("joins"), int) or wall):
+    if (
+        footprint == (1, 1)
+        and (isinstance(sprite.get("joins"), int) or wall)
+        and "against" not in sprite
+    ):
         out = {**tile, "role": "WALL"}
-        if isinstance(sprite.get("joins"), int):
-            out["joins"] = joins_of(int(sprite["joins"]))
+        sides = joins_of(int(sprite["joins"])) if isinstance(sprite.get("joins"), int) else []
+        if sides:
+            out["joins"] = sides  # a piece that joins nothing stands alone: a plain wall tile
         elif wall in WALL_EDGES:
             out["edge"] = WALL_EDGES[wall]
-        elif wall:
-            out["post"] = True  # a corner of two walls, or the end of one
+            if door:
+                out["tags"] = [*tags, "door"]
+        elif wall in WALL_POSTS:
+            out["post"] = WALL_POSTS[wall]
+            if wall != "post":
+                out["tags"] = [*tags, "corner"]
         return out, ""
+    flat = height in (0, None) and anchor[1] == 0
     if category in GROUND_CATEGORIES or (category in LIQUID_CATEGORIES and flat):
         if words & WATER_WORDS and "ice" not in words:
             return {**tile, "role": "WATER"}, ""
         if category in LIQUID_CATEGORIES and "ice" not in words:
-            return {**tile, "role": "DECORATION", "tags": [MANIFEST_TAG, "liquid"]}, ""  # lava
+            return {**tile, "role": "DECORATION", "tags": [*tags, "liquid"]}, ""  # lava
         return {**tile, "role": "GROUND"}, ""
     if category in BLOCK_CATEGORIES | LIQUID_CATEGORIES:
-        # it stands up from the ground: no ground of a flat map, a block as a block of stone is
-        return {**tile, "role": "DECORATION", "tags": [MANIFEST_TAG, "block"]}, ""
+        # it stands up from the ground and what stands on it stands higher (``lift``)
+        return stacked("DECORATION", "block", "block"), ""
     # a thing of the kit's scenery (a car parked in a street, a tombstone, a chest): only its
     # buildings are houses, and nothing is an item to pick up because it is small
     role = "BUILDING" if category == "buildings" else "DECORATION"
     return {**facets, "usage": "sprite", "frame": [w, h], "stands_on": list(footprint),
             "role": role}, ""  # fmt: skip
+
+
+def frame_groups(sprites: dict[str, Any]) -> dict[str, list[tuple[int, str]]]:
+    """The pieces of a manifest by the name they have without their frame (``fountain_f2`` ->
+    ``fountain``), each list [(frame, name)] in the order of the frames."""
+    groups: dict[str, list[tuple[int, str]]] = {}
+    for name, sprite in sprites.items():
+        m = _FRAME.search(name)
+        key = name[: m.start()] if m else name
+        number = int(m.group(1)) if m else int(sprite.get("frame") or 1)
+        groups.setdefault(key, []).append((number, name))
+    return {k: sorted(v) for k, v in groups.items()}
+
+
+def _work(ctx: AdapterContext) -> Path:
+    work = (ctx.work_dir or paths.cache_dir()) / WORK_FOLDER
+    work.mkdir(parents=True, exist_ok=True)
+    return work
+
+
+def compose(root: Path, work: Path, rows: list[list[InventoryFile]], cell: tuple[int, int]) -> str:
+    """Puts pictures together into one sheet (``rows`` of cells of ``cell``, each picture on the
+    bottom of its cell, in the middle) in ``work``, named by what is in it. Returns the name."""
+    columns = max(len(r) for r in rows)
+    text = "\n".join([f"{columns}x{len(rows)}:{cell[0]}x{cell[1]}"] + [
+        ",".join(f.sha256 for f in r) for r in rows
+    ])  # fmt: skip
+    name = hashlib.sha256(text.encode("utf-8")).hexdigest() + ".png"
+    dest = work / name
+    if not dest.is_file():
+        sheet = Image.new("RGBA", (columns * cell[0], len(rows) * cell[1]), (0, 0, 0, 0))
+        for y, row in enumerate(rows):
+            for x, f in enumerate(row):
+                with Image.open(root / f.path) as opened:
+                    picture = opened.convert("RGBA")
+                at = (
+                    x * cell[0] + (cell[0] - picture.width) // 2,
+                    (y + 1) * cell[1] - picture.height,
+                )
+                sheet.paste(picture, at)
+        partial = dest.with_suffix(".partial")
+        sheet.save(partial, format="PNG")
+        partial.replace(dest)
+    return name
+
+
+def thing_animations(
+    frames: list[str], pose_action: str, strip: str, fps: float = TILE_FPS
+) -> dict[str, Any]:
+    """The animations of a thing of a tile kit whose frames make one strip (``strip``, its
+    project path): a loop of them all (``idle_down``), or, when they are poses, the first
+    standing still and the poses played once (``<action>_down``)."""
+    cells = [[i, 0] for i in range(len(frames))]
+    if pose_action:
+        return {
+            "idle_down": {"frames": cells[:1], "fps": fps, "loop": True, "source": strip},
+            f"{pose_action}_down": {"frames": cells, "fps": fps, "loop": False, "source": strip},
+        }
+    return {"idle_down": {"frames": cells, "fps": fps, "loop": True, "source": strip}}
 
 
 def character_facets(
@@ -281,7 +462,7 @@ def character_facets(
                 "loop": bool(spec.get("loop", True)),
             }
             if image != own:
-                entry["source"] = f"assets/packs/{pack_id}/{image}"
+                entry["source"] = project_path(pack_id, image)
             animations[f"{action}_{DIRECTIONS[direction]}"] = entry
     if not animations:
         return None
@@ -295,10 +476,155 @@ def character_facets(
         "projection": PROJECTION,
         "tags": [MANIFEST_TAG],
     }
-    role = SIDE_ROLES.get(str(data.get("side") or "").casefold(), "") or pack_role
+    role, tag = role_of(data, pack_role)
     if role:
         facets["role"] = role
+    if tag:
+        facets["tags"] = [MANIFEST_TAG, tag]
     return own, facets
+
+
+def pack_folder(rel: str) -> str:
+    """The folder of the pack a file of a character pack lies in: what is above ``Sheets`` or
+    ``Characters`` (the creators' ready-made ones)."""
+    parts = rel.split("/")
+    for i, part in enumerate(parts):
+        if part in ("Sheets", "Characters", "Layers"):
+            return "/".join(parts[:i])
+    return posixpath.dirname(rel)
+
+
+def shadow_of(rel: str, data: dict[str, Any], files: dict[str, InventoryFile]) -> str:
+    """The pack path of the shadow a character is drawn over: the one its JSON names, else the
+    pack's (``SHADOW_FILES``); "" when there is none."""
+    base = pack_folder(rel)
+    said = data.get("shadow")
+    wanted = [str(said)] if isinstance(said, str) and "<" not in said else []
+    for candidate in [*wanted, *SHADOW_FILES]:
+        path = posixpath.join(base, candidate) if base else candidate
+        if path in files:
+            return path
+    return ""
+
+
+def effect_facets(path: str, size: tuple[int, int]) -> dict[str, Any] | None:
+    """The facets of a sheet of a character pack's effects: a row a direction of what flies (an
+    arrow, a bolt, a fireball: ``fly_<direction>``, looping), one row of what bursts where it
+    happens (an impact, a heal: ``idle_down``, once); the middle of a cell is the point it is
+    put at. None for a picture of another shape."""
+    w, h = size
+    cell = EFFECT_CELL
+    if w < cell or w % cell or h not in (cell, cell * len(DIRECTIONS)):
+        return None
+    count = w // cell
+    words = set(classifier.name_words(posixpath.splitext(posixpath.basename(path))[0]))
+    flies = bool(words & PROJECTILE_WORDS)
+    animations: dict[str, Any] = {}
+    if h == cell:
+        animations["idle_down"] = {
+            "frames": [[c, 0] for c in range(count)], "fps": EFFECT_FPS, "loop": flies,
+        }  # fmt: skip
+    else:
+        for row, direction in enumerate(DIRECTIONS.values()):
+            animations[f"{'fly' if flies else 'idle'}_{direction}"] = {
+                "frames": [[c, row] for c in range(count)], "fps": EFFECT_FPS, "loop": True,
+            }  # fmt: skip
+    return {
+        "usage": "sprite",
+        "grid": {"cell": [cell, cell], "margin": [0, 0], "separation": [0, 0]},
+        "frame": [cell, cell],
+        "origin": [cell // 2, cell // 2],
+        "directions": 8 if h > cell else 1,
+        "animations": animations,
+        "projection": PROJECTION,
+        "role": "PROJECTILE" if flies else "EFFECT",
+        "tags": [MANIFEST_TAG],
+    }
+
+
+def role_of(data: dict[str, Any], pack_role: str) -> tuple[str, str]:
+    """(the role of a character from its own JSON, a tag that says more): its ``side``, else
+    an animal's ``group``, a unit's ``unit`` (it fights or it does not), a creator's ready-made
+    character (its ``layers``: a hero of a hero creator, else a person of the village), else the
+    pack's role (``pack_role``: "HERO" for a creator of heroes)."""
+    side = SIDE_ROLES.get(str(data.get("side") or "").casefold(), "")
+    if side:
+        return side, ""
+    group = str(data.get("group") or "").casefold()
+    if group in ANIMAL_GROUPS:
+        if group == "wild" and str(data.get("species") or "").casefold() in PREDATORS:
+            return "ENEMY", "wild"
+        return ANIMAL_GROUPS[group]
+    anims = data.get("animations") or {}
+    if data.get("unit"):
+        return ("ENEMY" if "attack" in anims else "NPC"), ""
+    if isinstance(data.get("layers"), list):
+        return ("PLAYER" if pack_role == "HERO" else "NPC"), ""
+    return ("" if pack_role == "HERO" else pack_role), ""
+
+
+def layer_pieces(
+    rel: str, data: dict[str, Any], files: dict[str, InventoryFile]
+) -> list[AssetFragment]:
+    """The layers of a creator (``layers.json`` at ``rel``) as the pieces of a layered character
+    (``lpc_compose``, as the farm reader's): a body and the layers of each build, every one a
+    sheet with the creator's animations side by side and a row a direction. The pieces of one
+    build of one creator are one character's (its set)."""
+    from rpggen.core import lpc_compose
+
+    base = posixpath.dirname(rel)
+    cw, ch = _pair(data.get("cell"), (64, 64))
+    ax, ay = _pair(data.get("anchor"), (cw // 2, ch - 1))
+    animations: dict[str, Any] = {}
+    for spec in data["animations"]:
+        count, column = int(spec.get("frames") or 0), int(spec.get("column") or 0)
+        for row, direction in enumerate(data["rows"]):
+            animations[f"{spec['name']}_{DIRECTIONS[direction]}"] = {
+                "frames": [[column + c, row] for c in range(count)],
+                "fps": float(spec.get("fps") or 8),
+                "loop": bool(spec.get("loop", True)),
+            }
+    said = data.get("styles")
+    styles: dict[str, Any] = said if isinstance(said, dict) else {}
+    out: list[AssetFragment] = []
+    for build, groups in sorted(data["layers"].items()):
+        if not isinstance(groups, dict):
+            continue
+        owner = f"{base}/{build}"
+        for style, colours in sorted(groups.items()):
+            group = str((styles.get(style) or {}).get("group") or style.split("_", 1)[0])
+            part = GROUP_PARTS.get(group, group)
+            for colour, file in sorted((colours or {}).items()):
+                path = posixpath.join(base, str(file))
+                if path not in files:
+                    continue
+                kind = (
+                    [lpc_compose.BODY_TAG]
+                    if part == "body"
+                    else [lpc_compose.LAYER_TAG, lpc_compose.PART_TAG + part]
+                )
+                tags = [*kind, lpc_compose.LAYERED_TAG, lpc_compose.LAYERED_UNUSED,
+                        lpc_compose.LAYERED_SET_TAG + owner, MANIFEST_TAG,
+                        f"piece:{style}_{colour}"]  # fmt: skip
+                facets = {
+                    "usage": "sprite",
+                    "role": "NONE",
+                    "grid": {"cell": [cw, ch], "margin": [0, 0], "separation": [0, 0]},
+                    "frame": [cw, ch],
+                    "origin": [ax, ay],
+                    "directions": 8 if len(data["rows"]) >= 8 else 4,
+                    "animations": animations,
+                    "projection": PROJECTION,
+                    "tags": tags,
+                }
+                out.append(AssetFragment(path, facets, CONFIDENCE, "full"))
+    return out
+
+
+# a shadow of a character pack (``shadow``, ``shadow_large``, ``shadow_1x``), not the cultist's
+# ``shadow_bolt``
+_SHADOW_FILE = re.compile(r"^shadow(?:_(?:small|medium|large|\d+x))?$")
+_EFFECT_FILE = re.compile(r"^(?P<base>.+?)(?:_(?P<dir>se|sw|ne|nw|s|w|n|e))?(?:_(?P<n>\d+))?$")
 
 
 class GridwrightAdapter:
@@ -306,13 +632,13 @@ class GridwrightAdapter:
     priority = 42  # a reader of a whole format: before the cutter, the facings and isometric
 
     def match(self, inv: Inventory, root: Path) -> float:
-        tiles, characters = _manifests(inv, root)
-        return 1.0 if tiles or characters else 0.0
+        tiles, characters, layers = _manifests(inv, root)
+        return 1.0 if tiles or characters or layers else 0.0
 
     def extract(self, inv: Inventory, root: Path, ctx: AdapterContext) -> AdapterResult:
         result = AdapterResult(self.name)
-        tiles, characters = _manifests(inv, root)
-        if not tiles and not characters:
+        tiles, characters, layer_kits = _manifests(inv, root)
+        if not tiles and not characters and not layer_kits:
             return result
         files = {f.path: f for f in inv.files if f.path not in ctx.claimed}
         done: set[str] = set()
@@ -322,21 +648,56 @@ class GridwrightAdapter:
                 done.add(fragment.path)
                 result.assets.append(fragment)
 
+        def strip_of(rows: list[list[InventoryFile]], cell: tuple[int, int]) -> str:
+            name = compose(root, _work(ctx), rows, cell)
+            target = f"{STRIP_DIR}/{name}"
+            result.generated[target] = str(_work(ctx) / name)
+            return target
+
         diamond = DIAMOND
         for rel, data in tiles:
             base = posixpath.dirname(rel)
             diamond = _diamond(data)
-            for name in sorted(data["sprites"]):
-                sprite = data["sprites"][name]
+            sprites = data["sprites"]
+            groups = frame_groups(sprites)
+            group_of = {name: key for key, members in groups.items() for _n, name in members}
+            for name in sorted(sprites):
+                sprite = sprites[name]
                 path = posixpath.join(base, str(sprite["file"]))
                 if path not in files:
                     continue
-                facets, reason = tile_facets(name, sprite, diamond)
-                add(
-                    _aside(files[path], reason)
-                    if reason
-                    else AssetFragment(path, facets, CONFIDENCE, "full")
-                )
+                members = groups[group_of[name]]
+                pose_key = next((k for _n, m in members for k in POSE_KEYS if k in sprites[m]), "")
+                tiles_posed = bool(pose_key) and facets_are_tiles(sprites, members, diamond)
+                facets, reason = tile_facets(name, sprite, diamond, pose=tiles_posed)
+                if reason:
+                    add(_aside(files[path], reason))
+                    continue
+                later = [
+                    posixpath.join(base, str(sprites[m]["file"]))
+                    for n, m in members
+                    if m != name and n > (int(sprite.get("frame") or 1))
+                ]
+                later = [p for p in later if p in files]
+                posed = any(str(t).startswith("pose:") for t in facets.get("tags", []))
+                if later and not posed:  # a pose of a door is a tile of its own
+                    if facets["usage"] == USAGE_TILE:
+                        facets["tile_frames"] = [project_path(inv.pack_id, p) for p in later]
+                        facets["tile_fps"] = TILE_FPS
+                    else:
+                        w, h = facets["frame"]
+                        frames = [files[path], *(files[p] for p in later)]
+                        strip = strip_of([frames], (w, h))
+                        facets["grid"] = {"cell": [w, h], "margin": [0, 0], "separation": [0, 0]}
+                        facets["animations"] = thing_animations(
+                            [f.path for f in frames], POSE_KEYS.get(pose_key, ""), strip
+                        )
+                shadow = sprite.get("shadow")
+                if isinstance(shadow, str) and isinstance(sprites.get(shadow), dict):
+                    shadow_path = posixpath.join(base, str(sprites[shadow]["file"]))
+                    if shadow_path in files:
+                        facets["shadow"] = project_path(inv.pack_id, shadow_path)
+                add(AssetFragment(path, facets, CONFIDENCE, "full"))
             # the sheets hold the pieces again: the single pictures are used
             for path, f in files.items():
                 if f.kind == "image" and path.startswith(base + "/Sheets/"):
@@ -345,6 +706,8 @@ class GridwrightAdapter:
         for path in files:
             words.update(classifier.name_words(path.split("/", 1)[0]))
         pack_role = next((role for said, role in PACK_ROLES if words & said), "")
+        if not pack_role and words & HERO_WORDS:
+            pack_role = "HERO"
         sources: set[str] = set()
         character_roots: set[str] = set()
         for rel, data in characters:
@@ -354,19 +717,26 @@ class GridwrightAdapter:
             if read is None or read[0] not in files:
                 continue
             own, facets = read
+            shadow = shadow_of(rel, data, files)
+            if shadow:
+                facets["shadow"] = project_path(inv.pack_id, shadow)
             add(AssetFragment(own, facets, CONFIDENCE, "full"))
             folder = posixpath.dirname(rel)
             sources.update(
                 posixpath.join(folder, str(a["image"])) for a in data["animations"].values()
             )
             character_roots.add(rel.split("/", 1)[0])
+        for rel, data in layer_kits:
+            for fragment in layer_pieces(rel, data, files):
+                add(fragment)
+            character_roots.add(rel.split("/", 1)[0])
         for path in sorted(sources):
             if path in files:
                 add(_aside(files[path], UNUSED_SOURCE))
-        if tiles or characters:
-            result.pack_warnings.append(
-                f"{classifier.ISOMETRIC_MARK}{diamond[0]}x{diamond[1]}:manifest"
-            )
+        result.pack_warnings.append(
+            f"{classifier.ISOMETRIC_MARK}{diamond[0]}x{diamond[1]}:manifest"
+        )
+        effects: dict[tuple[str, str], list[tuple[str, int, InventoryFile]]] = {}
         for path, f in sorted(files.items()):
             if f.kind != "image" or path in done:
                 continue
@@ -376,8 +746,71 @@ class GridwrightAdapter:
                 add(_aside(f, UNUSED_OTHER_SIZE))
             elif parts[0] in character_roots and len(parts) > 1 and parts[1] == "PNG":
                 add(_aside(f, UNUSED_SHEET_FRAME))  # the frames the sheets hold
-            elif parts[0] in character_roots and len(parts) > 1 and parts[1] == "Layers":
-                add(_aside(f, UNUSED_LAYER))
-            elif posixpath.basename(path).startswith("shadow"):
-                add(_aside(f, UNUSED_SHADOW))
+            elif _SHADOW_FILE.match(posixpath.splitext(parts[-1])[0]):
+                add(_aside(f, UNUSED_SHADOW))  # drawn under the characters (``shadow``)
+            elif EFFECTS_FOLDER in {p.casefold() for p in parts[:-1]}:
+                if "frames" in parts[:-1]:
+                    add(_aside(f, UNUSED_SHEET_FRAME))  # the frames the effect sheets hold
+                    continue
+                stem = posixpath.splitext(parts[-1])[0]
+                m = _EFFECT_FILE.match(stem)
+                if m and (m.group("dir") or m.group("n")):
+                    key = (posixpath.dirname(path), m.group("base"))
+                    effects.setdefault(key, []).append(
+                        (m.group("dir") or "", int(m.group("n") or 1), f)
+                    )
+                    continue
+                effect = effect_facets(
+                    path, ((f.image or {}).get("w", 0), (f.image or {}).get("h", 0))
+                )
+                if effect is not None:
+                    add(AssetFragment(path, effect, CONFIDENCE, "full"))
+        for (_folder, _base), pictures in sorted(effects.items()):
+            self._effect_of_pictures(pictures, add, strip_of)
         return result
+
+    @staticmethod
+    def _effect_of_pictures(
+        pictures: list[tuple[str, int, InventoryFile]], add: Any, strip_of: Any
+    ) -> None:
+        """An effect drawn a picture a direction and a frame (the hero creator's
+        ``arrow_<dir>.png``, ``bolt_arcane_<dir>_<n>.png``, ``impact_arcane_<n>.png``): one asset,
+        the first picture, whose sheet is put together from them all in the shape of the other
+        packs' effects (a row a direction, in the characters' order)."""
+        dirs = sorted({d for d, _n, _f in pictures})
+        numbers = sorted({n for _d, n, _f in pictures})
+        by = {(d, n): f for d, n, f in pictures}
+        order = [d for d in DIRECTIONS if d in dirs] if dirs != [""] else [""]
+        if dirs != [""] and len(order) != len(DIRECTIONS):
+            for _d, _n, f in pictures:
+                add(_aside(f, UNUSED_SOURCE))  # an effect missing a direction: none of it
+            return
+        rows = [[by[(d, n)] for n in numbers if (d, n) in by] for d in order]
+        if any(len(r) != len(numbers) for r in rows):
+            return
+        first = rows[0][0]
+        cell = (
+            (first.image or {}).get("w", EFFECT_CELL),
+            (first.image or {}).get("h", EFFECT_CELL),
+        )
+        strip = strip_of(rows, cell)
+        facets = effect_facets(first.path, (cell[0] * len(numbers), cell[1] * len(rows)))
+        if facets is None:
+            return
+        for spec in facets["animations"].values():
+            spec["source"] = strip
+        add(AssetFragment(first.path, facets, CONFIDENCE, "full"))
+        for row in rows:
+            for f in row:
+                if f is not first:
+                    add(_aside(f, UNUSED_SOURCE))
+
+
+def facets_are_tiles(
+    sprites: dict[str, Any], members: list[tuple[int, str]], diamond: tuple[int, int]
+) -> bool:
+    """True when the pieces of a group whose frames are poses are tiles (a door in a wall: each
+    pose a tile of its own); a thing that moves through its poses plays them instead."""
+    first = sprites[members[0][1]]
+    facets, _reason = tile_facets(members[0][1], {**first, "frame": 1}, diamond)
+    return facets.get("usage") == USAGE_TILE

@@ -618,3 +618,47 @@ def test_the_farm_kit_looks_at_what_fits_the_view() -> None:
     assert catalog.is_iso_tile(soil)
     assert soil not in farm_kit._own(cat), "a top-down farm does not own an isometric tile"
     assert soil in farm_kit._own(cat, "isometric")
+
+
+def _tile(asset_id: str, frames: int = 1) -> catalog.Asset:
+    detected = {"usage": "iso_tile", "canvas": [32, 16], "footprint": [32, 16]}
+    if frames > 1:
+        detected["tile_frames"] = [
+            f"assets/packs/p/{asset_id}_f{n}.png" for n in range(2, frames + 1)
+        ]
+    return catalog.Asset(
+        id=asset_id, pack_id="p", path=f"assets/packs/p/{asset_id}.png", sha256="0" * 64,
+        kind="image", status="AUTO_DETECTED", detected=detected, detected_by="test",
+        confidence=1.0,
+    )  # fmt: skip
+
+
+def test_a_tile_that_moves_gets_a_run_of_cells_on_one_row() -> None:
+    entry: dict = {"columns": 8, "rows": 8, "cell": [32, 16]}
+    members = [_tile("a"), _tile("b", 4), _tile("c"), _tile("d", 4), _tile("e", 9)]
+    iso_atlas.allocate(entry, members)
+    # a, then b's four frames, c, then d does not fit the rest of the row (cell 6 + 4 > 8)
+    assert entry["cells"] == {"a": 0, "b": 1, "c": 5, "d": 8, "e": 12}
+    assert entry["spans"] == {"b": 4, "d": 4}  # e has more frames than a row: it does not move
+    assert entry["next_cell"] == 13
+    # a tile that gains frames later keeps the one cell it has
+    again = [_tile("a", 3), *members[1:]]
+    iso_atlas.allocate(entry, again)
+    assert entry["cells"]["a"] == 0 and "a" not in entry["spans"]
+
+
+def test_a_sheet_set_aside_is_no_source_unless_it_was_one() -> None:
+    cat = _assemble([SYNTH / "basic16"])
+    sheets = [s["asset"] for t in cat.tilesets for s in t.sources]
+    assert sheets, "the pack's tile sheets are sources"
+    before = catalog.Catalog.from_json(cat.to_json())
+    aside = catalog.Catalog.from_json(cat.to_json())
+    for asset in aside.assets:
+        if asset.id == sheets[0]:
+            asset.status = "UNUSED"  # a preview read as tiles (Gridwright's 1920 x 1080)
+    catalog.assign_tilesets(aside, None)
+    assert sheets[0] not in [s["asset"] for t in aside.tilesets for s in t.sources]
+    # a project that had it as a source keeps it: its painted maps name its tiles
+    kept = catalog.Catalog.from_json(aside.to_json())
+    catalog.assign_tilesets(kept, before)
+    assert sheets[0] in [s["asset"] for t in kept.tilesets for s in t.sources]

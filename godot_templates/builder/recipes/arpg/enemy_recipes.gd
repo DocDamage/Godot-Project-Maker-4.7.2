@@ -270,6 +270,7 @@ func build(ctx: BuildContext) -> Array:
 		var node := _build_scene(frames, fo, tile, def, JsonUtil.to_bool(e["fallback"]), Navigation.enabled(ctx))
 		# a figure drawn in a frame as wide as its widest swing stands on its own feet (T17.30)
 		ActorBuild.set_feet(node, ctx.catalog.effective(a))
+		ActorBuild.add_shadow(node, ctx.catalog.effective(a))
 		var err := SceneUtil.save_scene(node, scene_path(slug))
 		if err != OK:
 			issues.append(ctx.make_issue("BUILD-004", {"file": scene_path(slug), "err": err}, scene_path(slug)))

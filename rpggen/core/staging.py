@@ -308,6 +308,82 @@ def prune_packs(stg: Staging, old: ledger_mod.Ledger, keep: set[str]) -> list[Is
     return list(issues)
 
 
+# What a pack has again (2026-10-26: Gridwright's kits ship every picture at 1x, 2x and 3x, and
+# the frames of every sheet one by one; ninety thousand pictures in nine kits): the reasons an
+# asset is set aside as a copy of one that is used.
+COPY_REASONS = frozenset({"other_size", "sheet_frame", "atlas_copy"})
+GDIGNORE = ".gdignore"
+_SIDECARS = (".import", ".uid")
+
+
+def _referenced(catalog: catalog_mod.Catalog) -> set[str]:
+    """The project paths the catalog uses: every asset's that is not set aside, and every file
+    an asset draws from (an animation's source, a tile's later frames, a shadow, a vehicle's
+    headings, a sheet of objects)."""
+    used: set[str] = set()
+    by_id = {a.id: a for a in catalog.assets}
+    for asset in catalog.assets:
+        facets = catalog_mod.effective(asset)
+        if asset.status != "UNUSED":
+            used.add(asset.path)
+        for spec in (facets.get("animations") or {}).values():
+            if isinstance(spec, dict) and spec.get("source"):
+                used.add(str(spec["source"]))
+        used.update(str(p) for p in facets.get("tile_frames") or [])
+        if facets.get("shadow"):
+            used.add(str(facets["shadow"]))
+        root = f"assets/packs/{asset.pack_id}/"
+        used.update(root + str(p) for p in facets.get("heading_files") or [])
+    for obj in catalog.objects:
+        sheet = by_id.get(obj.sheet)
+        if sheet is not None:
+            used.add(sheet.path)
+    return used
+
+
+def ignore_copies(stg: Staging, catalog: catalog_mod.Catalog) -> list[str]:
+    """Keeps Godot from importing the folders of a pack that hold nothing but copies: a folder
+    every file of which (and of every folder in it) is an asset set aside as a copy
+    (``COPY_REASONS``) that nothing uses gets an empty ``.gdignore``, the outermost such folder
+    only. The files stay where they are; deleting the ``.gdignore`` brings them back into the
+    editor. Returns the project paths of the ``.gdignore`` files written."""
+    from rpggen.core import classifier
+
+    used = _referenced(catalog)
+    copies = {
+        a.path
+        for a in catalog.assets
+        if a.status == "UNUSED"
+        and a.path not in used
+        and any(
+            str(t).startswith(classifier.UNUSED_TAG)
+            and str(t)[len(classifier.UNUSED_TAG) :] in COPY_REASONS
+            for t in catalog_mod.effective(a).get("tags") or []
+        )
+    }
+    packs = stg.staging / "assets" / "packs"
+    if not copies or not packs.is_dir():
+        return []
+    ignorable: dict[str, bool] = {}
+    for here, dirs, files in os.walk(packs, topdown=False):
+        rel = paths.to_posix_rel(Path(here), stg.staging)
+        own = [f for f in files if not f.endswith(_SIDECARS) and f != GDIGNORE]
+        ignorable[rel] = (
+            bool(own or dirs)
+            and all(f"{rel}/{f}" in copies for f in own)
+            and all(ignorable.get(f"{rel}/{d}", False) for d in dirs)
+        )
+    written: list[str] = []
+    for rel, whole in sorted(ignorable.items()):
+        parent = rel.rsplit("/", 1)[0]
+        if whole and not ignorable.get(parent, False) and rel.count("/") > 2:
+            marker = stg.staging / rel / GDIGNORE
+            if not marker.exists():
+                marker.write_bytes(b"")
+            written.append(f"{rel}/{GDIGNORE}")
+    return written
+
+
 def install_generated(stg: Staging, generated: dict[str, str]) -> list[str]:
     """Copy adapter-generated files (GIF strips) to their project-relative targets."""
     written: list[str] = []
