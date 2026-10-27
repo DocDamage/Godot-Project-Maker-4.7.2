@@ -317,14 +317,16 @@ _SIDECARS = (".import", ".uid")
 
 
 def _referenced(catalog: catalog_mod.Catalog) -> set[str]:
-    """The project paths the catalog uses: every asset's that is not set aside, and every file
-    an asset draws from (an animation's source, a tile's later frames, a shadow, a vehicle's
+    """The project paths the catalog uses: every asset's that is not set aside, every animated
+    sprite's (the build makes the sprite frames of each, set aside or not), and every file an
+    asset draws from (an animation's source, a tile's later frames, a shadow, a vehicle's
     headings, a sheet of objects)."""
     used: set[str] = set()
     by_id = {a.id: a for a in catalog.assets}
     for asset in catalog.assets:
         facets = catalog_mod.effective(asset)
-        if asset.status != "UNUSED":
+        animated = facets.get("usage") == "sprite" and bool(facets.get("animations"))
+        if asset.status != "UNUSED" or animated:
             used.add(asset.path)
         for spec in (facets.get("animations") or {}).values():
             if isinstance(spec, dict) and spec.get("source"):

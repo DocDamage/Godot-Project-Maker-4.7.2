@@ -362,6 +362,26 @@ def test_the_folders_of_copies_are_kept_out_of_godots_import(tmp_path: Path) -> 
     assert staging.ignore_copies(stg, cat) == written  # again: the same markers
 
 
+def test_a_copy_the_build_animates_is_not_kept_out_of_godots_import(tmp_path: Path) -> None:
+    """CI (metroidvania, farm_sizes): the sprite frames of every animated sprite are built,
+    set aside or not, so the folder of a 32 px copy of an animated sheet must stay imported."""
+    from rpggen.core import staging
+
+    source = _tile_kit(tmp_path)
+    opened = archive.open_pack(source, set())
+    inv = inventory.build_inventory(opened)
+    cat, _issues, _generated = catalog.assemble([(opened, inv)], None, [], use_cache=False)
+    copy = next(a for a in cat.assets if "/PNG/2x/" in a.path and a.status == "UNUSED")
+    assert copy.path not in staging._referenced(cat)
+    copy.overrides = {**copy.overrides, "usage": "sprite", "animations": {"idle": {"frames": [0]}}}
+    assert copy.path in staging._referenced(cat)
+    stg = staging.Staging(tmp_path / "game", tmp_path / "game" / ".rpggen_staging")
+    stg.staging.mkdir(parents=True)
+    staging.install_pack(stg, opened.root, inv.pack_id, inv)
+    root = f"assets/packs/{inv.pack_id}/Gridwright Isometric Tiles"
+    assert f"{root}/PNG/2x/.gdignore" not in staging.ignore_copies(stg, cat)
+
+
 def test_the_things_of_a_preview_are_none(tmp_path: Path) -> None:
     kit = _tile_kit(tmp_path)
     preview = kit / "Gridwright Isometric Tiles" / "Preview" / "kit.png"
