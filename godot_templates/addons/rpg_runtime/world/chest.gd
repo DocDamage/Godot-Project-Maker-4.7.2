@@ -33,7 +33,8 @@ func interact(_actor: Node = null) -> void:
 	for entry in loot:
 		var id := StringName(str(entry.get("item_id", "")))
 		var qty := RpgUtil.to_int(entry.get("qty", 1))
-		var added: int = state.inventory.add(id, qty)
+		var waiting := state.give_items([{"item_id": id, "qty": qty}])  # what does not fit waits
+		var added := qty - (RpgUtil.to_int(waiting[0]["qty"]) if not waiting.is_empty() else 0)
 		if added > 0:
 			found.append(_item_text(state, id, added))
 	if gold > 0:

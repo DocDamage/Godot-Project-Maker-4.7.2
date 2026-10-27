@@ -4,7 +4,11 @@ extends RefCounted
 ##
 ## Events (strings, never eval'd): set_flag:<entity>.<key>=<value>, give_item:<id>[:qty],
 ## take_item:<id>[:qty], give_gold:N, open_shop:<id> (the shop opens when the dialogue closes), quest_start:<id>,
-## quest_stage:<id>:<stage>, quest_complete:<id>, join_party:<actor>, leave_party:<actor>, set_quest:<id>=<state>, heal_full,
+## quest_stage:<id>:<stage>, quest_complete:<id>, quest_turn_in:<id> (finishes a stage that waits
+## to be turned in, taking its items), quest_fail:<id>, track_quest:<id> (the HUD's tracker),
+## join_party:<actor>, leave_party:<actor>, set_quest:<id>=<state>, heal_full, count:<name>[:N]
+## (adds N, 1 without, to a counter: what achievements read), unlock_achievement:<id>,
+## give_skill_points:<actor>:N,
 ## set_var:<name>=<N>, add_var:<name>:<N> (N may be negative), run_sequence:<id> (the sequence starts
 ## when the dialogue closes), emit:<name>[:arg].
 
@@ -126,7 +130,7 @@ func fast_forward() -> void:
 const EVENTS: Array[String] = [
 	"set_flag", "give_item", "take_item", "give_gold", "set_quest", "quest_start", "quest_stage",
 	"quest_complete", "join_party", "leave_party", "heal_full", "open_shop", "set_var", "add_var",
-	"run_sequence", "emit", "play_sound",
+	"run_sequence", "emit", "play_sound", "quest_turn_in", "quest_fail", "track_quest", "count", "unlock_achievement", "give_skill_points",
 ]
 
 ## What an event names that must exist in game/data: [[kind, id]] with the kind "shop", "quest"
@@ -139,7 +143,7 @@ static func event_refs(event: String) -> Array:
 	match name:
 		"open_shop":
 			return [["shop", id]]
-		"quest_start", "quest_stage", "quest_complete":
+		"quest_start", "quest_stage", "quest_complete", "quest_turn_in", "quest_fail", "track_quest":
 			return [["quest", id]]
 		"join_party":
 			return [["actor", id]]
@@ -185,6 +189,12 @@ static func _syntax_problem(event: String) -> String:
 			return "" if var_name != "" and arg.contains(":") and arg.substr(var_name.length() + 1).is_valid_int() else "add_var needs <name>:<N>"
 		"heal_full", "emit":
 			return ""
+		"count":
+			var counted := arg.get_slice(":", 0)
+			var by_text := arg.substr(counted.length() + 1) if arg.contains(":") else "1"
+			return "" if counted != "" and by_text.is_valid_int() else "count needs <name>[:N]"
+		"give_skill_points":
+			return "" if arg.get_slice(":", 0) != "" and arg.get_slice(":", 1).is_valid_int() else "give_skill_points needs <actor>:<N>"
 	return "" if arg != "" else "%s needs an argument" % name
 
 ## Runs one event string. Returns false for an unknown or malformed event.
@@ -211,7 +221,7 @@ static func execute_event_on(event: String, state: RpgGameState) -> bool:
 			var qty := int(arg.get_slice(":", 1)) if arg.contains(":") else 1
 			if id == "":
 				return _bad(event)
-			state.inventory.add(StringName(id), qty)
+			state.give_items([{"item_id": id, "qty": qty}])  # what does not fit waits for room
 		"take_item":
 			var id := arg.get_slice(":", 0)
 			var qty := int(arg.get_slice(":", 1)) if arg.contains(":") else 1
@@ -238,6 +248,30 @@ static func execute_event_on(event: String, state: RpgGameState) -> bool:
 			if arg == "":
 				return _bad(event)
 			state.quest_complete(StringName(arg))
+		"quest_turn_in":
+			if arg == "":
+				return _bad(event)
+			state.quest_turn_in(StringName(arg))
+		"quest_fail":
+			if arg == "":
+				return _bad(event)
+			state.quest_fail(StringName(arg))
+		"track_quest":
+			if arg == "":
+				return _bad(event)
+			state.track_quest(StringName(arg))
+		"count":
+			if _syntax_problem(event) != "":
+				return _bad(event)
+			state.count(arg.get_slice(":", 0), arg.get_slice(":", 1).to_int() if arg.contains(":") else 1)
+		"unlock_achievement":
+			if arg == "":
+				return _bad(event)
+			state.unlock_achievement(StringName(arg))
+		"give_skill_points":
+			if _syntax_problem(event) != "":
+				return _bad(event)
+			state.give_skill_points(StringName(arg.get_slice(":", 0)), arg.get_slice(":", 1).to_int())
 		"join_party":
 			if arg == "":
 				return _bad(event)

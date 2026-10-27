@@ -120,6 +120,9 @@ func _on_died() -> void:
 	var state := RpgUtil.state()
 	if state != null and entity_id != "":
 		state.set_flag(entity_id, "defeated", true)
+	var def := definition as RpgEnemyDefinition
+	if state != null and def != null:
+		state.note_defeat(def.id)  # the counters of achievements (1.5.0)
 	reward()
 	on_defeated()
 	died.emit()

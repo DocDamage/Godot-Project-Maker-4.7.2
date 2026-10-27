@@ -7,6 +7,11 @@ extends RefCounted
 ## Evaluated left to right with NO operator precedence. Atoms:
 ##   flag:<entity>.<key>    item:<id>[>=N]    gold>=N    level>=N    quest:<id>=<state>
 ##   quest_active:<id>    quest_done:<id>    quest_stage:<id>:<stage>    party:<actor id>
+##   quest_failed:<id>    quest_available:<id> (not started, and what it requires holds)
+##   quest_ready:<id>     (its stage waits to be turned in and its condition holds)
+##   count:<name>>=N      (a counter of GameState.counters is at least N: count:defeated:wolf>=5,
+##                         count:items:log>=30; a counter never counted is 0)
+##   achievement:<id>     (the achievement is unlocked)
 ##   var:<name><op><N>    (op is one of >= <= == != > <; a variable never set is 0)
 ##   ability:<id>         (the player has the ability; the metroidvania, T14.05)
 ##   friendship:<id>>=N   (the person has at least N hearts; the farm, T17.09. False in a game
@@ -78,7 +83,7 @@ static func _tokens(expr: String) -> PackedStringArray:
 ## The atom prefixes the language knows (for the editor's checks and completion).
 const ATOMS: Array[String] = [
 	"flag:", "item:", "gold>=", "level>=", "party:", "var:", "quest_active:", "quest_done:",
-	"quest_stage:", "quest:", "ability:", "friendship:", "birthday:", "festival",
+	"quest_stage:", "quest_failed:", "quest_available:", "quest_ready:", "quest:", "ability:", "count:", "achievement:", "friendship:", "birthday:", "festival",
 	"festival_tomorrow", "event:", "courting:", "engaged:", "spouse:",
 ]
 ## The atoms of a farm's marriage (T17.26), each with the id of a person.
@@ -127,6 +132,12 @@ static func atom_problem(atom: String) -> String:
 			return "" if atom.trim_prefix(prefix).is_valid_int() else "'%s' needs a number" % atom
 	if atom.begins_with("party:") or atom.begins_with("quest_active:") or atom.begins_with("quest_done:") or atom.begins_with("ability:"):
 		return "" if atom.get_slice(":", 1) != "" else "'%s' needs an id" % atom
+	if atom.begins_with("quest_failed:") or atom.begins_with("quest_available:") or atom.begins_with("quest_ready:") or atom.begins_with("achievement:"):
+		return "" if atom.get_slice(":", 1) != "" else "'%s' needs an id" % atom
+	if atom.begins_with("count:"):
+		var body := atom.trim_prefix("count:")
+		var at := body.rfind(">=")
+		return "" if at > 0 and body.substr(at + 2).is_valid_int() else "count needs <name>>=N: '%s'" % atom
 	if EVENT_WORDS.has(atom):
 		return ""
 	if atom.begins_with("birthday:") or atom.begins_with("event:") or _is_marriage(atom):
@@ -185,6 +196,20 @@ static func _atom(atom: String, state: RpgGameState) -> bool:
 		return state.quest_is_active(StringName(atom.trim_prefix("quest_active:")))
 	if atom.begins_with("quest_done:"):
 		return state.quest_is_done(StringName(atom.trim_prefix("quest_done:")))
+	if atom.begins_with("quest_failed:"):
+		return state.quest_is_failed(StringName(atom.trim_prefix("quest_failed:")))
+	if atom.begins_with("quest_available:"):
+		return state.quest_available(StringName(atom.trim_prefix("quest_available:")))
+	if atom.begins_with("quest_ready:"):
+		return state.quest_ready(StringName(atom.trim_prefix("quest_ready:")))
+	if atom.begins_with("achievement:"):
+		return state.achievement_unlocked(StringName(atom.trim_prefix("achievement:")))
+	if atom.begins_with("count:"):
+		var body := atom.trim_prefix("count:")
+		var at := body.rfind(">=")
+		if at <= 0 or not body.substr(at + 2).is_valid_int():
+			return _unknown(atom)
+		return state.counter(body.substr(0, at)) >= body.substr(at + 2).to_int()
 	if atom.begins_with("quest_stage:"):
 		var parts := atom.trim_prefix("quest_stage:").split(":")
 		if parts.size() != 2:

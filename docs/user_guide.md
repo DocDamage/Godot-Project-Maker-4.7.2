@@ -1388,7 +1388,30 @@ their diamond; a floor switch and a lever keep their small square; an encounter 
 nothing selected covers six by six diamonds. Ctrl+Z takes each back, as on squares.
 
 **Shops.** In a shop, left and right choose how many to buy or sell (up to what you can pay for,
-carry or own), and **Sell all** sells everything the shop buys after a second press.
+carry or own), and **Sell all** sells everything the shop buys after a second press. **Buy
+back** lists what you sold there, for what the shop paid, until it restocks. A shop can keep a
+limited stock that refills after some minutes of play (or every morning on a farm), have its own
+gold to buy with, and roll extra wares from a loot table: set `qty` on a stock row and
+`restock_minutes`, `funds` or `wares` on the shop's file in `game/data/shops/`.
+
+**Quests.** A quest can wait for another (`requires`, such as `quest_done:first`) and start by
+itself when it may (`auto_start`), fail (`fail_when`), and have a stage you turn in to
+somebody: the stage holds while its condition holds ("bring 8 logs"), the dialogue event
+`quest_turn_in:<id>` finishes it and takes the logs. Counts are live: drop three logs and the
+quest says 5/8 again. The tracker under the minimap shows the quest you track (confirm it in
+the journal); *Settings → Quest tracker* turns it off.
+
+**A full bag loses nothing.** A reward, a chest or a gift that does not fit waits and comes into
+the bag as soon as there is room; a toast says so each time.
+
+**Gear, skills and achievements** (all optional, made by hand in `game/data/`). An item with a
+`durability` wears with use and breaks; items with the same `set_id` give the bonuses of their
+set (`game/data/item_sets/`) when enough are worn. A skill tree (`game/data/skill_trees/`)
+gives points at each level, spent on ranks for stat bonuses and battle skills, with
+requirements, rows that open after enough points and a reset for gold; *Pause → Skills*. An
+achievement (`game/data/achievements/`) unlocks by itself when its condition holds, often a
+count such as `count:defeated:wolf>=10` or `count:items:log>=30`; *Pause → Achievements*. The
+validator reports a quest, a tree or an achievement that does not add up (VAL-034).
 
 Your own build steps go in `game/builder_recipes/`: GDScript files that run after rpggen's
 steps on every build ([custom recipes](recipes.md)).

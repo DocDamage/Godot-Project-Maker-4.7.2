@@ -28,6 +28,9 @@ const SKILLS_DIR := "res://game/data/skills"
 const ACTORS_DIR := "res://game/data/actors"
 const SHOPS_DIR := "res://game/data/shops"
 const QUESTS_DIR := "res://game/data/quests"
+const SKILL_TREES_DIR := "res://game/data/skill_trees"
+const ACHIEVEMENTS_DIR := "res://game/data/achievements"
+const ITEM_SETS_DIR := "res://game/data/item_sets"
 const DialogueRunner := preload("res://addons/rpg_runtime/dialogue/dialogue_runner.gd")
 const TURN_BASED_DIR := "res://addons/rpg_runtime/archetypes/turn_based/"
 const PLACEHOLDER_DIR := "res://generated/debug_placeholders/"
@@ -40,7 +43,8 @@ const GATE_SUFFIX := "/world/gate.gd"
 const SWITCH_SUFFIX := "/world/switch.gd"
 
 ## `dirs` overrides the folders that are checked (tests): maps, dialogue, items, sequences, enemies,
-## skills, actors, shops, quests, placeholders and resources (an Array of roots).
+## skills, actors, shops, quests, skill_trees, achievements, item_sets, placeholders and resources
+## (an Array of roots).
 static func run(dirs: Dictionary = {}) -> Array:
 	var findings: Array = []
 	var cache := {}  # map path -> instantiated scene (or null), freed at the end
@@ -60,6 +64,7 @@ static func run(dirs: Dictionary = {}) -> Array:
 	_check_zones(maps, cache, findings)
 	_check_locks(maps, cache, JsonIo.to_str(dirs.get("items", ITEMS_DIR)), findings)
 	_check_battle_data(dirs, findings)
+	_check_game_data(dirs, findings)
 	var roots: Array = dirs.get("resources", RESOURCE_ROOTS)
 	_check_placeholders(roots, JsonIo.to_str(dirs.get("placeholders", PLACEHOLDER_DIR)), findings)
 	for key: Variant in cache.keys():
@@ -524,6 +529,23 @@ static func _check_battle_data(dirs: Dictionary, findings: Array) -> void:
 				problems.append("it cures the unknown status '%s'" % cured)
 		for problem in problems:
 			findings.append(finding("VAL-026", {"problem": problem}, path))
+
+## VAL-034 (1.5.0): what the quests, skill trees and achievements say is wrong with them
+## (their `problems()`), and an item whose `set_id` names no set.
+static func _check_game_data(dirs: Dictionary, findings: Array) -> void:
+	for kind: Array in [["quests", QUESTS_DIR, "quest"], ["skill_trees", SKILL_TREES_DIR, "skill tree"], ["achievements", ACHIEVEMENTS_DIR, "achievement"]]:
+		for path in list_files(JsonIo.to_str(dirs.get(kind[0], kind[1])), ["tres"]):
+			var res := load(path) as Resource
+			if res == null or not res.has_method("problems"):
+				continue
+			var problems: Array = res.call("problems")
+			for problem: Variant in problems:
+				findings.append(finding("VAL-034", {"problem": "%s: %s" % [kind[2], problem]}, path))
+	var sets_dir := JsonIo.to_str(dirs.get("item_sets", ITEM_SETS_DIR))
+	for path in list_files(JsonIo.to_str(dirs.get("items", ITEMS_DIR)), ["tres"]):
+		var item := load(path) as RpgItemDefinition
+		if item != null and item.set_id != &"" and not ResourceLoader.exists("%s/%s.tres" % [sets_dir, item.set_id]):
+			findings.append(finding("VAL-034", {"problem": "the item belongs to the set '%s', which has no file in %s" % [item.set_id, sets_dir]}, path))
 
 ## Unknown statuses (not in `statuses`) in an immunity list or an attack's status.
 static func traits_problems(immune: Array[StringName], attack_status: StringName, statuses: Array) -> Array[String]:

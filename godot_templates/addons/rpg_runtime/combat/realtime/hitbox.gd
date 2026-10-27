@@ -79,6 +79,10 @@ func try_hit(area: Area2D) -> bool:
 	_hit_this_swing[id] = true
 	var landed := hurtbox.receive(build_info(hurtbox))
 	if landed:
+		var state := RpgUtil.state()
+		var stats := _attacker_stats()
+		if state != null and stats != null:
+			state.wear_stats(stats, &"weapon")  # only gear with a durability wears (1.5.0)
 		hit.emit(hurtbox)
 	return landed
 

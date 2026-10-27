@@ -333,6 +333,16 @@ should know:
   The nine kits hold about 100,000 pictures: the copies are left out of Godot's import, and the
   generation takes about 21 minutes. Short of it: a stack is drawn, not walked; the
   vehicles (diagonal facings) are placed, not driven; nobody has built a level by hand.
+* **Quests, shops, the bag, skill trees and achievements (2026-10-26, branch `gridwright`)**:
+  designs from the Godot kits the owner keeps beside the packs (ideas only), written for the
+  runtime: quests that wait for others, start by themselves, fail and are turned in, with live
+  counts and a tracker on the HUD; shops with stock that runs out and refills, their own gold,
+  rolled wares and buying back; trades all or nothing, rewards that wait for room, gear that
+  wears and breaks, sets of gear; skill trees and achievements with their own screens (Pause →
+  Skills, Pause → Achievements). The runtime CHANGELOG (1.5.0, last section) has the list.
+  Tested by the GDScript suite only; nobody has played them by hand, the dock has no tab for
+  skill trees or achievements (they are edited in the inspector), and the generator seeds none.
+  The crafting kit is left out (Part E of the farm spec leaves crafting out by design).
 * **Not built.** Dropping onto diamonds with a mouse (the
   editor dock counts diamonds since T17.27, run by a test in an editor without a window); terrains on a diamond's sides; height (a raised ground
   block does not block); the farmer's tool strips of a pack (set aside, not played); *working

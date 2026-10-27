@@ -12,7 +12,13 @@ of squares with the arithmetic of squares). The folder `archetypes/farm/` is ins
 a farm's project. A turn-based, action, metroidvania or arcade project that is seen from above
 or from the side is built byte for byte as before: no `RECIPE_VERSION` moved, and the hashes
 of the recipes have new keys (`iso`, `iso_v`, `iso_controls`) only in an isometric project. A
-game without a calendar has the light and the saves it had.
+game without a calendar has the light and the saves it had. **Except** what *Quests, shops and
+the bag* (at the end of this entry) changes for every project: `ui_recipes.gd` is at
+`RECIPE_VERSION` 14 (the settings menu, the shop menu and the pause menu have new controls, so
+the UI scenes are written again), `RpgStrings` has new keys (so `strings.csv` gains rows; the
+rows a user translated are kept), and a save may have eight more optional keys
+(`tracked_quest`, `shops`, `pending_items`, `worn_data`, `skill_ranks`, `skill_points`,
+`achievements`, `counters`), each written only when it holds something.
 
 **What an older game can notice**, all of it inert unless a farm or an isometric project uses
 it: `RpgInteraction.before` (a Callable, unset by default: asked before a target is interacted
@@ -734,6 +740,114 @@ written only for a piece that has it, and the hashes change only where it is.
 * The validator (VAL-014): a `Shadow` is not checked. An EFFECT or a PROJECTILE stands on its
   middle. In an isometric project a figure's drawn feet may lie up to half a diamond below its
   origin (the ground point under the figure's middle, as Gridwright draws it).
+
+**Quests, shops, the bag, skill trees and achievements (2026-10-26).** Designs taken from the Godot kits the user keeps
+beside the packs (ideas only: nothing of theirs is copied or shipped), written for this
+runtime. Every quest, shop and item made before behaves as it did unless it uses a new key;
+what every game can notice is the quest tracker, the Buy back tab and what a full bag does
+with a reward.
+
+* **Quests.** `RpgQuestDefinition` has `requires` (a condition: `quest_start` refuses the
+  quest until it holds), `auto_start` (the quest starts by itself when `requires` holds: a
+  chain) and `fail_when` (a condition that fails the quest under way). A stage may have
+  `turn_in` (it does not move on by itself; while its condition holds the quest is *ready to
+  turn in*) and `take` ([{item_id, qty}], taken from the bag when the stage finishes; without
+  them it does not finish). `progress_of(condition, state)` counts the atoms that count
+  (`item:<id>>=N`, `gold>=N`, `level>=N`, `var:<name>>=N` or `>N`, `friendship:<id>>=N`), live:
+  dropping logs lowers the count. `problems()` checks the new keys; `to_dict` writes them only
+  when set; `reached()` stops at a stage that waits.
+* `GameState.quests[id]` may be `"failed"` (`QUEST_FAILED`): not active, listed with the
+  finished ones, never completed or started again, no rewards. New: `quest_is_failed`,
+  `quest_available`, `quest_ready`, `quest_current_stage`, `quest_progress`, `quest_fail`,
+  `quest_turn_in`, `tracked_quest` and `track_quest`. The first quest started while none is
+  tracked is tracked; when it ends the tracker moves to the first quest still under way.
+  `quest_complete` refuses a failed quest.
+* Conditions `quest_failed:<id>`, `quest_available:<id>`, `quest_ready:<id>`; dialogue events
+  `quest_turn_in:<id>`, `quest_fail:<id>`, `track_quest:<id>` (all checked by the dock).
+* **The tracker.** `ui/quest_tracker.gd` (`RpgQuestTracker`, drawn in code like the minimap;
+  boot adds it on a layer `QuestTrackerLayer` under the minimap): the tracked quest's title,
+  what its stage asks with the counts ("Bring logs (Log 5/8)") and *Ready to turn in*. Hidden
+  with no quest tracked, no map, or the new setting `RpgSettings.quest_tracker` off (the
+  settings menu's *Quest tracker*, a new CheckButton `%QuestTracker`; older scenes have none).
+* The journal: a quest's button says *[Tracked]* or *(failed)*; confirming an active quest
+  tracks it (again: tracks nothing); the current stage shows its counts and *Ready to turn in*.
+* The dock's Quests tab edits `requires`, `auto_start`, `fail_when`, a stage's `turn_in` and
+  what it takes (`QuestTab.parse_items`).
+* **Shops.** `RpgShopDefinition`: a stock row may have `qty` (how many until the shop
+  restocks); `restock_minutes` (of play) and `restock_each_day` (with a calendar) say when it
+  does; `funds` is the gold it buys with (-1, the default, never runs out; what you pay adds
+  to it); `wares` (an `RpgLootTable`) is rolled at each restock for more rows at the items'
+  value; `buyback` (true by default) keeps the last `BUYBACK_MAX` (8) sales, to buy back for
+  what the shop paid until it restocks. `status`, `period`, `left_of`, `funds_of`, `is_ware`,
+  `offered_now`, `buyback_rows`, `buy_back`; new refusals `SOLD_OUT` and `SHOP_CANNOT_PAY`.
+  The state lives in `GameState.shops` (saved as `shops`). `RpgFarmShop` is unchanged.
+* The shop menu: rows of limited stock say *2 left* or *Sold out*, the quantity stops at what is
+  left, the gold line names the shop's gold when it has a purse, and a **Buy back** tab
+  (`%BuybackTab`, hidden for a shop with `buyback` false; a scene without one works as before).
+* **The bag.** `RpgInventory`: `transact(giving, taking)` and `fits(giving, taking)` (all or
+  nothing, tried on a quiet `trial()` copy first); a slot may carry `data` (`add_with`,
+  `take_one`, `data_at`; such a slot holds one and never stacks; `remove` takes plain stacks
+  first; `to_array` and `load_array` keep it).
+* **Nothing given is lost.** `GameState.give_items(rows)`: what does not fit waits in
+  `pending_items` (saved) with a toast, and comes as soon as there is room (`deliver_pending`,
+  on `item_removed` and `game_loaded`). Quest rewards, the event `give_item`, chests and the
+  turn-based battle's drops use it; before, what did not fit was dropped.
+* **Wear.** `RpgItemDefinition.durability` (0, the default: it never wears). A worn weapon
+  wears by one with each blow that lands (the turn-based attack and skill hits, the real-time
+  hitbox), worn armour and the accessory with each hit taken (`wear_from_hit`). At its
+  durability the piece breaks and is gone (a toast). Its wear is the data of its slot in the bag
+  and `GameState.worn_data` when worn (saved); `equip` and `unequip` carry it. `wear`,
+  `wear_stats`, `wear_of`; the status screen shows *Wear 1/3*.
+* **Sets.** `RpgItemDefinition.set_id` and `data/item_set.gd` (`RpgItemSet`,
+  `game/data/item_sets/<id>.tres`: `bonuses` = [{pieces, modifiers}]). `equipped_modifiers`
+  adds the bonuses of the sets worn (so `equip_preview` counts them); `item_set_of`,
+  `worn_sets`; the status screen lists the sets worn.
+* New text keys: `UI_QUEST_TRACKER`, `UI_QUEST_FAILED`, `UI_QUEST_READY`,
+  `UI_QUEST_FAILED_MARK`, `UI_QUEST_TRACKED`, `UI_BUYBACK`,
+  `UI_NOTHING_TO_BUY_BACK`, `UI_SOLD_OUT`, `UI_SHOP_LEFT`, `UI_SHOP_FUNDS`,
+  `UI_SHOP_CANNOT_PAY`, `UI_ITEM_WAITING`, `UI_ITEM_DELIVERED`, `UI_ITEM_BROKE`, `UI_WEAR`,
+  `UI_SET_BONUS`.
+* **Skill trees.** `data/skill_tree.gd` (`RpgSkillTree`, `game/data/skill_trees/<id>.tres`):
+  `skills` on a grid (`cell` [column, row]) with `max_rank`, `cost`, `requires` ({skill id:
+  rank}), `bonuses` (modifiers, once a rank) and `skill` (a battle skill learned with the first
+  rank); `points_per_row` opens row r once r times as many points are spent in the rows above it;
+  `reset_gold` (0 free, -1 never). `learn_problem` and `unlearn_problem` say why not (`NO_POINTS`,
+  `MAX_RANK`, `NEEDS`, `ROW_LOCKED`, `NOT_LEARNED`, `NEEDED`: a rank another learned skill or a
+  learned row needs is never unlearned, so points always add up); `problems()` (repeated ids or
+  cells, unknown requirements, a requirement not on an earlier row).
+* `GameState`: `skill_trees` (loaded at start), `skill_ranks`, `skill_points` (saved),
+  `learn_skill`, `unlearn_skill`, `reset_skill_tree` (pays the gold, gives every point back),
+  `give_skill_points`, `learned_modifiers` (added to `equipped_modifiers`, so every stat and the
+  equip preview count them), `learned_battle_skills` (the turn-based battle offers them). A
+  level gained gives `RpgNewGameData.skill_points_per_level` points (1), only in a game that has
+  a tree.
+* `ui/skill_tree_menu.gd` (`RpgSkillTreeMenu`, built in code): a tab per tree, the skills on
+  their grid with lines from what they require (bright when met), the actor's points, the
+  skill in focus (rank, what a rank gives, what it needs), Learn (or confirm the skill),
+  Unlearn, Reset (with its price), a pager for the party. The pause menu has **Skills** (a new
+  button `%Skills`, shown only in a game with a tree).
+* **Achievements.** `data/achievement.gd` (`RpgAchievement`, `game/data/achievements/<id>.tres`):
+  `when` (a condition), `secret`, `points`, `rewards` (as a quest's), `icon`. `GameState`:
+  `achievement_defs`, `achievements` (unlocked, saved), `counters` (saved), `count(name, by)`,
+  `note_defeat(enemy id)` (the action RPG, the metroidvania and a turn-based victory call it),
+  `unlock_achievement`, `refresh_achievements` (on the events quests listen to, and when a
+  counter moves), `achievement_points`. Counted by themselves in a game with achievements:
+  `defeated`, `defeated:<enemy id>`, `items:<item id>` (items gained; gear moved and what a
+  new game starts with are not) and `quests_done`. A game without achievements counts nothing.
+  Unlocking shows a toast and gives the rewards (what does not fit waits).
+* Conditions `count:<name>>=N` (also counted by `progress_of`) and `achievement:<id>`; dialogue
+  events `count:<name>[:N]`, `unlock_achievement:<id>` and `give_skill_points:<actor>:N`.
+* `ui/achievements_menu.gd` (`RpgAchievementsMenu`, built in code): unlocked and total, points,
+  one row each (unlocked first, a locked one with its counts, a locked secret as "???"). The
+  pause menu has **Achievements** (`%Achievements`, shown only in a game that has some).
+* The validator: **VAL-034** (warning), what `problems()` of a quest, a skill tree or an
+  achievement finds, and an item whose `set_id` names no set (`content_checks.gd`,
+  `_check_game_data`).
+* More text keys: `UI_SKILLS`, `UI_SKILL_POINTS`, `UI_LEARN`, `UI_UNLEARN`, `UI_RESET`,
+  `UI_RESET_COST`, `UI_RANK`, `UI_SKILL_NEEDS`, `UI_ROW_LOCKED`, `UI_ROW_LOCKED_SHORT`,
+  `UI_NO_POINTS`, `UI_MAX_RANK`, `UI_SKILL_NEEDED`, `UI_SKILL_NOT_LEARNED`, `UI_SKILL_LEARNED`,
+  `UI_NO_SKILL_TREES`, `UI_ACHIEVEMENTS`, `UI_ACHIEVEMENT_UNLOCKED`, `UI_ACHIEVEMENTS_TOTAL`,
+  `UI_SECRET`, `UI_NO_ACHIEVEMENTS`.
 
 ## 1.4.0
 

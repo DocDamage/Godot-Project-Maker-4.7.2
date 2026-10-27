@@ -394,6 +394,8 @@ func _enter_dead() -> void:
 		state.set_flag(entity_id, "defeated", true)
 	if entity_id != "":
 		RpgUtil.emit(&"entity_defeated", [entity_id])
+	if state != null and def != null:
+		state.note_defeat(def.id)  # the counters of achievements (1.5.0)
 	if state != null and def != null and def.xp_reward > 0:
 		var levels: int = state.give_experience(def.xp_reward)
 		if levels > 0:

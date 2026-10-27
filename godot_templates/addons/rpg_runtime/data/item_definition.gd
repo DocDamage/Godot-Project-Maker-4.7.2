@@ -29,3 +29,12 @@ enum Category { CONSUMABLE, WEAPON, ARMOR, ACCESSORY, QUEST, KEY, MATERIAL }
 ## A weapon's status: its attacks inflict it with this chance (0..1).
 @export var attack_status: StringName = &""
 @export var attack_status_chance: float = 0.0
+
+@export_group("Wear and sets (1.5.0)")
+## How much wear the item takes before it breaks; 0 (the default): it never wears. A worn weapon
+## wears by one with each attack, worn armour or an accessory with each hit taken
+## (GameState.wear); what it has taken is the data of its slot ({"wear": n}).
+@export var durability: int = 0
+## The set the item belongs to (game/data/item_sets/<id>.tres, an RpgItemSet): wearing enough of
+## its pieces gives the set's bonuses. &"" for none.
+@export var set_id: StringName = &""
