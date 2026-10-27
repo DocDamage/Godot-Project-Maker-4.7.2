@@ -1,7 +1,8 @@
 class_name RpgPeoplePage
 extends Control
 ## The People page of the pause menu (T17.09): who was met, their hearts, and what is known of
-## their taste (an item is known once it was given). One button a person; the person in focus
+## their taste (an item is known once it was given). Then the farm's animals (T18.13), each by
+## its name, its kind and its hearts. One button a person; the person in focus
 ## is described under the list. `cancel` or Back closes it.
 ##
 ## It needs no scene: `build()` makes its controls (once) and `refresh()` fills them from the
@@ -150,11 +151,70 @@ func refresh() -> void:
 			_list.add_child(row)
 			_rows.append(row)
 			_row_people[row] = id
+	_add_family()
+	_add_animals()
 	_detail.text = RpgFarmStrings.t("FARM_PEOPLE_NONE") if _rows.is_empty() else detail_text(friends, person_of(_rows[0]))
 	var ring: Array = []
 	ring.append_array(_rows)
 	ring.append(_back)
 	RpgMenuUtil.wire_vertical(ring)
+
+## The family (T18.17): the spouse and the children, a row each.
+func _add_family() -> void:
+	var old := _list.get_node_or_null("Family")
+	if old != null:
+		_list.remove_child(old)
+		old.queue_free()
+	var marriage := RpgMarriage.current()
+	var spouse := marriage.spouse() if marriage != null else ""
+	var family := RpgFarmChildren.kids()
+	if spouse == "" and family.is_empty():
+		return
+	var heading := Label.new()
+	heading.name = "Family"
+	heading.text = RpgFarmStrings.t("FARM_FAMILY")
+	_list.add_child(heading)
+	var lines: Array[String] = []
+	if spouse != "":
+		var friends := _friends()
+		lines.append(RpgFarmStrings.t("FARM_FAMILY_SPOUSE", [friends.display_name(spouse) if friends != null else spouse]))
+	for kid in family:
+		lines.append(RpgFarmStrings.t("FARM_FAMILY_CHILD", [str(kid["name"]), RpgFarmChildren.age_of(kid)]))
+	for i in lines.size():
+		var b := Button.new()
+		b.name = "Family_%d" % i
+		b.alignment = HORIZONTAL_ALIGNMENT_LEFT
+		b.text = lines[i]
+		var said := lines[i]
+		b.focus_entered.connect(func() -> void: _detail.text = said)
+		_list.add_child(b)
+		_rows.append(b)
+
+## A row for each animal of the farm (T18.13): "Dot the Hen   3 of 10 hearts".
+func _add_animals() -> void:
+	var old := _list.get_node_or_null("Animals")
+	if old != null:
+		_list.remove_child(old)
+		old.queue_free()
+	var herd := RpgAnimalHouse.herd()
+	if herd.is_empty():
+		return
+	var heading := Label.new()
+	heading.name = "Animals"
+	heading.text = RpgFarmStrings.t("FARM_ANIMALS")
+	_list.add_child(heading)
+	var house := RpgAnimalHouse.current()
+	for row in herd:
+		var b := Button.new()
+		b.name = "Animal_%d" % RpgUtil.to_int(row["id"])
+		b.alignment = HORIZONTAL_ALIGNMENT_LEFT
+		var kind_id := RpgUtil.to_str(row["kind"])
+		var kind_name := RpgUtil.to_str(house.data.kind(kind_id).get("name", kind_id)) if house != null and house.data != null else kind_id.capitalize()
+		b.text = RpgFarmStrings.t("FARM_ANIMAL_ROW", [RpgUtil.to_str(row["name"]), kind_name, RpgAnimalHouse.hearts_of(RpgUtil.to_int(row["friendship"])), RpgAnimalHouse.HEARTS])
+		var said := b.text
+		b.focus_entered.connect(func() -> void: _detail.text = said)
+		_list.add_child(b)
+		_rows.append(b)
 
 ## The buttons of the people, in order.
 func rows() -> Array[Button]:

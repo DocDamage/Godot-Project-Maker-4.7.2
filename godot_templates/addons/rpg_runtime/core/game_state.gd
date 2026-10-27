@@ -532,6 +532,8 @@ var _moving_gear := false
 ## An item gained counts `items:<id>` ("Gather 30 logs": count:items:log>=30), in a game that has
 ## achievements.
 func _on_item_counted(item_id: StringName, qty: int) -> void:
+	if not _moving_gear and not _delivering_counted:
+		RpgCrafting.note_held(self, item_id)  # a recipe found by itself (T18.14)
 	if not _moving_gear and not _delivering_counted and not achievement_defs.is_empty():
 		count("items:%s" % item_id, qty)
 

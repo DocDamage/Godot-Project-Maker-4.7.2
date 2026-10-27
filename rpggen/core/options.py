@@ -80,6 +80,12 @@ FEATURE_INFO: dict[str, tuple[str, str, str]] = {
         "gear worn together. Edit them in the editor dock's Skills, Achievements and Item sets "
         "tabs.",
     ),
+    "crafting": (
+        "Game systems",
+        "Crafting",
+        "Recipes made by hand or at a station (a workbench, a stove), learned or found, with a "
+        "crafting window. Edit them in the editor dock's Recipes tab.",
+    ),
     "editor_tools": (
         "Tools",
         "Editor tools",
@@ -123,6 +129,8 @@ FARM_FEATURE_TEXT = {
     "area. You can remove it later.",
     "progression": "Achievements for the farm's work (and a bonus for the starter gear worn "
     "together). Edit them in the editor dock's Achievements and Item sets tabs.",
+    "crafting": "A workbench beside the farmhouse to make fences, chests, sprinklers and more of "
+    "wood and stone, and recipes by hand. Edit them in the editor dock's Recipes tab.",
 }
 
 
@@ -141,7 +149,7 @@ def hidden_features(archetype: str) -> tuple[str, ...]:
     if archetype in config_mod.ARCADE_KINDS:
         return ARCADE_HIDDEN
     if archetype == "metroidvania":
-        return ("navigation",)
+        return ("navigation", "crafting")
     return FARM_HIDDEN if archetype == "farm" else ()
 
 
@@ -187,7 +195,7 @@ ARCADE_NAMES = {"shmup": "Shoot 'em up", "run_and_gun": "Run and gun", "racing":
 # The features an arcade kind has no use for: its stages are not a demo scene one can leave
 # out, and nothing in them looks for a path. The Options page does not show them and leaves
 # their values as the config has them.
-ARCADE_HIDDEN = ("demo", "navigation", "progression")
+ARCADE_HIDDEN = ("demo", "navigation", "progression", "crafting")
 
 
 def _count(number: int, noun: str) -> str:

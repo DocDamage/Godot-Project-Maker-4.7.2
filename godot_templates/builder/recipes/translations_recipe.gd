@@ -12,6 +12,7 @@ const RECIPE_VERSION := 2
 const SeedUtil := preload("../lib/seed_util.gd")
 const DataRecipe := preload("data_recipe.gd")
 const ProgressionRecipe := preload("progression_recipe.gd")
+const CraftingRecipe := preload("crafting_recipe.gd")
 const JsonUtil := preload("../lib/json_util.gd")
 const BuildContext := preload("../lib/build_context.gd")
 
@@ -98,6 +99,8 @@ func _seed_rows(ctx: BuildContext) -> Dictionary:
 		rows[key] = DataRecipe.SEED_STRINGS[key]
 	for key: Variant in ProgressionRecipe.SEED_STRINGS.keys():
 		rows[key] = ProgressionRecipe.SEED_STRINGS[key]
+	for key: Variant in CraftingRecipe.SEED_STRINGS.keys():  # T18.14
+		rows[key] = CraftingRecipe.SEED_STRINGS[key]
 	var dir := DirAccess.open(ITEMS_DIR)
 	if dir != null:
 		var files := dir.get_files()

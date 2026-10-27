@@ -17,6 +17,7 @@ const AchievementTab := preload("achievement_tab.gd")
 const ItemSetTab := preload("item_set_tab.gd")
 const ShopTab := preload("shop_tab.gd")
 const ItemTab := preload("item_tab.gd")
+const RecipeTab := preload("recipe_tab.gd")
 const Rebuild := preload("../tools/rebuild.gd")
 const CatalogEdit := preload("../tools/catalog_edit.gd")
 const JsonIo := preload("../tools/json_io.gd")
@@ -102,7 +103,7 @@ func _build_ui() -> void:
 	var quests := QuestTab.new()  # T13.19
 	quests.plugin = plugin
 	tabs.add_child(quests)
-	for made: VBoxContainer in [ItemTab.new(), ShopTab.new(), SkillTreeTab.new(), AchievementTab.new(), ItemSetTab.new()]:  # 1.5.0
+	for made: VBoxContainer in [ItemTab.new(), ShopTab.new(), RecipeTab.new(), SkillTreeTab.new(), AchievementTab.new(), ItemSetTab.new()]:  # 1.5.0
 		made.set("plugin", plugin)
 		tabs.add_child(made)
 	var cutscenes := SequenceTab.new()

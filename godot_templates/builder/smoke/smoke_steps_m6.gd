@@ -37,6 +37,7 @@ func steps() -> Array[Dictionary]:
 	list.append({"name": "equip_raises_attack", "fn": _equip_raises_attack, "timeout_s": 15.0})
 	list.append({"name": "shop_buy_sell", "fn": _shop_buy_sell, "timeout_s": 20.0})
 	list.append({"name": "shop_stock_and_repair", "fn": _shop_stock_and_repair, "timeout_s": 30.0})
+	list.append({"name": "craft_by_hand", "fn": _craft_by_hand, "timeout_s": 20.0})
 	list.append({"name": "quest_journal", "fn": _quest_journal, "timeout_s": 20.0})
 	list.append({"name": "party_members", "fn": _party_members, "timeout_s": 20.0})
 	list.append({"name": "followers_trail", "fn": _followers_trail, "timeout_s": 20.0})
@@ -628,6 +629,62 @@ func _open_shop(controller: RpgUiController) -> RpgShopMenu:
 		if menu != null:
 			return menu
 	return null
+
+## Crafting (T18.14): the pause menu has Crafting, and the starter recipe (two herbs make a potion)
+## is made in the crafting window. A game without a recipe by hand passes with a note. The bag is
+## put back afterwards.
+func _craft_by_hand() -> String:
+	var state: RpgGameState = _autoload("GameState") as RpgGameState
+	if state == null:
+		return "GameState is missing"
+	var potion := RpgCrafting.recipe(&"potion")
+	if potion == null:
+		print("[rpggen] INFO craft_by_hand: the game has no starter recipe (no crafting), step passes")
+		return ""
+	if not state.items.has(&"herb"):
+		return "the starter recipe needs herbs, and game/data/items has none"
+	var menu := (load(RpgMenuUtil.scene_path("pause_menu")) as PackedScene).instantiate() as RpgPauseMenu
+	_tree().root.add_child(menu)
+	await _frames(2)
+	var crafting := menu.find_child("Crafting", true, false) as Button
+	var failure := ""
+	if crafting == null or not crafting.visible:
+		failure = "the pause menu has no Crafting"
+	var herbs := state.inventory.count(&"herb")
+	var potions := state.inventory.count(&"potion")
+	state.inventory.add(&"herb", 2)
+	var window: RpgCraftingMenu = null
+	if failure == "":
+		crafting.pressed.emit()
+		await _frames(2)
+		for child in menu.get_children():
+			if child is RpgCraftingMenu:
+				window = child
+		if window == null:
+			failure = "Crafting did not open the crafting window"
+	if failure == "":
+		var cell: Button = null
+		for each in window.cells():
+			if window.recipe_of(each).id == &"potion":
+				cell = each
+		if cell == null:
+			failure = "the window does not list the potion"
+		else:
+			cell.pressed.emit()
+			await _frames(2)
+			if state.inventory.count(&"potion") != potions + 1 or state.inventory.count(&"herb") != herbs:
+				failure = "crafting left %d potions and %d herbs" % [state.inventory.count(&"potion"), state.inventory.count(&"herb")]
+	if window != null and is_instance_valid(window):
+		window.close()
+	menu.close()
+	await _frames(2)
+	_tree().paused = false
+	var extra := state.inventory.count(&"potion") - potions
+	if extra > 0:
+		state.inventory.remove(&"potion", extra)
+	if state.inventory.count(&"herb") > herbs:
+		state.inventory.remove(&"herb", state.inventory.count(&"herb") - herbs)
+	return failure
 
 func _shop_menu(controller: RpgUiController) -> RpgShopMenu:
 	var open_menu: Node = controller.get("_menu")

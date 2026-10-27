@@ -1466,6 +1466,27 @@ class FarmBox(ArcadeBox):
         ),
         (
             "check",
+            "exhaustion",
+            "Exhaustion ends the day",
+            "Working on at no energy passes out the farmer, as staying up to 2:00 does",
+            None,
+        ),
+        (
+            "check",
+            "cooking",
+            "Cooking",
+            "A kitchen in the farmhouse, dishes of what the farm grows and recipes to learn",
+            None,
+        ),
+        (
+            "check",
+            "children",
+            "Children",
+            "A married farmer can have children, who grow up in the farmhouse",
+            None,
+        ),
+        (
+            "check",
             "pass_out_loss",
             "Passing out costs money",
             "Staying up to 2:00 costs a tenth of the money as well as half the energy",

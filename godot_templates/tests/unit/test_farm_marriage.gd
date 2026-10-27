@@ -502,3 +502,66 @@ func test_the_builder_and_the_game_agree(t) -> void:
 	t.eq(item.display_name, "ITEM_PENDANT_NAME")
 	t.ok(RpgFarmStrings.KEYS.has("ITEM_PENDANT_NAME") and RpgFarmStrings.KEYS.has("ITEM_BOUQUET_DESC"))
 	t.ok(item.icon != null and item.value == 2000)
+
+# ---------------------------------------------------------------- children (T18.17)
+
+func test_the_spouse_asks_a_child_is_born_lies_in_the_crib_and_then_walks(t) -> void:
+	_npc_scene()
+	var game := _game(true, false)
+	var mode: RpgFarmMode = game["mode"]
+	var calendar: RpgCalendar = game["calendar"]
+	var family := mode.family
+	family.enabled = true
+	family.attach()
+	_married(game)
+	t.eq((game["marriage"] as RpgMarriage).spouse(), "bert")
+	t.ok(not family.should_ask(), "not the week of the wedding")
+	for i in RpgFarmChildren.ASK_AFTER_DAYS:
+		calendar.end_day()
+	t.ok(RpgUtil.to_int(RpgFarmChildren._flag("asked", -1)) >= 0, "asked on the morning a week after the wedding")
+	family.agree()
+	t.eq(RpgFarmChildren.due(), calendar.today() + RpgFarmChildren.CHILD_DAYS)
+	for i in RpgFarmChildren.CHILD_DAYS:
+		calendar.end_day()
+	var kids := RpgFarmChildren.kids()
+	t.eq(kids.size(), 1, "born")
+	t.ok(RpgFarmChildren.is_baby(kids[0]))
+	var house := _house(game["state"])
+	var crib := Node2D.new()
+	crib.name = "Crib"
+	crib.position = Vector2(88, 80)
+	(house.get_node("YSorted/Entities") as Node2D).add_child(crib)
+	var shown := family.show_on(house)
+	t.eq(shown.size(), 1)
+	t.ok((shown[0] as Node2D).position.distance_to(crib.position) < 8.0, "in the crib")
+	t.ok(not RpgFarmChildren.walks(shown[0]))
+	t.eq(shown[0].scale, Vector2(RpgFarmChildren.STAND_IN_SCALE, RpgFarmChildren.STAND_IN_SCALE), "the spouse's picture, smaller")
+	for i in RpgFarmChildren.TODDLER_DAYS:
+		calendar.end_day()
+	shown = family.show_on(house)
+	t.ok(RpgFarmChildren.walks(shown[0]), "a child that walks the farmhouse")
+	var saved: Dictionary = JSON.parse_string(JSON.stringify((game["state"] as RpgGameState).to_dict()))
+	(game["state"] as RpgGameState).new_game()
+	t.eq(RpgFarmChildren.kids().size(), 0)
+	(game["state"] as RpgGameState).from_dict(saved)
+	t.eq(RpgFarmChildren.kids().size(), 1, "saved")
+	var page := RpgPeoplePage.new()
+	Fixtures.tree().root.add_child(page)
+	t.ok(page.rows().any(func(b: Button) -> bool: return b.text.begins_with(str(kids[0]["name"]))), "in the family list")
+	page.free()
+	DirAccess.remove_absolute(NPC_PATH)
+	_cleanup()
+
+func test_at_most_two_and_none_without_the_option(t) -> void:
+	var game := _game(true, false)
+	var mode: RpgFarmMode = game["mode"]
+	t.ok(not mode.family.enabled, "a farm without the option")
+	mode.family.enabled = true
+	_married(game)
+	mode.family.agree()
+	mode.family.born()
+	mode.family.agree()
+	mode.family.born()
+	mode.family.agree()
+	t.eq([RpgFarmChildren.kids().size(), RpgFarmChildren.due()], [2, -1], "two at most")
+	_cleanup()

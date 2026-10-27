@@ -66,6 +66,10 @@ LARGE_FACTOR = (3, 2)  # the product of an animal that is a friend sells for 3/2
 ON_THE_FLOOR = "floor"
 BY_HAND = "hand"
 FEED = {"item": "hay", "name": "Hay", "price": 10}
+# what an animal's product is taken with by hand (T18.12): kind -> the tool (an item of the
+# shop, in the farmer's bag at the start of a farm that has such a kind); others need nothing
+TOOLS = {"cow": "pail", "goat": "pail", "sheep": "shears"}
+TOOL_PRICES = {"pail": 80, "shears": 100}
 # what an animal is called when it is bought, in an order the seed gives
 NAMES = (
     "Dot", "Bess", "Pip", "Clover", "Daisy", "Nell", "Mabel", "Poppy", "Hazel", "Juno",
@@ -214,6 +218,7 @@ def _entry(kind: str, variants: list[dict[str, Any]]) -> dict[str, Any]:
         "large": f"{product}_large",
         "large_price": price * LARGE_FACTOR[0] // LARGE_FACTOR[1],
         "collect": ON_THE_FLOOR if house == COOP else BY_HAND,
+        **({"tool": TOOLS[kind], "tool_price": TOOL_PRICES[TOOLS[kind]]} if kind in TOOLS else {}),
         "variants": variants,
     }
 

@@ -75,6 +75,9 @@ ANIMAL_STEPS = [
 # the last step (T17.18): the game is saved, changed and loaded, and the field, the date, the
 # money, the bag, the herd and the friendships are what they were
 SAVE_STEPS = ["save_and_load"]
+# crafting on the farm (T18.15), before the last: in a farm without a workbench it passes with a
+# note
+CRAFT_STEPS = ["craft_a_sprinkler", "cook_a_dish"]
 # the steps of the cave (T17.24), after the forest and the beach: in a farm that does not fight
 # each passes with a note
 CAVE_STEPS = [
@@ -104,8 +107,9 @@ MARRIAGE_STEPS = [
     "propose_with_a_pendant",
     "the_wedding",
     "spouse_at_home",
+    "a_child_is_born",  # T18.17
 ]
-TAIL = ANIMAL_STEPS + ADDED_STEPS + EVENT_STEPS + MARRIAGE_STEPS + SAVE_STEPS
+TAIL = ANIMAL_STEPS + ADDED_STEPS + EVENT_STEPS + MARRIAGE_STEPS + CRAFT_STEPS + SAVE_STEPS
 TOOLS = ("hoe", "watering_can", "sickle", "farm_axe", "fishing_rod")
 START_TOOLS = ("hoe", "watering_can")  # the others are bought at the shop (T17.08, T17.10)
 FILES = [
@@ -195,7 +199,11 @@ def test_the_kind_is_generated_with_its_own_features_and_controls(plain) -> None
     target, _result = plain
     assert features.FARM_AVAILABLE is True, "the wizard offers it since the gate of 1.5"
     saved = jsonio.read(target / paths.CONFIG)
-    assert saved["archetype"] == "farm" and "starter_map" not in saved
+    assert saved["archetype"] == "farm"
+    # what a new farm chooses that an older one lacks (M18) is written; the rest is the default
+    assert {
+        k: v for k, v in saved["starter_map"].items() if v != config.starter_map_defaults("farm")[k]
+    } == {"exhaustion": True, "cooking": True, "children": True}
     assert saved["features"]["combat"] is False and saved["features"]["dialogue"] is True
     bindings = saved["input"]
     assert bindings["use"]["keys"] == ["Space", "J"] and bindings["use"]["joy_buttons"] == [0]
@@ -1362,10 +1370,11 @@ def test_green_acre_with_a_forest_and_a_beach_is_walked_to_both(green_acre_added
     target, result = green_acre_added
     names = _smoke(target)
     assert names[-len(STEPS + TAIL) :] == STEPS + TAIL
-    assert names[-len(ADDED_STEPS + EVENT_STEPS + MARRIAGE_STEPS) - 1 :] == [
+    assert names[-len(ADDED_STEPS + EVENT_STEPS + MARRIAGE_STEPS + CRAFT_STEPS) - 1 :] == [
         *ADDED_STEPS,
         *EVENT_STEPS,
         *MARRIAGE_STEPS,
+        *CRAFT_STEPS,
         "save_and_load",
     ]
     assert _vacuous(target) == ANIMAL_STEPS + CAVE_STEPS, "the steps of the added maps are played"
@@ -1604,8 +1613,8 @@ def test_green_acre_has_a_festival_a_season_and_a_birthday_for_everybody(green_a
     assert "game/data/events.json" in readme and '"birthday"' in readme
     # the steps are played, none with a note
     names = _smoke(target)
-    assert names[-len(EVENT_STEPS + MARRIAGE_STEPS + SAVE_STEPS) :] == (
-        EVENT_STEPS + MARRIAGE_STEPS + SAVE_STEPS
+    assert names[-len(EVENT_STEPS + MARRIAGE_STEPS + CRAFT_STEPS + SAVE_STEPS) :] == (
+        EVENT_STEPS + MARRIAGE_STEPS + CRAFT_STEPS + SAVE_STEPS
     )
     assert not set(_vacuous(target)) & set(EVENT_STEPS)
     log = _text(target, "rpggen/logs/godot_smoke.log")
@@ -1704,7 +1713,9 @@ def test_green_acre_courts_and_marries_a_villager(green_acre) -> None:
     assert "courting = true" in _text(target, "generated/scenes/combat/combat_mode.tscn")
     # the steps are played, none with a note
     names = _smoke(target)
-    assert names[-len(MARRIAGE_STEPS + SAVE_STEPS) :] == MARRIAGE_STEPS + SAVE_STEPS
+    assert names[-len(MARRIAGE_STEPS + CRAFT_STEPS + SAVE_STEPS) :] == (
+        MARRIAGE_STEPS + CRAFT_STEPS + SAVE_STEPS
+    )
     assert not set(_vacuous(target)) & set(MARRIAGE_STEPS)
     log = _text(target, "rpggen/logs/godot_smoke.log")
     assert "INFO court_with_a_bouquet:" in log

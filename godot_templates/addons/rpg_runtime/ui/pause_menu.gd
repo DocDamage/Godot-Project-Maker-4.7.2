@@ -48,6 +48,7 @@ func _ready() -> void:
 	if achievements != null:
 		achievements.visible = state != null and not state.achievement_defs.is_empty()
 		achievements.pressed.connect(_open_built.bind(RpgAchievementsMenu))
+	_add_crafting()
 	RpgMenuUtil.wire_vertical(RpgMenuUtil.focusables(self).filter(func(c: Control) -> bool: return c.visible))
 	(get_node("%Title") as Button).pressed.connect(_to_title)
 	RpgMenuUtil.attach_sounds(RpgMenuUtil.focusables(self))
@@ -80,6 +81,24 @@ func _open(menu_name: String, args: Dictionary) -> void:
 	menu.tree_exited.connect(_on_submenu_closed)
 
 ## Opens a menu that builds itself in code (the skill trees, the achievements).
+## Crafting (T18.14): a button after Achievements (else after Status) in a game that has a
+## recipe made by hand; the scene has none, so this script makes it.
+func _add_crafting() -> void:
+	if not RpgCrafting.by_hand_exists() or find_child("Crafting", true, false) != null:
+		return
+	var resume := get_node("%Resume") as Button
+	var box := resume.get_parent()
+	var button := Button.new()
+	button.name = "Crafting"
+	button.text = "UI_CRAFTING"
+	box.add_child(button)
+	var before := box.get_node_or_null("Achievements")
+	if before == null or not (before as Control).visible:
+		before = box.get_node_or_null("Status")
+	if before != null:
+		box.move_child(button, before.get_index() + 1)
+	button.pressed.connect(_open_built.bind(RpgCraftingMenu))
+
 func _open_built(script: GDScript) -> void:
 	if _submenu != null:
 		return

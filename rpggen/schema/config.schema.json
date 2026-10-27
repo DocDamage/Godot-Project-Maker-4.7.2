@@ -108,6 +108,9 @@
         },
         "progression": {
           "type": "boolean"
+        },
+        "crafting": {
+          "type": "boolean"
         }
       },
       "additionalProperties": false
@@ -180,6 +183,8 @@
         "starting_money": {"type": "integer", "minimum": 0, "maximum": 99999},
         "pass_out_loss": {"type": "boolean"},
         "exhaustion": {"type": "boolean"},
+        "cooking": {"type": "boolean"},
+        "children": {"type": "boolean"},
         "fishing": {"type": "boolean"},
         "days_per_season": {"enum": [7, 14, 28]},
         "day_length": {"enum": ["short", "normal", "long"]},

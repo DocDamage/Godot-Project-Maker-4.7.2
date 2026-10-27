@@ -23,6 +23,8 @@ const SceneUtil := preload("../../lib/scene_util.gd")
 const BuildContext := preload("../../lib/build_context.gd")
 const FarmBuild := preload("farm_build.gd")
 const HudRecipe := preload("hud_recipe.gd")
+const ActorRecipes := preload("../actor_recipes.gd")
+const JsonUtil := preload("../../lib/json_util.gd")
 
 func outputs(_ctx: BuildContext) -> PackedStringArray:
 	return PackedStringArray([FarmBuild.MODE_PATH])
@@ -37,7 +39,27 @@ func input_hash(ctx: BuildContext) -> String:
 		hashed["courting"] = true
 	if FarmBuild.exhaustion(ctx):  # only a farm with the option has the key (T18.11)
 		hashed["exhaustion"] = true
+	if FarmBuild.crafts(ctx):  # only a farm that crafts has the key (T18.15)
+		hashed["crafting"] = true
+	if FarmBuild.children(ctx):  # only a farm with children has the key (T18.17)
+		hashed["children"] = {"scene": child_scene(ctx)}
+	if FarmBuild.cooking(ctx):  # only a farm that cooks has the keys (T18.16)
+		hashed["cooking"] = {"stove": stove_for_sale(ctx)}
 	return ctx.stable_hash(hashed)
+
+## The scene of a child of the packs (the character scene of its NPC), or "" (the spouse's own,
+## smaller, stands in).
+static func child_scene(ctx: BuildContext) -> String:
+	var asset := FarmBuild.child_asset(ctx)
+	if asset.is_empty():
+		return ""
+	return ActorRecipes.character_scene_path(JsonUtil.to_str(asset["id"]))
+
+## True when the farmhouse room exists and was built without a kitchen (before the farm cooked):
+## its shop then sells a stove. A room that is not there yet is built with one.
+static func stove_for_sale(_ctx: BuildContext) -> bool:
+	var room := "res://game/maps/farm_house.tscn"
+	return FileAccess.file_exists(room) and not FileAccess.get_file_as_string(room).contains("station_id = &\"kitchen\"")
 
 func build(ctx: BuildContext) -> Array:
 	var issues: Array = []
@@ -57,6 +79,15 @@ func build(ctx: BuildContext) -> Array:
 		root.set("courting", true)
 	if FarmBuild.exhaustion(ctx):
 		root.set("exhaustion_ends_day", true)
+	if FarmBuild.crafts(ctx):
+		root.set("crafting", true)
+	if FarmBuild.children(ctx):
+		root.set("children", true)
+		root.set("child_scene", child_scene(ctx))
+	if FarmBuild.cooking(ctx):
+		root.set("cooking", true)
+		if stove_for_sale(ctx):
+			root.set("stove_for_sale", true)
 	root.add_child(HudRecipe.build_hud(ctx, FarmBuild.fights(ctx)))
 	root.add_child(HudRecipe.build_weather(ctx))
 	var err := SceneUtil.save_scene(root, FarmBuild.MODE_PATH)

@@ -40,6 +40,7 @@ const PRODUCT_WORDS := {"egg": ["egg", "eggs"], "duck_egg": ["egg", "eggs"], "mi
 const SHELL := Color(0.96, 0.93, 0.85)
 const HAY := Color(0.9, 0.78, 0.35)
 const TWINE := Color(0.6, 0.42, 0.2)
+const PAIL := Color(0.72, 0.75, 0.78)
 
 # ---------------------------------------------------------------- the plan
 
@@ -95,6 +96,20 @@ static func items() -> Dictionary:
 			var id := JsonUtil.to_str(kind.get(entry[1], ""))
 			if id != "" and not out.has(id):
 				out[id] = {"what": entry[0], "name": entry[2], "value": JsonUtil.to_int(kind.get(entry[3], 0)), "kind": kind}
+		# what its product is taken with (T18.12): a pail, shears; a plan of before has none
+		var tool := JsonUtil.to_str(kind.get("tool", ""))
+		if tool != "" and not out.has(tool):
+			out[tool] = {"what": "tool", "name": "ITEM_%s_NAME" % tool.to_upper(), "value": 0, "kind": kind}
+	return out
+
+## The tools the kinds of the plan need (T18.12), each once: what a new game of a farm that has
+## them starts with.
+static func tools() -> Array[String]:
+	var out: Array[String] = []
+	for kind in kinds():
+		var tool := JsonUtil.to_str(kind.get("tool", ""))
+		if tool != "" and not out.has(tool):
+			out.append(tool)
 	return out
 
 # ---------------------------------------------------------------- the recipe
@@ -282,6 +297,12 @@ func _item(ctx: BuildContext, item_id: String, info: Dictionary) -> Resource:
 			item.set("max_stack", 1)
 			item.set("description", "Moves into your %s." % JsonUtil.to_str(kind.get("house", "barn")))
 			item.set("icon", _animal_icon(ctx, kind))
+		"tool":  # a pail, shears (T18.12): kept like a tool
+			item.set("category", KEY)
+			item.set("max_stack", 1)
+			item.set("description", "Takes %s from an animal that is ready." % JsonUtil.to_str(kind.get("product_name", "its product")).to_lower())
+			var own := FarmBuild.first_frame(ctx, tool_asset(ctx, item_id))
+			item.set("icon", own if own != null else drawn_icon(item_id))
 		_:
 			var icon := FarmBuild.first_frame(ctx, product_asset(ctx, JsonUtil.to_str(kind.get("product", item_id))))
 			item.set("icon", icon if icon != null else drawn_icon("product"))
@@ -312,7 +333,27 @@ static func product_asset(ctx: BuildContext, product_id: String) -> Dictionary:
 				return asset
 	return FarmBuild.kit_asset(ctx, "egg") if words.has("egg") else {}
 
-## A drawn icon of 16 px: a bale of hay (`hay`), or something pale and round (anything else).
+## The words a pack's picture of an animal tool is known by (T18.12).
+const TOOL_WORDS := {"pail": [["pail"], ["bucket"], ["milk", "can"]], "shears": [["shears"], ["clippers"]]}
+
+## A pack's picture of a pail (named pail, bucket or milk can) or of shears: a TOOL or an ITEM
+## sprite of a pack (not the kit's), or {}.
+static func tool_asset(ctx: BuildContext, tool_id: String) -> Dictionary:
+	var wanted: Array = TOOL_WORDS.get(tool_id, [[tool_id]])
+	for asset in ctx.catalog.assets():
+		var eff: Dictionary = ctx.catalog.effective(asset)
+		if asset.get("status", "") in ["UNUSED", "MISSING"] or asset.get("pack_id", "") == FarmBuild.KIT_PACK:
+			continue
+		if not ["TOOL", "ITEM"].has(JsonUtil.to_str(eff.get("role", ""))) or not ["sprite", "object"].has(JsonUtil.to_str(eff.get("usage", ""))):
+			continue
+		var words := JsonUtil.to_str(asset.get("path", "")).get_file().get_basename().to_lower().replace("-", "_").replace(" ", "_").split("_", false)
+		for group: Array in wanted:
+			if group.all(func(word: String) -> bool: return words.has(word)):
+				return asset
+	return {}
+
+## A drawn icon of 16 px: a bale of hay (`hay`), a pail (`pail`), shears (`shears`), or
+## something pale and round (anything else).
 static func drawn_icon(what: String) -> ImageTexture:
 	var image := Image.create_empty(16, 16, false, Image.FORMAT_RGBA8)
 	image.fill(Color(0, 0, 0, 0))
@@ -321,6 +362,20 @@ static func drawn_icon(what: String) -> ImageTexture:
 		image.fill_rect(Rect2i(2, 5, 12, 1), HAY.lightened(0.25))
 		image.fill_rect(Rect2i(5, 5, 1, 9), TWINE)
 		image.fill_rect(Rect2i(10, 5, 1, 9), TWINE)
+	elif what == "pail":  # a bucket of tin with a handle
+		image.fill_rect(Rect2i(4, 6, 8, 8), PAIL)
+		image.fill_rect(Rect2i(5, 13, 6, 1), PAIL.darkened(0.3))
+		image.fill_rect(Rect2i(4, 6, 8, 1), PAIL.lightened(0.3))
+		image.fill_rect(Rect2i(3, 3, 1, 4), PAIL.darkened(0.2))
+		image.fill_rect(Rect2i(12, 3, 1, 4), PAIL.darkened(0.2))
+		image.fill_rect(Rect2i(4, 2, 8, 1), PAIL.darkened(0.2))
+	elif what == "shears":  # two blades and two rings
+		image.fill_rect(Rect2i(7, 2, 2, 7), PAIL)
+		image.fill_rect(Rect2i(9, 3, 2, 6), PAIL.darkened(0.15))
+		image.fill_rect(Rect2i(4, 10, 4, 4), TWINE)
+		image.fill_rect(Rect2i(9, 10, 4, 4), TWINE)
+		image.fill_rect(Rect2i(5, 11, 2, 2), Color(0, 0, 0, 0))
+		image.fill_rect(Rect2i(10, 11, 2, 2), Color(0, 0, 0, 0))
 	else:
 		image.fill_rect(Rect2i(5, 4, 6, 9), SHELL)
 		image.fill_rect(Rect2i(4, 6, 8, 6), SHELL)

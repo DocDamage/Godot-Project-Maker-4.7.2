@@ -69,10 +69,15 @@ def test_the_facts_of_the_plan_are_the_views() -> None:
         "water": False,
         "house": {"size": [1, 1], "door": [0, 1]},
         "animal_houses": [],  # the houses of the packs' animals (T18.05): it has none
+        "workbench": True,  # a new farm crafts (T18.15)
     }
     # seen from above the same pack has no building at all (its house is no sheet object):
     # the planner takes its own footprint, as it always did
-    assert orchestrator.farm_facts(_cfg("top_down"), cat) == {"water": False, "animal_houses": []}
+    assert orchestrator.farm_facts(_cfg("top_down"), cat) == {
+        "water": False,
+        "animal_houses": [],
+        "workbench": True,
+    }
     # water: an isometric tile with the role makes a pond
     for asset in cat.assets:
         if asset.id.startswith(WATER_TILE):

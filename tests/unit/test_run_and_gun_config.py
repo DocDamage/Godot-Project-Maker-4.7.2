@@ -75,6 +75,7 @@ def test_the_config_of_a_run_and_gun_is_valid_and_keeps_its_options() -> None:
         "dialogue",
         "navigation",
         "progression",
+        "crafting",
     ]
     assert options.stages_text("run_and_gun", {}) == "3 stages, seen from the side"
 

@@ -42,6 +42,7 @@ SHARED_STEPS = [
     "equip_raises_attack",
     "shop_buy_sell",
     "shop_stock_and_repair",
+    "craft_by_hand",
     "quest_journal",
     "party_members",
     "followers_trail",
@@ -494,6 +495,7 @@ FARM_MARRIAGE_STEPS = [
     "propose_with_a_pendant",
     "the_wedding",
     "spouse_at_home",
+    "a_child_is_born",  # T18.17
 ]
 # a new game starts in the farmhouse; the shared steps are played in the village
 FARM_SEQUENCE = [
@@ -505,6 +507,8 @@ FARM_SEQUENCE = [
     *FARM_ADDED_STEPS,
     *FARM_EVENT_STEPS,
     *FARM_MARRIAGE_STEPS,
+    "craft_a_sprinkler",  # T18.15: a farm that crafts
+    "cook_a_dish",  # T18.16: a farm that cooks
     "save_and_load",  # T17.18: saved, changed and loaded, the field compared cell by cell
 ]
 FARM_MAPS = ["game/maps/farm.tscn", "game/maps/farm_house.tscn", "game/maps/starter_map.tscn"]

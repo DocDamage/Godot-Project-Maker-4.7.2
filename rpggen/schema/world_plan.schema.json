@@ -89,6 +89,12 @@
           "required": ["cell"],
           "additionalProperties": false
         },
+        "workbench": {
+          "type": "object",
+          "properties": {"cell": {"$ref": "#/$defs/Cell"}, "front": {"$ref": "#/$defs/Cell"}},
+          "required": ["cell"],
+          "additionalProperties": false
+        },
         "tillable": {"type": "array", "items": {"$ref": "#/$defs/Cell"}},
         "water": {
           "type": "object",
@@ -515,6 +521,8 @@
         "large": {"type": "string", "minLength": 1},
         "large_price": {"type": "integer", "minimum": 1},
         "collect": {"enum": ["floor", "hand"]},
+        "tool": {"enum": ["pail", "shears"]},
+        "tool_price": {"type": "integer", "minimum": 0},
         "variants": {"type": "array", "items": {"$ref": "#/$defs/AnimalVariant"}, "minItems": 1}
       },
       "required": [

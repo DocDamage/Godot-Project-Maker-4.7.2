@@ -237,6 +237,15 @@ func use_held() -> bool:
 		return found.fight.swing(self, item)
 	if plot != null and plot.state_of(target) == RpgField.RIPE:
 		return plot.harvest(target)
+	# a thing the workbench made (T18.15): put on the tile ahead
+	if found.workshop != null and (found.workshop.enabled or found.workshop.cooking) and RpgFarmWorkshop.is_placeable(item):
+		return found.workshop.place(item, target, plot)
+	# a pail or shears (T18.12): used on the animal ahead, as `interact` with it would be
+	if found.animals != null and found.animals.data != null and found.animals.data.tools().has(item):
+		var animal := animal_ahead()
+		if animal != null:
+			animal.interact(self)
+			return true
 	var tool := found.tool_for(item)
 	if tool != null:
 		return _use_tool(found, plot, tool, target, item)
@@ -277,6 +286,18 @@ func _plant(found: RpgFarmMode, plot: RpgField, target: Vector2i, crop_id: Strin
 	state.inventory.remove(item, 1)
 	RpgFarmSounds.play(RpgFarmSounds.PLANT)
 	return true
+
+## The animal of the farm on the tile ahead, or null.
+func animal_ahead() -> RpgFarmAnimal:
+	var map := map_node()
+	if map == null:
+		return null
+	var ahead := tile_ahead()
+	for node in map.find_children("*", "CharacterBody2D", true, false):
+		var animal := node as RpgFarmAnimal
+		if animal != null and animal.visible and animal.map_cell() == ahead:
+			return animal
+	return null
 
 ## Shows the use of `tool` (the item `item`) as a tool's use is shown, without working a cell:
 ## what a swing of the weapon looks like (T17.24, RpgFarmFight.swing).

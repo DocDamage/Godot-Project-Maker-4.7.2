@@ -99,7 +99,12 @@ func outputs(ctx: BuildContext) -> PackedStringArray:
 	return SeedUtil.missing(wanted)
 
 func input_hash(ctx: BuildContext) -> String:
-	return ctx.stable_hash({"v": RECIPE_VERSION, "icon": _icon_asset(ctx).get("id", ""), "player": _player_id(ctx), "demo_removed": ctx.demo_removed, "gear": _gear(ctx), "chest": _has_chest(ctx), "party": _has_party_demo(ctx), "turn_based": _turn_based(ctx)}.merged({"start_map": _start_map(ctx)} if _no_village(ctx) else {}).merged({"kind_items": _kind_items(ctx), "kind_gold": _kind_gold(ctx), "kind_shop": _farm_shop_hash(), "kind_start": _kind_start(ctx)} if _farm(ctx) else {}).merged({"gear_set": true} if _gear_set(ctx, _gear(ctx)) else {}).merged({"starter_shop": 2} if _starter_shop(ctx) else {}))
+	return ctx.stable_hash({"v": RECIPE_VERSION, "icon": _icon_asset(ctx).get("id", ""), "player": _player_id(ctx), "demo_removed": ctx.demo_removed, "gear": _gear(ctx), "chest": _has_chest(ctx), "party": _has_party_demo(ctx), "turn_based": _turn_based(ctx)}.merged({"start_map": _start_map(ctx)} if _no_village(ctx) else {}).merged({"kind_items": _kind_items(ctx), "kind_gold": _kind_gold(ctx), "kind_shop": _farm_shop_hash(), "kind_start": _kind_start(ctx)} if _farm(ctx) else {}).merged({"gear_set": true} if _gear_set(ctx, _gear(ctx)) else {}).merged({"starter_shop": 2} if _starter_shop(ctx) else {}).merged({"herbs": true} if _herbs(ctx) else {}))
+
+## True when the village shop sells herbs (T18.14: the feature `crafting`, whose starter recipe
+## makes a potion of two of them).
+func _herbs(ctx: BuildContext) -> bool:
+	return JsonUtil.to_bool(ctx.section("features").get("crafting", false)) and not _no_village(ctx) and not ctx.demo_removed
 
 ## True when the starter shop and sword of 1.5.0 apply (T18.04): the feature `progression` is on
 ## (a config from before 1.5.0 has no such key) and the village shop is seeded. The sword wears
@@ -209,6 +214,9 @@ func build(ctx: BuildContext) -> Array:
 		_save(ctx, _quest(_has_chest(ctx)), QUEST_PATH, issues)
 	if not ctx.demo_removed and not FileAccess.file_exists(SHOP_PATH):
 		var shop := _kind_shop(ctx, _shop(gear.keys(), _turn_based(ctx)))
+		if _herbs(ctx):
+			var rows: Array = shop.get("stock")
+			rows.append({"item_id": "herb", "price": -1})
 		_save(ctx, _starter_stock(ctx, shop) if _starter_shop(ctx) else shop, SHOP_PATH, issues)
 	if not ctx.demo_removed and _turn_based(ctx):
 		for path: String in [ANTIDOTE_PATH, ETHER_PATH]:

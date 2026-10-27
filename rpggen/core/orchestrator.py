@@ -860,6 +860,7 @@ def _iso_farm_facts(
         barn=own["barn"],
         grounds=_added_grounds(cfg, catalog),
         animal_houses=_pack_animal_houses(catalog),
+        workbench=bool(cfg.features.get("crafting", False)),
     )
 
 
@@ -898,6 +899,7 @@ def farm_facts(cfg: config_mod.GeneratorConfig, catalog: catalog_mod.Catalog) ->
         barn=own["barn"],
         grounds=_added_grounds(cfg, catalog),
         animal_houses=_pack_animal_houses(catalog),
+        workbench=bool(cfg.features.get("crafting", False)),
     )
 
 

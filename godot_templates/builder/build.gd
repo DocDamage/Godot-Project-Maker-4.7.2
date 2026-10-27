@@ -24,6 +24,7 @@ const RECIPE_ORDER: Array[String] = [
 	"actor_recipes",
 	"data_recipe",
 	"progression_recipe",  # 1.5.0: after data_recipe, which gives the starter gear its set
+	"crafting_recipe",  # 1.5.0 (T18.14): the starter recipe and its herb
 	"credits_recipe",
 	"lighting_recipe",
 	"object_scenes_recipe",

@@ -31,6 +31,7 @@ const QUESTS_DIR := "res://game/data/quests"
 const SKILL_TREES_DIR := "res://game/data/skill_trees"
 const ACHIEVEMENTS_DIR := "res://game/data/achievements"
 const ITEM_SETS_DIR := "res://game/data/item_sets"
+const RECIPES_DIR := "res://game/data/recipes"
 const DialogueRunner := preload("res://addons/rpg_runtime/dialogue/dialogue_runner.gd")
 const TURN_BASED_DIR := "res://addons/rpg_runtime/archetypes/turn_based/"
 const PLACEHOLDER_DIR := "res://generated/debug_placeholders/"
@@ -548,11 +549,41 @@ static func _check_game_data(dirs: Dictionary, findings: Array) -> void:
 		if item != null and item.set_id != &"" and not ResourceLoader.exists("%s/%s.tres" % [sets_dir, item.set_id]):
 			findings.append(finding("VAL-034", {"problem": "the item belongs to the set '%s', which has no file in %s" % [item.set_id, sets_dir]}, path))
 	var item_ids := _item_ids(JsonIo.to_str(dirs.get("items", ITEMS_DIR)))
+	# the recipes of crafting (T18.14): their own problems, the items and the stations they name
+	var stations := station_ids(dirs)
+	for path in list_files(JsonIo.to_str(dirs.get("recipes", RECIPES_DIR)), ["tres"]):
+		var made := load(path) as RpgRecipe
+		if made == null:
+			continue
+		var problems: Array[String] = made.problems()
+		for item_id in made.items():
+			if not item_ids.has(item_id):
+				problems.append("'%s' has no file in %s" % [item_id, JsonIo.to_str(dirs.get("items", ITEMS_DIR))])
+		if made.station != &"" and not stations.has(String(made.station)):
+			problems.append("it is made at the station '%s', which no map has" % made.station)
+		for problem in problems:
+			findings.append(finding("VAL-034", {"problem": "recipe: " + problem}, path))
 	for path in list_files(JsonIo.to_str(dirs.get("shops", SHOPS_DIR)), ["tres"]):
 		var shop := load(path) as RpgShopDefinition
 		if shop != null:
 			for problem in shop.stock_problems(item_ids):
 				findings.append(finding("VAL-034", {"problem": "shop: " + problem}, path))
+
+## The station ids the maps have (`station_id = &"<id>"` of an RpgStation in a scene) and those a
+## farm's stored plan puts on its maps (its workbench, T18.15; its kitchen, T18.16).
+static func station_ids(dirs: Dictionary) -> Array[String]:
+	var out: Array[String] = []
+	var marker := RegEx.create_from_string("station_id = &\"([a-z0-9_]+)\"")
+	for path in list_files(JsonIo.to_str(dirs.get("maps", MAPS_DIR)), ["tscn"]):
+		for found in marker.search_all(FileAccess.get_file_as_string(path)):
+			if not out.has(found.get_string(1)):
+				out.append(found.get_string(1))
+	var plan := JsonIo.to_dict(JSON.parse_string(FileAccess.get_file_as_string(JsonIo.to_str(dirs.get("world_plan", WORLD_PLAN))))) if FileAccess.file_exists(JsonIo.to_str(dirs.get("world_plan", WORLD_PLAN))) else {}
+	var farm_map := JsonIo.to_dict(JsonIo.to_dict(plan.get("farm", {})).get("map", {}))
+	for station: String in ["workbench", "kitchen"]:
+		if farm_map.has(station) and not out.has(station):
+			out.append(station)
+	return out
 
 ## Unknown statuses (not in `statuses`) in an immunity list or an attack's status.
 static func traits_problems(immune: Array[StringName], attack_status: StringName, statuses: Array) -> Array[String]:

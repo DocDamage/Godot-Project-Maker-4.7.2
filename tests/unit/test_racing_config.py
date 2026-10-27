@@ -58,6 +58,7 @@ def test_the_config_of_a_racing_game_is_valid_and_keeps_its_options() -> None:
         "dialogue",
         "navigation",
         "progression",
+        "crafting",
     ]
     assert options.stages_text("racing", {}) == "4 tracks of 3 laps"
 

@@ -548,3 +548,97 @@ func test_a_kind_the_users_file_removes_does_not_come_back_from_the_planned_list
 	t.eq(data.kinds_of("coop"), ["hen"] as Array[String])
 	t.eq(data.stalls("coop"), 2, "the house is the map's: it stays")
 	t.ok(not data.is_empty())
+
+# ---------------------------------------------------------------- a pail (T18.12)
+
+func _with_pail() -> Dictionary:
+	var table: Dictionary = ANIMALS.duplicate(true)
+	var kinds: Array = table["animals"]
+	(kinds[1] as Dictionary)["tool"] = "pail"
+	(kinds[1] as Dictionary)["tool_price"] = 80
+	return table
+
+func test_milk_is_taken_with_a_pail_and_not_by_hand(t) -> void:
+	var game := _game(_with_pail())
+	var state: RpgGameState = game["state"]
+	var mode: RpgFarmMode = game["mode"]
+	var herd: RpgAnimalHouse = game["herd"]
+	var calendar: RpgCalendar = game["calendar"]
+	var pail := Fixtures.item(&"pail")
+	pail.category = RpgItemDefinition.Category.KEY
+	state.items[&"pail"] = pail
+	t.eq(herd.data.tools(), [&"pail"] as Array[StringName])
+	var rows := herd.shop_rows()
+	t.ok(rows.any(func(row: Dictionary) -> bool: return row["item_id"] == "pail" and row["price"] == 80), "the shop sells a pail while the farmer has none")
+	herd.buy("cow")
+	herd.fill_trough("barn")
+	calendar.end_day()
+	t.eq(RpgAnimalHouse.animal(1)["ready"], "milk")
+	var toasts: Array = []
+	RpgUtil.events().notify.connect(func(text: String) -> void: toasts.append(text))
+	var by_hand := herd.touch(1)
+	t.eq(by_hand["product"], &"", "by hand: nothing")
+	t.ok(toasts.has(RpgFarmStrings.t("FARM_NEED_PAIL")), str(toasts))
+	t.eq(RpgAnimalHouse.animal(1)["ready"], "milk", "the milk is still there")
+	state.inventory.add(&"pail")
+	mode.hotbar.hold_item(&"pail")
+	t.eq(herd.touch(1)["product"], &"milk", "with the pail held")
+	t.eq(state.inventory.count(&"milk"), 1)
+	t.ok(not herd.shop_rows().any(func(row: Dictionary) -> bool: return row["item_id"] == "pail"), "one pail is enough")
+	_cleanup()
+
+func test_a_hen_needs_no_pail_and_an_older_plan_has_none(t) -> void:
+	var game := _game()
+	var herd: RpgAnimalHouse = game["herd"]
+	t.eq(herd.data.tools(), [] as Array[StringName], "a plan of before names no tool")
+	t.ok(not herd.shop_rows().any(func(row: Dictionary) -> bool: return row["item_id"] == "pail"))
+	_cleanup()
+
+# ---------------------------------------------------------------- a name for each animal (T18.13)
+
+func test_a_bought_hen_is_named_and_keeps_its_name_through_a_save(t) -> void:
+	var game := _game()
+	var herd: RpgAnimalHouse = game["herd"]
+	var save := Fixtures.install("SaveManager", Fixtures.SAVE_MANAGER) as RpgSaveManager
+	save.dir = "user://test_farm_names_%d" % Time.get_ticks_usec()
+	t.eq(herd.deliver(&"animal_hen"), RpgShopDefinition.OK)
+	var row := RpgAnimalHouse.animal(1)
+	t.eq(row["name"], "Dot", "the name the plan's list gives")
+	var box := RpgNamingDialog.open("Hen", str(row["name"]))
+	box.named.connect(func(text: String) -> void: herd.rename(1, text))
+	t.eq(box.edit.text, "Dot", "it starts with the list's name")
+	box.edit.text = ""
+	for key: String in ["C", "L", "U", "C", "K", "Y"]:
+		box.press(key)
+	t.eq(box.edit.text, "Clucky", "the on-screen keyboard")
+	box.press(RpgNamingDialog.DEL)
+	box.press("Y")
+	box.confirm()
+	t.eq(RpgAnimalHouse.animal(1)["name"], "Clucky")
+	t.ok(save.save(1))
+	Fixtures.tree().paused = false
+	(game["state"] as RpgGameState).new_game()
+	t.ok(save.load(1))
+	t.eq(RpgAnimalHouse.animal(1)["name"], "Clucky", "the name is saved with the animal")
+	var toasts: Array = []
+	RpgUtil.events().notify.connect(func(text: String) -> void: toasts.append(text))
+	herd.touch(1)
+	t.ok(toasts.any(func(text: String) -> bool: return text.contains("Clucky")), "and said when it is talked to: %s" % [toasts])
+	var page := RpgPeoplePage.new()
+	Fixtures.tree().root.add_child(page)
+	t.ok(page.rows().any(func(b: Button) -> bool: return b.text.begins_with("Clucky the Hen")), "listed on the People page")
+	page.free()
+	for file_name in DirAccess.get_files_at(save.dir):
+		DirAccess.remove_absolute(save.dir.path_join(file_name))
+	DirAccess.remove_absolute(save.dir)
+	Fixtures.uninstall("SaveManager")
+	_cleanup()
+
+func test_an_empty_name_keeps_the_one_it_had(t) -> void:
+	var box := RpgNamingDialog.open("Cow", "Bess")
+	var said: Array = []
+	box.named.connect(func(text: String) -> void: said.append(text))
+	box.edit.text = "   "
+	box.confirm()
+	t.eq(said, ["Bess"])
+	Fixtures.tree().paused = false

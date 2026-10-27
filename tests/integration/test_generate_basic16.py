@@ -65,6 +65,7 @@ def test_generate_basic16(godot_exe: Path, tmp_path: Path) -> None:
         "equip_raises_attack",
         "shop_buy_sell",
         "shop_stock_and_repair",
+        "craft_by_hand",
         "quest_journal",
         "party_members",
         "followers_trail",

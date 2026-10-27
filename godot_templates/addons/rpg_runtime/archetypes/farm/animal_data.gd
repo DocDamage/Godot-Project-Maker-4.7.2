@@ -137,6 +137,27 @@ func scene_of(kind_id: String, index: int) -> String:
 func on_the_floor(kind_id: String) -> bool:
 	return RpgUtil.to_str(kind(kind_id).get("collect", BY_HAND)) == ON_THE_FLOOR
 
+## The item the product of a kind is taken with (T18.12: `pail` for a cow or a goat, `shears`
+## for a sheep), or &"" for one that needs nothing (a plan of before has no `tool`).
+func tool_of(kind_id: String) -> StringName:
+	return StringName(RpgUtil.to_str(kind(kind_id).get("tool", "")))
+
+## The tools the kinds of the game need, each once, in the order of the kinds.
+func tools() -> Array[StringName]:
+	var out: Array[StringName] = []
+	for id in order:
+		var tool := tool_of(id)
+		if tool != &"" and not out.has(tool):
+			out.append(tool)
+	return out
+
+## What the shop asks for `tool` (the `tool_price` of the first kind that needs it).
+func tool_price(tool: StringName) -> int:
+	for id in order:
+		if tool_of(id) == tool:
+			return maxi(0, RpgUtil.to_int(kind(id).get("tool_price", 0)))
+	return 0
+
 ## What a kind gives: its `large` product when `large` and it has one, else its `product`.
 func product(kind_id: String, large: bool = false) -> StringName:
 	var entry := kind(kind_id)

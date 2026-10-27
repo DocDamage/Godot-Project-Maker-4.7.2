@@ -30,6 +30,7 @@ FEATURE_KEYS = (
     "navigation",
     "debug_tools",
     "progression",
+    "crafting",  # 1.5.0 (T18.14): recipes, stations and the crafting window
 )
 
 
@@ -238,6 +239,8 @@ def starter_map_defaults(archetype: str = "turn_based") -> dict[str, Any]:
         # what a farm of 1.5 adds that an older config lacks (M18): off, unless a new farm
         # chose it (NEW_FARM_OPTIONS)
         options["exhaustion"] = False
+        options["cooking"] = False
+        options["children"] = False
     return options
 
 
@@ -245,7 +248,14 @@ def starter_map_defaults(archetype: str = "turn_based") -> dict[str, Any]:
 # them, so an older config, which lacks them, keeps the defaults above and what it had.
 #   animals     T18.05: the animal houses whose animals the packs have
 #   exhaustion  T18.11: working at zero energy ends the day
-NEW_FARM_OPTIONS: dict[str, Any] = {"animals": "auto", "exhaustion": True}
+#   cooking     T18.16: a kitchen in the farmhouse, dishes and recipes to learn
+#   children    T18.17: a married farmer can have children
+NEW_FARM_OPTIONS: dict[str, Any] = {
+    "animals": "auto",
+    "exhaustion": True,
+    "cooking": True,
+    "children": True,
+}
 
 
 ARCADE_KINDS = ("shmup", "run_and_gun", "racing")
@@ -254,7 +264,7 @@ ARCADE_KINDS = ("shmup", "run_and_gun", "racing")
 SIDE_VIEW_KINDS = ("metroidvania", "run_and_gun")
 # What an arcade kind (M16) has switched off until somebody switches it on: a run through
 # stages has nobody to talk to and no enemy that looks for a path, and no skills to learn.
-ARCADE_OFF = ("dialogue", "navigation", "progression")
+ARCADE_OFF = ("dialogue", "navigation", "progression", "crafting")
 
 
 # A farm (M17) has nothing to fight until somebody switches combat on.
@@ -308,6 +318,8 @@ def default_features(archetype: str = "turn_based") -> dict[str, bool]:
     if archetype == ASSETS_KIND:
         return {key: key in ASSETS_ON for key in FEATURE_KEYS}
     off: tuple[str, ...] = ARCADE_OFF if archetype in ARCADE_KINDS else ("navigation",)
+    if archetype == "metroidvania":  # crafting is for the kinds with a bag to craft into (T18.14)
+        off = (*off, "crafting")
     if archetype == "farm":
         off = FARM_OFF
     return {key: key not in off for key in FEATURE_KEYS}
