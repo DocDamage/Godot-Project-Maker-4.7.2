@@ -531,7 +531,8 @@ static func _check_battle_data(dirs: Dictionary, findings: Array) -> void:
 			findings.append(finding("VAL-026", {"problem": problem}, path))
 
 ## VAL-034 (1.5.0): what the quests, skill trees and achievements say is wrong with them
-## (their `problems()`), and an item whose `set_id` names no set.
+## (their `problems()`), an item whose `set_id` names no set, and a shop's row of an item that has
+## no file (1.5.0, T18.02).
 static func _check_game_data(dirs: Dictionary, findings: Array) -> void:
 	for kind: Array in [["quests", QUESTS_DIR, "quest"], ["skill_trees", SKILL_TREES_DIR, "skill tree"], ["achievements", ACHIEVEMENTS_DIR, "achievement"], ["item_sets", ITEM_SETS_DIR, "item set"]]:
 		for path in list_files(JsonIo.to_str(dirs.get(kind[0], kind[1])), ["tres"]):
@@ -546,6 +547,12 @@ static func _check_game_data(dirs: Dictionary, findings: Array) -> void:
 		var item := load(path) as RpgItemDefinition
 		if item != null and item.set_id != &"" and not ResourceLoader.exists("%s/%s.tres" % [sets_dir, item.set_id]):
 			findings.append(finding("VAL-034", {"problem": "the item belongs to the set '%s', which has no file in %s" % [item.set_id, sets_dir]}, path))
+	var item_ids := _item_ids(JsonIo.to_str(dirs.get("items", ITEMS_DIR)))
+	for path in list_files(JsonIo.to_str(dirs.get("shops", SHOPS_DIR)), ["tres"]):
+		var shop := load(path) as RpgShopDefinition
+		if shop != null:
+			for problem in shop.stock_problems(item_ids):
+				findings.append(finding("VAL-034", {"problem": "shop: " + problem}, path))
 
 ## Unknown statuses (not in `statuses`) in an immunity list or an attack's status.
 static func traits_problems(immune: Array[StringName], attack_status: StringName, statuses: Array) -> Array[String]:

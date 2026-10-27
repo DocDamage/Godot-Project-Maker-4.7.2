@@ -64,6 +64,7 @@ def test_generate_basic16(godot_exe: Path, tmp_path: Path) -> None:
         "save_overwrite_confirm",
         "equip_raises_attack",
         "shop_buy_sell",
+        "shop_stock_and_repair",
         "quest_journal",
         "party_members",
         "followers_trail",

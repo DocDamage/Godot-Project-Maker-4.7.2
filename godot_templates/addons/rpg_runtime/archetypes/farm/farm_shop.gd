@@ -41,6 +41,17 @@ static var day_off: Callable = Callable()
 ## The crops whose seeds it sells; the game's (the mode's) when none are given (a test gives them).
 var crops: RpgCropData = null
 
+## The hours and the seasonal seeds are part of the shop's plain data (the dock's JSON).
+func to_dict() -> Dictionary:
+	return super().merged({"opens": opens, "closes": closes, "closed_weekday": closed_weekday, "seasonal": seasonal})
+
+func apply_dict(data: Dictionary) -> void:
+	super(data)
+	opens = RpgUtil.to_int(data.get("opens", opens))
+	closes = RpgUtil.to_int(data.get("closes", closes))
+	closed_weekday = RpgUtil.to_int(data.get("closed_weekday", closed_weekday))
+	seasonal = RpgUtil.to_bool(data.get("seasonal", seasonal), seasonal)
+
 static func add_stock_source(source: Callable) -> void:
 	if not stock_sources.has(source):
 		stock_sources.append(source)

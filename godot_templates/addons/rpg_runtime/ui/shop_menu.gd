@@ -11,12 +11,17 @@ extends Control
 ## 1.5.0: a row of limited stock says how many are left ("Sold out" at none), the gold line names
 ## the shop's gold when it has a purse, and a Buy back tab (in a scene that has one) lists what
 ## was sold here, the latest first, for what the shop paid.
+##
+## 1.5.0 (T18.04): a shop that `repairs` has a Repair tab (made by this script, so the scene of an
+## older game has it too) listing worn gear, worn or in the bag, with its wear and what mending it
+## costs; pressing a row mends it.
 
 signal closed
 
 const BUY := &"buy"
 const SELL := &"sell"
 const BUYBACK := &"buyback"
+const REPAIR := &"repair"
 
 var shop: RpgShopDefinition = null
 var mode: StringName = BUY
@@ -25,6 +30,8 @@ var _rows: Array[Button] = []
 var _row_items: Dictionary = {}  # Button -> item id
 var _quantity: Dictionary = {}  # item id -> how many the row is set to (none: 1)
 var _row_sales: Dictionary = {}  # Button -> the index of its sale (the Buy back tab)
+var _row_repairs: Dictionary = {}  # Button -> the index of its row of repair_rows (the Repair tab)
+var _repair_tab: Button = null
 var _sell_all_armed := false
 
 func _ready() -> void:
@@ -36,6 +43,9 @@ func _ready() -> void:
 	var buyback_tab := buyback_tab()
 	if buyback_tab != null:
 		buyback_tab.pressed.connect(set_mode.bind(BUYBACK))
+	if shop.repairs:
+		_repair_tab = _make_repair_tab()
+		_repair_tab.pressed.connect(set_mode.bind(REPAIR))
 	(get_node("%Heading") as Label).text = tr(shop.title)
 	var sell_all := sell_all_button()
 	if sell_all != null:
@@ -60,6 +70,20 @@ func buyback_tab() -> Button:
 		return null
 	return tab
 
+## The Repair tab, or null for a shop that does not repair.
+func repair_tab() -> Button:
+	return _repair_tab
+
+## The Repair tab beside the others (the scene has none: it is the script's, T18.04).
+func _make_repair_tab() -> Button:
+	var sell_tab := get_node("%SellTab") as Button
+	var tab := sell_tab.duplicate(0) as Button
+	tab.name = "RepairTab"
+	tab.unique_name_in_owner = false
+	tab.text = "UI_REPAIR"
+	sell_tab.get_parent().add_child(tab)
+	return tab
+
 ## The Sell all button, or null in a scene built before 1.1 (it gets one on regeneration).
 func sell_all_button() -> Button:
 	return get_node_or_null("%SellAll") as Button
@@ -70,8 +94,8 @@ func set_mode(new_mode: StringName) -> void:
 	_rebuild()
 
 func _item_ids(state: RpgGameState) -> Array[StringName]:
-	if mode == BUYBACK:
-		return []  # its rows are sales (_add_buyback_rows)
+	if mode == BUYBACK or mode == REPAIR:
+		return []  # their rows are sales (_add_buyback_rows) and worn gear (_add_repair_rows)
 	if mode == BUY:
 		return shop.offered_now(state)
 	var out: Array[StringName] = []
@@ -141,6 +165,7 @@ func _rebuild(keep_index: int = -1) -> void:
 	_rows.clear()
 	_row_items.clear()
 	_row_sales.clear()
+	_row_repairs.clear()
 	_sell_all_armed = false
 	var state := RpgUtil.state()
 	var buy_tab := get_node("%BuyTab") as Button
@@ -150,6 +175,8 @@ func _rebuild(keep_index: int = -1) -> void:
 	sell_tab.set_pressed_no_signal(mode == SELL)
 	if back_tab != null:
 		back_tab.set_pressed_no_signal(mode == BUYBACK)
+	if _repair_tab != null:
+		_repair_tab.set_pressed_no_signal(mode == REPAIR)
 	var back := get_node("%Back") as Button
 	var desc := get_node("%Description") as Label
 	var sell_all := sell_all_button()
@@ -160,6 +187,8 @@ func _rebuild(keep_index: int = -1) -> void:
 	(get_node("%Gold") as Label).text = gold_text(state)
 	if mode == BUYBACK:
 		_add_buyback_rows(state, list)
+	elif mode == REPAIR:
+		_add_repair_rows(state, list)
 	for item_id in _item_ids(state):
 		var def: RpgItemDefinition = state.items.get(item_id)
 		var price := _unit_price(state, item_id)
@@ -179,12 +208,15 @@ func _rebuild(keep_index: int = -1) -> void:
 		_rows.append(b)
 		_row_items[b] = item_id
 	if _rows.is_empty():
-		desc.text = tr("UI_NOTHING_FOR_SALE" if mode == BUY else ("UI_NOTHING_TO_SELL" if mode == SELL else "UI_NOTHING_TO_BUY_BACK"))
+		var none: String = {BUY: "UI_NOTHING_FOR_SALE", SELL: "UI_NOTHING_TO_SELL", BUYBACK: "UI_NOTHING_TO_BUY_BACK", REPAIR: "UI_NOTHING_TO_REPAIR"}.get(mode, "UI_NOTHING_FOR_SALE")
+		desc.text = tr(none)
 	else:
 		desc.text = ""
 	var tabs: Array[Button] = [buy_tab, sell_tab]
 	if back_tab != null:
 		tabs.append(back_tab)
+	if _repair_tab != null:
+		tabs.append(_repair_tab)
 	var ring: Array = []
 	ring.append_array(tabs)
 	ring.append_array(_rows)
@@ -199,6 +231,8 @@ func _rebuild(keep_index: int = -1) -> void:
 		tabs[i].focus_neighbor_left = tabs[i].get_path_to(tabs[(i - 1 + tabs.size()) % tabs.size()])
 		tabs[i].focus_neighbor_right = tabs[i].get_path_to(tabs[(i + 1) % tabs.size()])
 	var start: Button = buy_tab if mode == BUY else (sell_tab if mode == SELL or back_tab == null else back_tab)
+	if mode == REPAIR and _repair_tab != null:
+		start = _repair_tab
 	if not _rows.is_empty():
 		start = _rows[clampi(keep_index, 0, _rows.size() - 1)] if keep_index >= 0 else _rows[0]
 	start.grab_focus.call_deferred()
@@ -247,6 +281,52 @@ func _add_buyback_rows(state: RpgGameState, list: VBoxContainer) -> void:
 		_row_items[b] = item_id
 		_row_sales[b] = i
 
+## The rows of the Repair tab: "Sword · Wear 5/40 — 3 G", worn gear first.
+func _add_repair_rows(state: RpgGameState, list: VBoxContainer) -> void:
+	var rows := shop.repair_rows(state)
+	for i in rows.size():
+		var item_id := StringName(str(rows[i].get("item_id", "")))
+		var def: RpgItemDefinition = state.items.get(item_id)
+		if def == null:
+			continue
+		var b := Button.new()
+		b.name = "Repair_%d" % i
+		b.alignment = HORIZONTAL_ALIGNMENT_LEFT
+		b.icon = def.icon
+		b.expand_icon = true
+		b.custom_minimum_size = Vector2(0, 20)
+		b.text = repair_text(tr(def.display_name), RpgUtil.to_int(rows[i]["wear"]), RpgUtil.to_int(rows[i]["durability"]), RpgUtil.to_int(rows[i]["price"]))
+		b.pressed.connect(_on_repair_pressed.bind(i))
+		b.focus_entered.connect(_describe.bind(item_id))
+		list.add_child(b)
+		_rows.append(b)
+		_row_items[b] = item_id
+		_row_repairs[b] = i
+
+## "Sword · Wear 5/40 — 3 G".
+static func repair_text(item_name: String, wear: int, durability: int, price: int) -> String:
+	return "%s · %s — %d %s" % [item_name, TranslationServer.translate("UI_WEAR") % [wear, durability], price, TranslationServer.translate("UI_GOLD_SHORT")]
+
+## Mends row `index` of the Repair tab and says so, or why not.
+func repair(index: int) -> String:
+	var state := RpgUtil.state()
+	if state == null:
+		return RpgShopDefinition.NOT_WORN
+	var rows := shop.repair_rows(state)
+	var result := shop.repair(state, index)
+	if result == RpgShopDefinition.OK:
+		var def: RpgItemDefinition = state.items.get(StringName(str(rows[index].get("item_id", ""))))
+		if def != null:
+			RpgUtil.notify(tr("UI_REPAIRED") % tr(def.display_name))
+	return result
+
+func _on_repair_pressed(index: int) -> void:
+	var result := repair(index)
+	if result == RpgShopDefinition.OK:
+		_rebuild(maxi(_rows.find(_focus_owner()), 0))
+	else:
+		RpgUtil.notify(refusal_text(result))
+
 ## Buys back sale `index` (the Buy back tab) and says so, or why not.
 func buy_back(index: int) -> String:
 	var state := RpgUtil.state()
@@ -274,7 +354,7 @@ func _describe(item_id: StringName) -> void:
 	if def == null:
 		return
 	var text := "%s\n%s" % [tr(def.display_name), tr(def.description)]
-	if mode != BUYBACK and max_quantity(item_id) > 1:
+	if mode != BUYBACK and mode != REPAIR and max_quantity(item_id) > 1:
 		text += "\n" + tr("UI_SHOP_QUANTITY_HINT")
 	(get_node("%Description") as Label).text = text
 

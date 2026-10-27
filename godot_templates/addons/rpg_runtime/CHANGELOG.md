@@ -872,6 +872,30 @@ with a reward.
   `UI_NO_SKILL_TREES`, `UI_ACHIEVEMENTS`, `UI_ACHIEVEMENT_UNLOCKED`, `UI_ACHIEVEMENTS_TOTAL`,
   `UI_SECRET`, `UI_NO_ACHIEVEMENTS`.
 
+### Finishing 1.5.0 (M18)
+
+What an older game sees when it is regenerated (the runtime is copied on every regeneration);
+each is inert where the game's data does not ask for it.
+
+* **Repair** (T18.04): `RpgShopDefinition.repairs` (false by default), `REPAIR_SHARE` (0.5),
+  `repair_cost`, `repair_rows(game)` (worn gear first, then the bag's) and `repair(game, i)`
+  (all or nothing; the gold goes to the shop's purse); `RpgGameState.mend(actor, slot)` and
+  `RpgInventory.mend_at(index)` take the wear off. The shop menu makes a **Repair** tab beside
+  the others for a shop that repairs (the scene of an older game has none, so the script makes
+  it); its rows read "Sword · Wear 5/40 — 3 G". New text keys `UI_REPAIR`,
+  `UI_NOTHING_TO_REPAIR`, `UI_REPAIRED`.
+* **The dock's Items and Shops tabs** (T18.02, T18.03): `RpgShopDefinition.to_dict`,
+  `apply_dict`, `from_dict` (`RpgFarmShop` adds its hours), `row_problem` and
+  `stock_problems`; `RpgItemDefinition.to_dict` and `from_dict` (an icon cut from a sheet is
+  written as `{atlas, region}`). The validator's VAL-034 names a shop's row whose item has no
+  file. `addons/rpg_project_tools/tools/strings_tsv.gd` reads `game/i18n/strings.tsv` and adds
+  rows for new keys.
+* **The starter shop** (T18.04), with the feature `progression` (on for a new project; a config
+  without the key is built as before and `data_recipe`'s hash gains `starter_shop: 2` only when
+  it applies): three potions that restock (each morning of a farm, every 10 minutes of play
+  elsewhere), 300 gold of the shop's own, buying back, repairs; the starter weapon has a
+  durability of 40.
+
 ## 1.4.0
 
 (There is no 1.3.0 entry: release 1.3.0 changed the wizard only.)

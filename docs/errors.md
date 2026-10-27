@@ -163,7 +163,7 @@
 | VAL-031 | warning | The farm cannot be worked as it is planned: {problem}. | Change the farm's map in rpggen/world_plan.json (the section farm.map: a cell of its plot, its water, its fences or what lies in the way), or delete that section and game/maps/farm.tscn and regenerate to plan the farm again. |
 | VAL-032 | info | An assets-only project has no game: it was not played and not test-exported. | — |
 | VAL-033 | warning | {node} in {file}: {problem}. | Paint the room so the player gets through: clear the rock from the opening, give the platform room above it, stand the thing on the floor, or put a ladder up to the exit. The dock's validator shows where. |
-| VAL-034 | warning | Game data problem in {file}: {problem}. | Fix the quest, skill tree, achievement or item set resource (the runtime's README explains quests, shops and the bag; RpgSkillTree and RpgAchievement say what each key means). |
+| VAL-034 | warning | Game data problem in {file}: {problem}. | Fix the quest, skill tree, achievement, item set or shop resource (the runtime's README explains quests, shops and the bag; RpgSkillTree and RpgAchievement say what each key means). |
 
 ## Smoke test (SMOKE)
 

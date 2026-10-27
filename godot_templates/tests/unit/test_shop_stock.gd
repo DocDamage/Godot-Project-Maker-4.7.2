@@ -225,5 +225,72 @@ func test_the_buy_back_tab(t) -> void:
 	_end()
 	Fixtures.uninstall_english(english)
 
+# ------------------------------------------------------------------ repair (T18.04)
+
+func _worn_state() -> Node:
+	var state := _state()
+	var sword := _item(&"sword", 40, 1)
+	sword.category = RpgItemDefinition.Category.WEAPON
+	sword.durability = 20
+	state.items[&"sword"] = sword
+	var shield := _item(&"shield", 30, 1)
+	shield.category = RpgItemDefinition.Category.ARMOR
+	shield.durability = 10
+	state.items[&"shield"] = shield
+	state.equipment.clear()
+	state.inventory.add(&"sword")
+	state.equip(&"hero", &"sword")
+	state.wear(&"hero", &"weapon", 10)
+	state.inventory.add_with(&"shield", {"wear": 5})
+	return state
+
+func test_a_shop_that_repairs_mends_worn_gear_for_gold(t) -> void:
+	var state := _worn_state()
+	var shop := _shop()
+	t.eq(shop.repair_rows(state), [] as Array[Dictionary], "a shop that does not repair")
+	shop.repairs = true
+	shop.funds = 50
+	var rows := shop.repair_rows(state)
+	t.eq(rows.size(), 2)
+	t.eq([rows[0]["item_id"], rows[0]["wear"], rows[0]["durability"], rows[0]["price"]], ["sword", 10, 20, 10], "half worn: a quarter of its value")
+	t.eq([rows[1]["item_id"], rows[1]["price"], rows[1]["bag_index"]], ["shield", 8, 0], "the bag's, rounded up")
+	state.gold = 5
+	t.eq(shop.repair(state, 0), RpgShopDefinition.NOT_ENOUGH_GOLD)
+	t.eq(state.wear_of(&"hero", &"weapon"), [10, 20] as Array[int], "nothing changed")
+	state.gold = 100
+	t.eq(shop.repair(state, 0), RpgShopDefinition.OK)
+	t.eq(state.wear_of(&"hero", &"weapon"), [0, 20] as Array[int])
+	t.eq([state.gold, shop.funds_of(state)], [90, 60], "paid to the shop")
+	t.eq(shop.repair(state, 0), RpgShopDefinition.OK, "the shield is the first row now")
+	t.eq(state.inventory.data_at(0), {}, "mended: a plain slot")
+	t.eq(shop.repair_rows(state), [] as Array[Dictionary])
+	t.eq(shop.repair(state, 0), RpgShopDefinition.NOT_WORN)
+	_end()
+
+func test_the_repair_tab(t) -> void:
+	var english := Fixtures.install_english()
+	var state := _worn_state()
+	var shop := _shop()
+	var menu := _menu(shop)
+	t.ok(menu.repair_tab() == null, "no tab for a shop that does not repair")
+	menu.free()
+	shop.repairs = true
+	menu = _menu(shop)
+	t.ok(menu.repair_tab() != null, "made by the script: the scene has none")
+	menu.set_mode(RpgShopMenu.REPAIR)
+	t.eq(menu.rows().size(), 2)
+	t.eq(menu.rows()[0].text, "Sword · Wear 10/20 — 10 G")
+	menu.rows()[0].pressed.emit()
+	t.eq(state.wear_of(&"hero", &"weapon"), [0, 20] as Array[int])
+	t.eq(menu.rows().size(), 1)
+	menu.rows()[0].pressed.emit()
+	t.eq((menu.get_node("%Description") as Label).text, "Nothing to repair")
+	var all := RpgMenuUtil.focusables(menu)
+	var first: Control = all[0]
+	t.eq(String(first.get_node(first.focus_neighbor_left).name), "RepairTab", "left from Buy wraps to Repair")
+	menu.free()
+	_end()
+	Fixtures.uninstall_english(english)
+
 func _end() -> void:
 	Fixtures.uninstall_state()

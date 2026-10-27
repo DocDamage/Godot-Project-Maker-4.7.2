@@ -1085,6 +1085,15 @@ func wear(actor_id: StringName, slot: StringName, amount: int = 1) -> bool:
 	RpgUtil.notify(RpgStrings.format("UI_ITEM_BROKE", _item_label(item_id, 1)))
 	return true
 
+## Takes away the wear of the piece in `slot` (a shop's repair, 1.5.0). False when it has none.
+func mend(actor_id: StringName, slot: StringName) -> bool:
+	var data := worn_data_of(actor_id, slot).duplicate(true)
+	if RpgUtil.to_int(data.get("wear", 0)) <= 0:
+		return false
+	data.erase("wear")
+	_set_worn_data(actor_id, slot, data)
+	return true
+
 ## What a hit taken wears: the armour and the accessory.
 const WEAR_ON_HIT: Array[StringName] = [&"armor", &"accessory"]
 

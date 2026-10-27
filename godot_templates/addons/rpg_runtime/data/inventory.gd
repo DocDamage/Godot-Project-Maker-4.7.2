@@ -81,6 +81,19 @@ func data_at(index: int) -> Dictionary:
 		return {}
 	return RpgUtil.to_dict(slots[index].get("data", {}))
 
+## Takes the wear off the item of slot `index` (a shop's repair, 1.5.0); a slot left with no data
+## is a plain one again. False when it had no wear.
+func mend_at(index: int) -> bool:
+	var data := data_at(index).duplicate(true)
+	if RpgUtil.to_int(data.get("wear", 0)) <= 0:
+		return false
+	data.erase("wear")
+	if data.is_empty():
+		slots[index].erase("data")
+	else:
+		slots[index]["data"] = data
+	return true
+
 ## A copy that adds and removes without signals: what `fits` and `transact` try first.
 func trial() -> RpgInventory:
 	var copy := RpgInventory.new()

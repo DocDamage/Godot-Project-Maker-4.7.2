@@ -74,6 +74,13 @@ const SEED_STRINGS := {
 const WEAPON_WORDS: Array[String] = ["sword", "axe", "bow"]
 const ARMOR_WORDS: Array[String] = ["armor", "shield", "helmet"]
 const GEAR_BONUS := 2
+## The starter shop and sword of 1.5.0 (T18.04, with the feature `progression`): a few potions
+## that restock (each morning of a farm, else every few minutes of play), gold of the shop's
+## own, buying back, repairs; the sword wears.
+const STARTER_POTIONS := 3
+const STARTER_RESTOCK_MINUTES := 10
+const STARTER_FUNDS := 300
+const STARTER_DURABILITY := 40
 
 func outputs(ctx: BuildContext) -> PackedStringArray:
 	# Without the demo there is no NPC to greet the player.
@@ -92,7 +99,30 @@ func outputs(ctx: BuildContext) -> PackedStringArray:
 	return SeedUtil.missing(wanted)
 
 func input_hash(ctx: BuildContext) -> String:
-	return ctx.stable_hash({"v": RECIPE_VERSION, "icon": _icon_asset(ctx).get("id", ""), "player": _player_id(ctx), "demo_removed": ctx.demo_removed, "gear": _gear(ctx), "chest": _has_chest(ctx), "party": _has_party_demo(ctx), "turn_based": _turn_based(ctx)}.merged({"start_map": _start_map(ctx)} if _no_village(ctx) else {}).merged({"kind_items": _kind_items(ctx), "kind_gold": _kind_gold(ctx), "kind_shop": _farm_shop_hash(), "kind_start": _kind_start(ctx)} if _farm(ctx) else {}).merged({"gear_set": true} if _gear_set(ctx, _gear(ctx)) else {}))
+	return ctx.stable_hash({"v": RECIPE_VERSION, "icon": _icon_asset(ctx).get("id", ""), "player": _player_id(ctx), "demo_removed": ctx.demo_removed, "gear": _gear(ctx), "chest": _has_chest(ctx), "party": _has_party_demo(ctx), "turn_based": _turn_based(ctx)}.merged({"start_map": _start_map(ctx)} if _no_village(ctx) else {}).merged({"kind_items": _kind_items(ctx), "kind_gold": _kind_gold(ctx), "kind_shop": _farm_shop_hash(), "kind_start": _kind_start(ctx)} if _farm(ctx) else {}).merged({"gear_set": true} if _gear_set(ctx, _gear(ctx)) else {}).merged({"starter_shop": 2} if _starter_shop(ctx) else {}))
+
+## True when the starter shop and sword of 1.5.0 apply (T18.04): the feature `progression` is on
+## (a config from before 1.5.0 has no such key) and the village shop is seeded. The sword wears
+## only where a shop repairs it.
+func _starter_shop(ctx: BuildContext) -> bool:
+	return JsonUtil.to_bool(ctx.section("features").get("progression", false)) and not _no_village(ctx) and not ctx.demo_removed
+
+## The starter shop's stock, restock, gold, buyback and repairs (T18.04), on `shop` (the village
+## shop of the kind).
+func _starter_stock(ctx: BuildContext, shop: Resource) -> Resource:
+	var rows: Array = shop.get("stock")
+	for row: Variant in rows:
+		var entry: Dictionary = row
+		if JsonUtil.to_str(entry.get("item_id", "")) == "potion":
+			entry["qty"] = STARTER_POTIONS
+	if _farm(ctx):
+		shop.set("restock_each_day", true)
+	else:
+		shop.set("restock_minutes", STARTER_RESTOCK_MINUTES)
+	shop.set("funds", STARTER_FUNDS)
+	shop.set("buyback", true)
+	shop.set("repairs", true)
+	return shop
 
 ## True when the starter weapon and armour make a set: the feature `progression` is on (1.5.0;
 ## a config from before has no such key) and the packs give both.
@@ -155,6 +185,8 @@ func build(ctx: BuildContext) -> Array:
 			var item := _gear_item(ctx, word, asset)
 			if _gear_set(ctx, gear):
 				item.set("set_id", StringName(GEAR_SET))
+			if _starter_shop(ctx) and WEAPON_WORDS.has(word):
+				item.set("durability", STARTER_DURABILITY)
 			_save(ctx, item, _gear_path(word), issues)
 	if not FileAccess.file_exists(HERO_PATH):
 		_save(ctx, _hero(ctx, _turn_based(ctx)), HERO_PATH, issues)
@@ -176,7 +208,8 @@ func build(ctx: BuildContext) -> Array:
 	if not ctx.demo_removed and not FileAccess.file_exists(QUEST_PATH):
 		_save(ctx, _quest(_has_chest(ctx)), QUEST_PATH, issues)
 	if not ctx.demo_removed and not FileAccess.file_exists(SHOP_PATH):
-		_save(ctx, _kind_shop(ctx, _shop(gear.keys(), _turn_based(ctx))), SHOP_PATH, issues)
+		var shop := _kind_shop(ctx, _shop(gear.keys(), _turn_based(ctx)))
+		_save(ctx, _starter_stock(ctx, shop) if _starter_shop(ctx) else shop, SHOP_PATH, issues)
 	if not ctx.demo_removed and _turn_based(ctx):
 		for path: String in [ANTIDOTE_PATH, ETHER_PATH]:
 			if not FileAccess.file_exists(path):

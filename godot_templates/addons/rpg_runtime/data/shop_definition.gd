@@ -25,6 +25,10 @@ const SOLD_OUT := "sold_out"
 const SHOP_CANNOT_PAY := "shop_cannot_pay"
 ## How many sales a shop keeps for buying back (the latest first).
 const BUYBACK_MAX := 8
+## Mending a piece worn down to nothing costs this share of its value (less wear, less gold).
+const REPAIR_SHARE := 0.5
+## Nothing to mend: the piece is not worn, or the shop does not repair.
+const NOT_WORN := "not_worn"
 
 @export var id: StringName
 @export var title: String = "UI_SHOP"  # a tr() key
@@ -48,6 +52,12 @@ const BUYBACK_MAX := 8
 @export var wares: RpgLootTable = null
 ## True (the default): what you sell can be bought back for what the shop paid, until it restocks.
 @export var buyback: bool = true
+## True: the shop mends worn gear for gold (1.5.0, T18.04): what is worn and what is in the bag,
+## for a share of the item's value by its wear (repair_rows, repair).
+@export var repairs: bool = false
+
+## The categories `buys` may name, in the order the dock shows them.
+const CATEGORIES: Array[String] = ["CONSUMABLE", "WEAPON", "ARMOR", "ACCESSORY", "MATERIAL"]
 
 static func path_of(shop_id: StringName) -> String:
 	return "%s/%s.tres" % [SHOPS_DIR, shop_id]
@@ -290,3 +300,119 @@ func sell(game: RpgGameState, item_id: StringName, qty: int = 1) -> String:
 		st["buyback"] = kept.slice(0, BUYBACK_MAX)
 	_take_gold(game, paid)
 	return OK
+
+# ------------------------------------------------------------------ repair (1.5.0, T18.04)
+
+## What mending `wear` of an item of `durability` costs: REPAIR_SHARE of its value by the share
+## worn, at least 1 (0 for a piece that is not worn).
+static func repair_cost(def: RpgItemDefinition, wear: int) -> int:
+	if def == null or def.durability <= 0 or wear <= 0:
+		return 0
+	return maxi(1, ceili(float(maxi(0, def.value)) * REPAIR_SHARE * float(mini(wear, def.durability)) / float(def.durability)))
+
+## What the shop can mend now, the worn pieces first: [{item_id, wear, durability, price}] with
+## {actor_id, slot} for a piece someone wears, {bag_index} for one in the bag. Empty when the
+## shop does not repair.
+func repair_rows(game: RpgGameState) -> Array[Dictionary]:
+	var out: Array[Dictionary] = []
+	if not repairs:
+		return out
+	var actors: Array = game.equipment.keys()
+	actors.sort()
+	for actor_key: Variant in actors:
+		var worn := RpgUtil.to_dict(game.equipment[actor_key])
+		var slots: Array = worn.keys()
+		slots.sort()
+		for slot_key: Variant in slots:
+			var wear := game.wear_of(StringName(str(actor_key)), StringName(str(slot_key)))
+			var def: RpgItemDefinition = game.items.get(StringName(str(worn[slot_key])))
+			if wear[1] > 0 and wear[0] > 0:
+				out.append({"item_id": str(worn[slot_key]), "wear": wear[0], "durability": wear[1], "price": repair_cost(def, wear[0]), "actor_id": str(actor_key), "slot": str(slot_key)})
+	for i in game.inventory.slots.size():
+		var item_id := StringName(str(game.inventory.slots[i]["item_id"]))
+		var def: RpgItemDefinition = game.items.get(item_id)
+		var wear := RpgUtil.to_int(game.inventory.data_at(i).get("wear", 0))
+		if def != null and def.durability > 0 and wear > 0:
+			out.append({"item_id": String(item_id), "wear": wear, "durability": def.durability, "price": repair_cost(def, wear), "bag_index": i})
+	return out
+
+## Mends row `index` of repair_rows() for its price. All or nothing.
+func repair(game: RpgGameState, index: int) -> String:
+	var rows := repair_rows(game)
+	if index < 0 or index >= rows.size():
+		return NOT_WORN
+	var row := rows[index]
+	var cost := RpgUtil.to_int(row["price"])
+	if game.gold < cost:
+		return NOT_ENOUGH_GOLD
+	if row.has("bag_index"):
+		game.inventory.mend_at(RpgUtil.to_int(row["bag_index"]))
+	else:
+		game.mend(StringName(str(row["actor_id"])), StringName(str(row["slot"])))
+	game.gold -= cost
+	_take_gold(game, -cost)
+	return OK
+
+# ------------------------------------------------------------------ the dock (1.5.0)
+
+## What is wrong with stock row `index`, as the validator says it (VAL-034), or "": an item that
+## `known` (item ids, e.g. the files of game/data/items) does not have.
+func row_problem(index: int, known: Array) -> String:
+	if index < 0 or index >= stock.size():
+		return ""
+	var item_id := str(stock[index].get("item_id", ""))
+	if item_id == "":
+		return "row %d sells no item" % (index + 1)
+	if not known.has(item_id) and not known.has(StringName(item_id)):
+		return "row %d sells '%s', which has no file in %s" % [index + 1, item_id, RpgGameState.ITEMS_DIR]
+	return ""
+
+## The problems of every stock row (see row_problem).
+func stock_problems(known: Array) -> Array[String]:
+	var out: Array[String] = []
+	for i in stock.size():
+		var problem := row_problem(i, known)
+		if problem != "":
+			out.append(problem)
+	return out
+
+## The shop as plain data, and back (the dock's JSON export and import). `wares` is written as
+## its entries.
+func to_dict() -> Dictionary:
+	var out := {"id": String(id), "title": title, "stock": stock.duplicate(true), "sell_ratio": sell_ratio, "buys": Array(buys), "restock_minutes": restock_minutes, "restock_each_day": restock_each_day, "funds": funds, "buyback": buyback, "repairs": repairs}
+	if wares != null:
+		out["wares"] = {"entries": wares.entries.duplicate(true)}
+	return out
+
+## Sets what `data` names (keys it lacks keep their values); a subclass reads its own keys too.
+func apply_dict(data: Dictionary) -> void:
+	id = StringName(str(data.get("id", id)))
+	title = str(data.get("title", title))
+	if data.get("stock") is Array:
+		stock.clear()
+		for raw: Variant in RpgUtil.to_array(data["stock"]):
+			if raw is Dictionary:
+				stock.append(RpgUtil.to_dict(raw).duplicate(true))
+	sell_ratio = RpgUtil.to_float(data.get("sell_ratio", sell_ratio))
+	if data.get("buys") is Array:
+		buys.clear()
+		for word: Variant in RpgUtil.to_array(data["buys"]):
+			buys.append(str(word))
+	restock_minutes = RpgUtil.to_int(data.get("restock_minutes", restock_minutes))
+	restock_each_day = RpgUtil.to_bool(data.get("restock_each_day", restock_each_day), restock_each_day)
+	funds = RpgUtil.to_int(data.get("funds", funds))
+	buyback = RpgUtil.to_bool(data.get("buyback", buyback), buyback)
+	repairs = RpgUtil.to_bool(data.get("repairs", repairs), repairs)
+	if data.has("wares"):
+		var table: Variant = data["wares"]
+		wares = null
+		if table is Dictionary and RpgUtil.to_dict(table).get("entries") is Array:
+			wares = RpgLootTable.new()
+			for raw: Variant in RpgUtil.to_array(RpgUtil.to_dict(table)["entries"]):
+				if raw is Dictionary:
+					wares.entries.append(RpgUtil.to_dict(raw).duplicate(true))
+
+static func from_dict(data: Dictionary) -> RpgShopDefinition:
+	var made := RpgShopDefinition.new()
+	made.apply_dict(data)
+	return made
