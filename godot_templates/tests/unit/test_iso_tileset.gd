@@ -154,6 +154,42 @@ func test_the_custom_data_the_maps_ask(t) -> void:
 	t.eq(_data(ts, iso, GRASS, 2).get_custom_data("asset_id"), "iso_tiles.png.isotile_001_2", "a turn is a tile of its own")
 	_cleanup()
 
+## What a level's height layers ask (2026-10-26): how high a piece raises what stands on it and
+## where it goes in a stack; a tile that is no piece of a stack says 0 and "".
+func test_the_custom_data_of_a_piece_of_a_stack(t) -> void:
+	_cleanup()
+	var cat := _catalog()
+	for asset: Dictionary in cat["assets"]:
+		if asset["id"] == GRASS:
+			asset["detected"]["lift"] = 16
+			asset["detected"]["stack"] = "block"
+	t.eq(_build(cat), [])
+	var ts := _load()
+	var iso := IsoTileset.new(CatalogReader.new(cat, "isometric"))
+	t.eq(_data(ts, iso, GRASS).get_custom_data("lift"), 16)
+	t.eq(_data(ts, iso, GRASS).get_custom_data("stack"), "block")
+	t.eq(_data(ts, iso, WATER).get_custom_data("lift"), 0)
+	t.eq(_data(ts, iso, WATER).get_custom_data("stack"), "")
+	_cleanup()
+
+## A tile that moves plays the frames in the cells after its own, at its speed; a tile of one
+## frame is left as it is.
+func test_a_tile_that_moves_is_animated(t) -> void:
+	var src := TileSetAtlasSource.new()
+	src.texture = ImageTexture.create_from_image(Image.create(128, 16, false, Image.FORMAT_RGBA8))
+	src.texture_region_size = Vector2i(32, 16)
+	src.create_tile(Vector2i(0, 0))
+	IsoTileset.animate(src, Vector2i(0, 0), 4, 6.0)
+	t.eq(src.get_tile_animation_frames_count(Vector2i(0, 0)), 4)
+	t.eq(src.get_tile_animation_columns(Vector2i(0, 0)), 4)
+	t.ok(is_equal_approx(src.get_tile_animation_speed(Vector2i(0, 0)), 6.0), "its speed")
+	var still := TileSetAtlasSource.new()
+	still.texture = src.texture
+	still.texture_region_size = Vector2i(32, 16)
+	still.create_tile(Vector2i(1, 0))
+	IsoTileset.animate(still, Vector2i(1, 0), 1, 8.0)
+	t.eq(still.get_tile_animation_frames_count(Vector2i(1, 0)), 1)
+
 func test_tile_for_finds_a_tile_and_its_turns(t) -> void:
 	var iso := IsoTileset.new(CatalogReader.new(_catalog(), "isometric"))
 	t.ok(iso.has_tiles())

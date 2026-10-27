@@ -80,6 +80,10 @@ func receive(info: RpgDamageInfo) -> bool:
 	if h == null or h.is_dead():
 		return false
 	h.take(info)
+	var state := RpgUtil.state()
+	var s := h.stats()
+	if state != null and s != null and info.amount > 0:
+		state.wear_from_hit(s)  # only gear with a durability wears (1.5.0)
 	if invuln_s > 0.0:
 		make_invulnerable(invuln_s)
 	damaged.emit(info)

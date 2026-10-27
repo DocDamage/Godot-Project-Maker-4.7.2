@@ -2,7 +2,9 @@
 extends "data_tab.gd"
 ## The Quests tab (T13.19): the quests in res://game/data/quests. A stage list with a form (id,
 ## title, description, condition with the inline checker, where it leads, its target entity with
-## a picker from the open map, its rewards), the quest's own id, title and rewards, a read-only
+## a picker from the open map, its rewards, whether it waits to be turned in and the items it
+## takes), the quest's own id, title, rewards, what it requires, whether it starts by itself and
+## what fails it, a read-only
 ## graph of the stages (one node per stage, one edge per `next`), a test against a pretend game
 ## state, and JSON export and import. Every change is one undo step.
 
@@ -21,6 +23,9 @@ var _stages: ItemList
 var _quest_id: LineEdit
 var _quest_title: LineEdit
 var _quest_rewards: TextEdit
+var _requires: LineEdit
+var _auto_start: CheckBox
+var _fail_when: LineEdit
 var _stage_id: LineEdit
 var _stage_title: LineEdit
 var _description: LineEdit
@@ -30,6 +35,8 @@ var _next: LineEdit
 var _target: LineEdit
 var _target_pick: OptionButton
 var _stage_rewards: TextEdit
+var _turn_in: CheckBox
+var _take: TextEdit
 var _problems: Label
 var _graph: GraphEdit
 var _toggles: VBoxContainer
@@ -68,6 +75,14 @@ func _init() -> void:
 	_quest_id = _quest_field(form, "Quest id", "id")
 	_quest_title = _quest_field(form, "Quest title (a text key)", "title")
 	_quest_rewards = _rewards_edit(form, "Quest rewards", func(text: String) -> void: set_quest_property("rewards", parse_rewards(text)))
+	_requires = _quest_field(form, "Requires (a condition)", "requires")
+	_requires.placeholder_text = "e.g. quest_done:first; empty = it can always start"
+	_auto_start = CheckBox.new()
+	_auto_start.text = "Starts by itself when what it requires holds"
+	_auto_start.toggled.connect(func(on: bool) -> void: set_quest_property("auto_start", on))
+	form.add_child(_auto_start)
+	_fail_when = _quest_field(form, "Fails when (a condition)", "fail_when")
+	_fail_when.placeholder_text = "empty = it cannot fail by itself"
 	var rule := HSeparator.new()
 	form.add_child(rule)
 	_stage_id = _stage_field(form, "Stage id", "id")
@@ -93,6 +108,15 @@ func _init() -> void:
 	target_row.add_child(_target_pick)
 	row(form, "Target", target_row)
 	_stage_rewards = _rewards_edit(form, "Stage rewards", func(text: String) -> void: edit_stage(selected_stage(), "rewards", parse_rewards(text)))
+	_turn_in = CheckBox.new()
+	_turn_in.text = "Waits to be turned in (the event quest_turn_in:<quest id>)"
+	_turn_in.toggled.connect(func(on: bool) -> void: edit_stage(selected_stage(), "turn_in", on))
+	form.add_child(_turn_in)
+	_take = TextEdit.new()
+	_take.custom_minimum_size = Vector2(0, 46)
+	_take.placeholder_text = "one per line: log x8 (taken from the bag when the stage finishes)"
+	_take.focus_exited.connect(func() -> void: edit_stage(selected_stage(), "take", parse_items(_take.text)))
+	row(form, "Takes", _take)
 	_problems = note(form)
 	var lower := HSplitContainer.new()
 	lower.custom_minimum_size = Vector2(0, 170)
@@ -266,6 +290,9 @@ func _refresh(select: int = -1) -> void:
 	_quest_id.text = String(quest.id)
 	_quest_title.text = quest.title
 	_quest_rewards.text = rewards_text(quest.rewards)
+	_requires.text = quest.requires
+	_auto_start.set_pressed_no_signal(quest.auto_start)
+	_fail_when.text = quest.fail_when
 	_loading = false
 	_show_stage()
 	_problems.text = "\n".join(PackedStringArray(problems()))
@@ -284,6 +311,8 @@ func _show_stage() -> void:
 	_next.text = str(stage.get("next", ""))
 	_target.text = str(stage.get("target", ""))
 	_stage_rewards.text = rewards_text(RpgUtil.to_dict(stage.get("rewards", {})))
+	_turn_in.set_pressed_no_signal(RpgQuestDefinition.turns_in(stage))
+	_take.text = rewards_text({"items": RpgQuestDefinition.take_of(stage)})
 	_target_pick.clear()
 	_target_pick.add_item("(pick)")
 	for entity in map_entities():
@@ -314,8 +343,10 @@ func edit_stage(index: int, key: String, value: Variant) -> void:
 		return
 	var stages: Array = quest.stages.duplicate(true)
 	var stage := RpgUtil.to_dict(stages[index])
-	var empty := (value is String and str(value) == "") or (value is Dictionary and RpgUtil.to_dict(value).is_empty())
-	if stage.get(key, "" if value is String else {}) == value or (empty and not stage.has(key)):
+	var empty: bool = (value is String and str(value) == "") or (value is Dictionary and RpgUtil.to_dict(value).is_empty()) \
+		or (value is Array and str(value) == "[]") or (value is bool and not RpgUtil.to_bool(value))
+	var same: bool = stage.has(key) and typeof(stage[key]) == typeof(value) and stage[key] == value
+	if same or (empty and not stage.has(key)):
 		return
 	if empty and key not in ["id", "description", "complete_when"]:
 		stage.erase(key)
@@ -386,6 +417,11 @@ static func parse_rewards(text: String) -> Dictionary:
 	if not reward_items.is_empty():
 		out["items"] = reward_items
 	return out
+
+## The item lines of `text` ("log x8") -> [{item_id, qty}] (what a stage takes).
+static func parse_items(text: String) -> Array:
+	var items: Variant = parse_rewards(text).get("items", [])
+	return items if items is Array else []
 
 static func rewards_text(rewards: Dictionary) -> String:
 	var rows: PackedStringArray = []

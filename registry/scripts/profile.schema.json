@@ -452,6 +452,11 @@
         "roof_rise": {"type": "integer", "minimum": 1},
         "iso_terrain": {"type": "object"},
         "post": {"enum": ["nw", "ne", "es", "sw"]},
+        "lift": {"type": "integer", "minimum": 0},
+        "stack": {"enum": ["block", "ramp", "storey", "roof", "on_roof", "on_storey", "on_wall", "overlay"]},
+        "tile_frames": {"type": "array", "items": {"type": "string"}, "minItems": 1},
+        "tile_fps": {"type": "number", "exclusiveMinimum": 0},
+        "shadow": {"type": "string"},
         "stands_on": {"type": "array", "items": {"type": "integer", "minimum": 1}, "minItems": 2, "maxItems": 2},
         "character_index": {
           "type": "integer",

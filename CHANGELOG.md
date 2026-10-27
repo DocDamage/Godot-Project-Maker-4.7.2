@@ -158,6 +158,10 @@ does not ask for the isometric view is built as it was.
   tile of a terrain fitted the cells around it, and few packs draw every piece: for each way a
   terrain meets others that its pack draws no piece for, the nearest piece it draws is added as
   an alternative tile. A plain ground matches by its sides, so a patch of it keeps its border.
+  It is done for a source the build makes: a project made before 1.5.0 keeps the TileSets its
+  version built when it is regenerated (the test of a project made by 1.1 found the ground of
+  one gaining 46 alternatives). The same test found a TileSet's patterns saved again with new
+  ids on each rebuild: patterns that come out the same are kept.
   Terrain names say their surface and their sheet (`dirt · tileset grass spring 2`).
 * **The things of a sheet of tiles are in the dock** (T17.33): the trees, rocks, crops, sacks
   and tools beside a sheet's ground (*Tiny Farm*'s one sheet gave none), joined where their art
@@ -172,6 +176,57 @@ does not ask for the isometric view is built as it was.
   copies of a player (`Variable sizes`) are set aside; a fence in a folder of props stays a
   prop; a farmer's tool strip stays an animation of the farmer; strips that name their frames
   are each read as they were.
+* **Gridwright's isometric kits, and stacking.** All thirteen kits (*Tiles*, *City*,
+  *Interiors*, *Dungeon & Caves*, *Graveyard & Crypt*, *Castle & Siege*, *Wasteland*,
+  *Characters*, *Monsters*, *Animals*, *Army* and the two creators) are read by the JSON they
+  ship. Nothing they draw is set aside but copies (other sizes, sheets of the single pictures,
+  single frames of sheets):
+  * **Stacking.** Blocks, half blocks, ramps and stairs, the storeys of a building, its roof,
+    things for a roof, awnings and signs on a storey's front, lanterns and pictures on a wall,
+    and pieces laid over other tiles are tiles that say where they go in a stack and how high
+    they lift what stands on them. The dock's *World tools* add **height layers**: tile layers
+    drawn higher that sort with the people as their ground does, at the height the dock
+    suggests. A thing placed on a cell with a stack stands on its top.
+  * **What moves:** tiles that move play (water, lava, foam, waterfalls, mist, flames), and
+    things that move play their animation in the dock's scenes (a fountain, a campfire, a
+    police car's lights). A door, a gate or a portcullis is a tile in each of its poses, and a
+    catapult plays its swing once.
+  * **Shadows:** things and characters whose pack draws a shadow have it under them.
+  * **Characters, effects and creators:** each character's 8 directions and animations are
+    read from its own JSON. Its role is its side, an animal's group (farm animals; pets and
+    deer as moving decorations; bears, wolves and boars as enemies), or whether an army's unit
+    fights. Arrows, bolts and impacts are projectiles and effects that play. A creator's layers
+    are a layered character whose parts you choose, standing on the pack's feet point.
+  * **Names:** a zip whose long name an id cuts short and that holds one folder is named by
+    that folder (*Gridwright Isometric Tiles*, not thirteen times
+    *isometric_map_builder_pixel_art_godot_ti*).
+  * **Copies out of Godot's import:** a folder of a pack that holds only copies (other sizes,
+    single frames of sheets, sheets of single pictures) gets a `.gdignore`, so Godot does not
+    import it. The files stay in the project, and deleting the marker brings a folder back. The
+    nine character and tile kits hold about ninety thousand such pictures, and importing them
+    took over ten minutes. A picture set aside (a pack's preview read as a sheet of tiles) is no
+    longer a source of a tile set in a new project (one was cut into 30,000 tiles), and the
+    things cut from a pack's preview are no objects (nine kits' previews gave 19,600).
+  * **Still missing:** characters do not climb a stack in the game (it is drawn, not walked).
+    The vehicles are placed, not driven: they face the diagonals, and a race turns by up,
+    right, down and left.
+* **Quests, shops, the bag, skill trees and achievements** in every game made with the runtime
+  (the runtime's CHANGELOG has the details): quests that wait for others, start by themselves,
+  fail and are turned in, with live counts and a tracker under the minimap; shops whose stock
+  runs out and refills, with their own gold, rolled wares and **Buy back**; rewards that wait
+  for room in a full bag instead of being lost; gear that wears and breaks, and sets of gear;
+  skill trees (*Pause → Skills*) and achievements (*Pause → Achievements*).
+  * **The option *Skills and achievements*** (on for a new turn-based game, action RPG,
+    metroidvania or farm; not offered for the arcade kinds) seeds a starter skill tree (the
+    adventurer's: vigor, strength and guard, then healing or toughness, fury and swift), the
+    achievements the game has the parts for (the errand, ten enemies, level 5, gold saved, a
+    secret chest) and the traveler's set for a starter weapon and armour worn together. A
+    project made before 1.5.0 has no such key in its config and regenerates without them.
+  * **The editor dock** has three more tabs, **Skills**, **Achievements** and **Item sets**:
+    forms with undo, a picture of the tree's grid, a test of an achievement against a pretend
+    state, the items of a set (with their durability), and JSON export and import.
+  * **The validator** reports a quest, a skill tree, an achievement or an item set that does
+    not add up (VAL-034).
 * **Detection for isometric packs**: a pack of single tiles with its diamond and how far each
   picture rises above it, turns by number or by compass letter as one tile (never as frames of
   an animation), sides in a name (`pathES`, `waterNW`), a folder `Isometric` beside `Angle`, a

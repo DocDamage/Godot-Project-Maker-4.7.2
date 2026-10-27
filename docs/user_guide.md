@@ -1282,6 +1282,31 @@ What the other pages do for it:
 From the command line it is `rpggen generate --archetype assets`, with `--view top` or
 `--view side` to choose the view instead of the packs.
 
+**Stacking in an isometric level.** Some isometric packs draw pieces you stack: blocks that
+raise the ground, half blocks, ramps and stairs, the storeys of a building and its roof,
+awnings and signs on a storey's front, things for a roof, lanterns on a wall, and pieces laid
+over other tiles (shore foam, waterfalls, mist, mine rails, road markings). Gridwright's
+isometric kits are drawn that way. Each such piece is a tile of the project's tile set that
+says how high it lifts what stands on it. To stack:
+
+1. In the **RPG Project Tools** dock, under *World tools*, press **Suggest** next to *Height
+   layer at*, then **Add height layer**. The first layer is at 0 px: paint blocks, walls and the
+   ground storeys of houses on it.
+2. Press **Suggest** again. It proposes the top of the highest layer: 16 px on a block, 20 px
+   more on a storey. **Add height layer** makes it. Paint the next storey there, then a roof
+   on the layer above that. An awning goes on the layer of the storey whose front it hangs on.
+3. Things you place from the library on a cell with a stack stand on its top: a crate on a
+   block, an air conditioner on a roof. Each sits in a node called *Raised* that keeps it
+   sorted with the people walking past.
+
+A height layer is an ordinary TileMapLayer drawn higher (its position) that sorts as its
+cells' ground does (its *Y Sort Origin*). Change both and the meta `rpg_height` together if you
+move one by hand. Tiles that move in the pack (water, lava, foam, a fire) play in the editor
+and in the game, and things and characters whose pack draws a shadow have it under them.
+
+A pack that ships every picture again (in 2x and 3x, or a sheet's frames one by one) has those
+folders marked with a `.gdignore`, so Godot does not import them. Delete the file to use them.
+
 ## 4. In Godot
 
 The game's *Settings* have a **Language** choice: *System* and every language of the project's
@@ -1363,7 +1388,35 @@ their diamond; a floor switch and a lever keep their small square; an encounter 
 nothing selected covers six by six diamonds. Ctrl+Z takes each back, as on squares.
 
 **Shops.** In a shop, left and right choose how many to buy or sell (up to what you can pay for,
-carry or own), and **Sell all** sells everything the shop buys after a second press.
+carry or own), and **Sell all** sells everything the shop buys after a second press. **Buy
+back** lists what you sold there, for what the shop paid, until it restocks. A shop can keep a
+limited stock that refills after some minutes of play (or every morning on a farm), have its own
+gold to buy with, and roll extra wares from a loot table: set `qty` on a stock row and
+`restock_minutes`, `funds` or `wares` on the shop's file in `game/data/shops/`.
+
+**Quests.** A quest can wait for another (`requires`, such as `quest_done:first`) and start by
+itself when it may (`auto_start`), fail (`fail_when`), and have a stage you turn in to
+somebody: the stage holds while its condition holds ("bring 8 logs"), the dialogue event
+`quest_turn_in:<id>` finishes it and takes the logs. Counts are live: drop three logs and the
+quest says 5/8 again. The tracker under the minimap shows the quest you track (confirm it in
+the journal); *Settings → Quest tracker* turns it off.
+
+**A full bag loses nothing.** A reward, a chest or a gift that does not fit waits and comes into
+the bag as soon as there is room; a toast says so each time.
+
+**Gear, skills and achievements.** With *Options → Skills and achievements* (on for a new
+turn-based game, action RPG, metroidvania or farm) the project starts with a skill tree, a few
+achievements and a set for the starter gear, all yours to change. An item with a `durability`
+wears with use and breaks; items with the same `set_id` give the bonuses of their set
+(`game/data/item_sets/`) when enough are worn. A skill tree (`game/data/skill_trees/`) gives
+points at each level, spent on ranks for stat bonuses and battle skills, with requirements,
+rows that open after enough points and a reset for gold; *Pause → Skills*. An achievement
+(`game/data/achievements/`) unlocks by itself when its condition holds, often a count such as
+`count:defeated:wolf>=10` or `count:items:log>=30`; *Pause → Achievements*. The dock's
+**Skills**, **Achievements** and **Item sets** tabs edit them (with undo, JSON export and
+import, a picture of the tree, a test of an achievement, and the items of a set with their
+durability). The validator reports a quest, a tree, an achievement or a set that does not add
+up (VAL-034).
 
 Your own build steps go in `game/builder_recipes/`: GDScript files that run after rpggen's
 steps on every build ([custom recipes](recipes.md)).

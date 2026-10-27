@@ -246,6 +246,18 @@ func test_a_stage_edit_round_trips_and_is_one_undo_step(t) -> void:
 	t.ok(not quest.stages[0].has("target") and quest.stages[0]["title"] == "QUEST_TALK_TITLE")
 	tab.call("edit_stage", 0, "rewards", QuestTab.parse_rewards("gold 3\npotion x2"))
 	t.eq(quest.stages[0]["rewards"], {"gold": 3, "items": [{"item_id": "potion", "qty": 2}]})
+	# waiting to be turned in, and what a stage takes (1.5.0): false and nothing take the key away
+	tab.call("edit_stage", 0, "turn_in", true)
+	tab.call("edit_stage", 0, "take", QuestTab.parse_items("log x8"))
+	t.eq([quest.stages[0]["turn_in"], quest.stages[0]["take"]], [true, [{"item_id": "log", "qty": 8}]])
+	tab.call("edit_stage", 0, "turn_in", false)
+	tab.call("edit_stage", 0, "take", QuestTab.parse_items(""))
+	t.ok(not quest.stages[0].has("turn_in") and not quest.stages[0].has("take"))
+	tab.call("set_quest_property", "requires", "quest_done:first")
+	tab.call("set_quest_property", "auto_start", true)
+	t.eq([quest.requires, quest.auto_start], ["quest_done:first", true])
+	tab.call("set_quest_property", "auto_start", false)
+	tab.call("set_quest_property", "requires", "")
 	# the quest's own fields
 	tab.call("set_quest_property", "title", "QUEST_NEW_TITLE")
 	tab.call("set_quest_property", "rewards", QuestTab.parse_rewards("experience 9"))

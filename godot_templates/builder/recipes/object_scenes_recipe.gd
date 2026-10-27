@@ -161,6 +161,17 @@ func _build_scene(e: Dictionary, path: String, tile: int, is_chest: bool = false
 		# two halves an isometric building sorts by
 		root.set_meta("kit", JsonUtil.to_dict(e["kit"]).duplicate())
 		IsoHouse.assemble(root, JsonUtil.to_array(e["parts"]), ObjectEntries.iso_cells(e), ObjectEntries.iso_footprint(e))
+	elif _frames_of(e) != null:
+		# a thing that moves (an assets-only project, 2026-10-26: a fountain, a campfire, an
+		# arrow): it plays its animation where it stands
+		var playing := AnimatedSprite2D.new()
+		playing.name = "Sprite"
+		playing.sprite_frames = _frames_of(e)
+		playing.animation = JsonUtil.to_str(e["animation"])
+		playing.autoplay = JsonUtil.to_str(e["animation"])
+		playing.centered = false
+		playing.offset = -origin
+		root.add_child(playing)
 	else:
 		sprite = Sprite2D.new()
 		sprite.name = "Sprite"
@@ -170,6 +181,9 @@ func _build_scene(e: Dictionary, path: String, tile: int, is_chest: bool = false
 		root.add_child(sprite)
 		if ObjectEntries.is_iso(e) and ObjectEntries.iso_cells(e) != Vector2i.ONE:
 			_split_for_sorting(root, sprite, e, origin)
+	if e.has("shadow"):
+		# the pack's shadow under the thing, drawn with the same anchor (2026-10-26)
+		ActorBuild.add_shadow(root, {"shadow": e["shadow"]}, -origin, true)
 	if template == "chest":
 		var open: Array = e.get("open_region", [])
 		if open.size() == 4:
@@ -224,6 +238,13 @@ func _build_scene(e: Dictionary, path: String, tile: int, is_chest: bool = false
 		exit_spawn.position = door - origin + Vector2(0, tile)
 		root.add_child(exit_spawn)
 	return SceneUtil.save_scene(root, path)
+
+## The SpriteFrames of an entry of a thing that moves (`frames_path`, ObjectEntries), or null.
+static func _frames_of(e: Dictionary) -> SpriteFrames:
+	var path := JsonUtil.to_str(e.get("frames_path", ""))
+	if path == "" or not ResourceLoader.exists(path):
+		return null
+	return load(path) as SpriteFrames
 
 # ---------------------------------------------------------------- isometric objects (T17.14)
 

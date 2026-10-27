@@ -7,10 +7,16 @@ extends RefCounted
 ## A map of diamonds (T17.27, `projection: isometric`) is asked through RpgIso, the runtime's
 ## arithmetic: what is placed stands on the middle of the diamond under it, as the builder
 ## stands it. A map of squares is placed in as it always was.
+##
+## On a cell of an isometric map with something stacked on it (a block, a storey, a roof on the
+## level's height layers: tools/height_layers.gd, 2026-10-26) what is placed stands on the top of
+## the stack: it goes into a node `Raised` on the cell's middle, by which it sorts as everything
+## on that cell does, and lies `raise` px higher in it.
 
 const EntityIds := preload("../tools/entity_ids.gd")
 const CatalogEdit := preload("../tools/catalog_edit.gd")
 const JsonIo := preload("../tools/json_io.gd")
+const HeightLayers := preload("../tools/height_layers.gd")
 
 const YSORT_PATH := "YSorted/Entities"
 
@@ -214,6 +220,7 @@ func plan(instance: Node2D, root: Node, entry: Dictionary, selected: Node = null
 		var cell := RpgIso.cell_at(root, world)
 		out["cell"] = cell
 		out["cells"] = cells_under(cell, stands_on(instance))
+		out["raise"] = HeightLayers.top_at(root, cell)
 	return out
 
 ## Performs a plan with undo. A detached instance is added to the plan's parent under the plan's
@@ -224,6 +231,9 @@ func plan(instance: Node2D, root: Node, entry: Dictionary, selected: Node = null
 ## was is added last, after the properties it sets back, so that each is set while the node is
 ## still in the tree.
 func apply(plan: Dictionary, instance: Node2D, root: Node, undo: EditorUndoRedoManager, display_name: String) -> void:
+	if JsonIo.to_int(plan.get("raise", 0)) > 0:
+		_apply_raised(plan, instance, root, undo, display_name)
+		return
 	var parent: Node = plan["parent"]
 	var fresh := not instance.is_inside_tree()
 	var old_parent: Node = plan["old_parent"]
@@ -261,6 +271,59 @@ func apply(plan: Dictionary, instance: Node2D, root: Node, undo: EditorUndoRedoM
 			undo.add_undo_method(instance, "set_name", old_name)
 	undo.commit_action()
 	if JsonIo.to_str(plan["entity_id"]) != "":
+		record_allocation(JsonIo.to_str(plan["map_id"]), JsonIo.to_str(plan["kind"]), JsonIo.to_int(plan["number"]))
+
+const RAISED_NAME := "Raised"
+
+## `apply` for a plan whose cell has a stack (`raise` > 0): a node `Raised` on the cell's middle,
+## in the plan's parent, holds the instance `raise` px higher. The undo takes the instance out
+## of it (back where it was, for one that was dropped) and the node away, after the properties.
+func _apply_raised(plan: Dictionary, instance: Node2D, root: Node, undo: EditorUndoRedoManager, display_name: String) -> void:
+	var parent: Node = plan["parent"]
+	var fresh := not instance.is_inside_tree()
+	var old_parent: Node = plan["old_parent"]
+	var raise := JsonIo.to_int(plan["raise"])
+	var holder := Node2D.new()
+	holder.name = free_name(parent, RAISED_NAME)
+	holder.position = plan["position"]
+	holder.set_meta(HeightLayers.HEIGHT_META, raise)
+	var new_name := JsonIo.to_str(plan.get("name", String(instance.name)))
+	var old_name := JsonIo.to_str(plan.get("old_name", String(instance.name)))
+	var flip_node: Node = plan["flip_node"]
+	var has_id := JsonIo.to_str(plan["entity_id"]) != ""
+	undo.create_action("Place %s" % display_name, UndoRedo.MERGE_DISABLE, root)
+	undo.add_do_method(parent, "add_child", holder, true)
+	undo.add_do_method(holder, "set_owner", root)
+	undo.add_do_reference(holder)
+	if fresh:
+		instance.name = new_name
+		undo.add_do_method(holder, "add_child", instance, true)
+		undo.add_do_method(instance, "set_owner", root)
+		undo.add_do_reference(instance)
+	else:
+		undo.add_do_method(instance, "reparent", holder, false)
+		if new_name != old_name:
+			undo.add_do_method(instance, "set_name", new_name)
+	undo.add_do_property(instance, "position", Vector2(0, -raise))
+	if flip_node != null:
+		undo.add_do_property(flip_node, "flip_h", plan["flip"])
+	if has_id:
+		undo.add_do_property(instance, "entity_id", plan["entity_id"])
+	# the undo: first the properties, then the tree
+	if has_id:
+		undo.add_undo_property(instance, "entity_id", plan["old_entity_id"])
+	if flip_node != null:
+		undo.add_undo_property(flip_node, "flip_h", plan["old_flip"])
+	undo.add_undo_property(instance, "position", plan["old_position"])
+	if fresh:
+		undo.add_undo_method(holder, "remove_child", instance)
+	else:
+		undo.add_undo_method(instance, "reparent", old_parent, false)
+		if new_name != old_name:
+			undo.add_undo_method(instance, "set_name", old_name)
+	undo.add_undo_method(parent, "remove_child", holder)
+	undo.commit_action()
+	if has_id:
 		record_allocation(JsonIo.to_str(plan["map_id"]), JsonIo.to_str(plan["kind"]), JsonIo.to_int(plan["number"]))
 
 ## Writes the number used for an id into the catalog's id_allocations.entities.

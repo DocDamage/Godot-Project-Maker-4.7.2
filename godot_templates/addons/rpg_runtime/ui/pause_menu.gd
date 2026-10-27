@@ -1,7 +1,8 @@
 class_name RpgPauseMenu
 extends Control
-## Opens on `menu` during gameplay and pauses the tree. Resume, Inventory, Status, Journal, Save, Load,
-## Settings, Credits, Title. `cancel` closes it.
+## Opens on `menu` during gameplay and pauses the tree. Resume, Inventory, Status, Journal, Skills
+## and Achievements (1.5.0: shown only in a game that has skill trees, or achievements), Save,
+## Load, Settings, Credits, Title. `cancel` closes it.
 
 signal closed
 
@@ -38,6 +39,16 @@ func _ready() -> void:
 	var credits := get_node_or_null("%Credits") as Button  # projects built before the credits have none
 	if credits != null:
 		credits.pressed.connect(_open.bind("credits_menu", {}))
+	var state := RpgUtil.state()
+	var skills := get_node_or_null("%Skills") as Button  # projects built before 1.5 have none
+	if skills != null:
+		skills.visible = state != null and not state.skill_trees.is_empty()
+		skills.pressed.connect(_open_built.bind(RpgSkillTreeMenu))
+	var achievements := get_node_or_null("%Achievements") as Button
+	if achievements != null:
+		achievements.visible = state != null and not state.achievement_defs.is_empty()
+		achievements.pressed.connect(_open_built.bind(RpgAchievementsMenu))
+	RpgMenuUtil.wire_vertical(RpgMenuUtil.focusables(self).filter(func(c: Control) -> bool: return c.visible))
 	(get_node("%Title") as Button).pressed.connect(_to_title)
 	RpgMenuUtil.attach_sounds(RpgMenuUtil.focusables(self))
 	_focus_resume.call_deferred()
@@ -65,6 +76,16 @@ func _open(menu_name: String, args: Dictionary) -> void:
 	var menu := RpgMenuUtil.open_submenu(self, menu_name, args)
 	if menu == null:
 		return
+	_submenu = menu
+	menu.tree_exited.connect(_on_submenu_closed)
+
+## Opens a menu that builds itself in code (the skill trees, the achievements).
+func _open_built(script: GDScript) -> void:
+	if _submenu != null:
+		return
+	var made: Object = script.new()
+	var menu := made as Control
+	add_child(menu)
 	_submenu = menu
 	menu.tree_exited.connect(_on_submenu_closed)
 

@@ -12,9 +12,13 @@ const DemoTools := preload("demo_tools.gd")
 const DialogueTab := preload("dialogue_tab.gd")
 const QuestTab := preload("quest_tab.gd")
 const SequenceTab := preload("sequence_tab.gd")
+const SkillTreeTab := preload("skill_tree_tab.gd")
+const AchievementTab := preload("achievement_tab.gd")
+const ItemSetTab := preload("item_set_tab.gd")
 const Rebuild := preload("../tools/rebuild.gd")
 const CatalogEdit := preload("../tools/catalog_edit.gd")
 const JsonIo := preload("../tools/json_io.gd")
+const HeightLayers := preload("../tools/height_layers.gd")
 
 const ICON_SIZE := 48
 ## Seconds a drag stays armed after it ended: the editor adds the dropped scene a moment later.
@@ -43,6 +47,7 @@ var _status: Label
 var _inspector: AssetInspector
 var _validator: ValidatorPanel
 var _demo_dialog: ConfirmationDialog
+var _height: SpinBox
 
 # Drag-and-drop bookkeeping: the scene a drag started with, and the nodes already fixed up.
 var _armed_scene := ""
@@ -95,6 +100,9 @@ func _build_ui() -> void:
 	var quests := QuestTab.new()  # T13.19
 	quests.plugin = plugin
 	tabs.add_child(quests)
+	for made: VBoxContainer in [SkillTreeTab.new(), AchievementTab.new(), ItemSetTab.new()]:  # 1.5.0
+		made.set("plugin", plugin)
+		tabs.add_child(made)
 	var cutscenes := SequenceTab.new()
 	cutscenes.plugin = plugin
 	cutscenes.debug_link = plugin.get("debug_link") if plugin != null else null
@@ -231,7 +239,51 @@ func _build_project_tab() -> Control:
 		button.tooltip_text = spec[2]
 		button.pressed.connect(_add_lock.bind(spec[0]))
 		page.add_child(button)
+	# what a pack stacks (2026-10-26): blocks, storeys, roofs on layers drawn higher
+	var heights := HBoxContainer.new()
+	var height_label := Label.new()
+	height_label.text = "Height layer at"
+	heights.add_child(height_label)
+	_height = SpinBox.new()
+	_height.min_value = 0
+	_height.max_value = 4096
+	_height.suffix = "px"
+	_height.tooltip_text = "How high the layer is drawn. Suggest gives the top of the highest height layer: its height and as high as its tiles lift (a block 16 px, a storey 20)."
+	heights.add_child(_height)
+	var suggest := Button.new()
+	suggest.text = "Suggest"
+	suggest.pressed.connect(_suggest_height)
+	heights.add_child(suggest)
+	page.add_child(heights)
+	var add_height := Button.new()
+	add_height.text = "Add height layer"
+	add_height.tooltip_text = "Isometric levels: a tile layer drawn higher, for what stands on a block or a storey (the next storey, a roof, a sign on a front). Paint it with the Terrain or the tile tools as any layer; it sorts with the people as its cells' ground does. What you place from the library on a cell with a stack stands on its top."
+	add_height.pressed.connect(_add_height_layer)
+	page.add_child(add_height)
 	return page
+
+func _suggest_height() -> void:
+	var root := EditorInterface.get_edited_scene_root()
+	if root == null:
+		_set_status("Open a level to suggest the height of its next layer.")
+		return
+	_height.value = HeightLayers.suggested(root)
+
+func _add_height_layer() -> void:
+	var root := EditorInterface.get_edited_scene_root()
+	if root == null or plugin == null or RpgIso.footprint_of(root) == Vector2i.ZERO:
+		_set_status("Open an isometric level (a scene with a tile layer of diamonds) to add a height layer.")
+		return
+	var like: TileMapLayer = null
+	for node in EditorInterface.get_selection().get_selected_nodes():
+		if node is TileMapLayer:
+			like = node as TileMapLayer
+	var height := int(_height.value)
+	var layer := HeightLayers.add_layer(root, height, plugin.get_undo_redo(), like)
+	EditorInterface.get_selection().clear()
+	EditorInterface.get_selection().add_node(layer)
+	_height.value = HeightLayers.suggested(root)
+	_set_status("Added %s, drawn %d px higher. Paint it; the next layer is suggested at %d px." % [layer.name, height, int(_height.value)])
 
 func _add_lock(kind: String) -> void:
 	var root := EditorInterface.get_edited_scene_root()

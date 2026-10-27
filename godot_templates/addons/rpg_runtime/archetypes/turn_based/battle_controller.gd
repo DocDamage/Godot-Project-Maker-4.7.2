@@ -146,6 +146,10 @@ func skills_of(actor: RpgBattleActor) -> Array[RpgSkillDefinition]:
 		var def := actor.actor_definition()
 		if def != null:
 			ids = def.skills_at(actor.stats.level)
+		if _state_node != null and _state_node.has_method(&"learned_battle_skills"):
+			for learned: Variant in RpgUtil.to_array(_state_node.call(&"learned_battle_skills", actor.id)):
+				if not ids.has(StringName(str(learned))):
+					ids.append(StringName(str(learned)))  # what its skill trees taught (1.5.0)
 	else:
 		var weights: Dictionary = actor.behavior.get("turn_based", {})
 		for key: Variant in weights.keys():
@@ -443,6 +447,8 @@ func _victory() -> void:
 			continue
 		result.xp += def.xp_reward
 		result.gold += def.gold_reward
+		if _state_node != null and _state_node.has_method(&"note_defeat"):
+			_state_node.call(&"note_defeat", def.id)  # the counters of achievements (1.5.0)
 		if def.loot != null:
 			for drop in def.loot.roll(rng):
 				loot[drop["item_id"]] = RpgUtil.to_int(loot.get(drop["item_id"], 0)) + RpgUtil.to_int(drop["qty"])
@@ -461,10 +467,13 @@ func _apply_rewards() -> void:
 			RpgUtil.notify(RpgBattleText.t("BATTLE_LEVEL_UP", [member.display_name, before + gained]))
 	if _state_node != null:
 		_state_node.set("gold", RpgUtil.to_int(_state_node.get("gold")) + result.gold)
-		var inv: RpgInventory = _state_node.get("inventory")
-		for drop in result.items:
-			var drop_id: StringName = drop["item_id"]
-			inv.add(drop_id, RpgUtil.to_int(drop["qty"]))
+		if _state_node.has_method(&"give_items"):
+			_state_node.call(&"give_items", result.items)  # what does not fit waits for room
+		else:
+			var inv: RpgInventory = _state_node.get("inventory")
+			for drop in result.items:
+				var drop_id: StringName = drop["item_id"]
+				inv.add(drop_id, RpgUtil.to_int(drop["qty"]))
 
 ## The player and the members go through GameState so experience_gained / level_up are emitted.
 func _grant_xp(member: RpgBattleActor, xp: int) -> int:

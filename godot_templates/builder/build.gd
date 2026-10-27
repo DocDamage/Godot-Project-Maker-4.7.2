@@ -23,6 +23,7 @@ const RECIPE_ORDER: Array[String] = [
 	"sprite_frames_recipe",
 	"actor_recipes",
 	"data_recipe",
+	"progression_recipe",  # 1.5.0: after data_recipe, which gives the starter gear its set
 	"credits_recipe",
 	"lighting_recipe",
 	"object_scenes_recipe",

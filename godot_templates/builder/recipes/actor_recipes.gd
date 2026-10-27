@@ -117,6 +117,7 @@ func build(ctx: BuildContext) -> Array:
 		var root_name := "Player" if kind == "player" else "Npc"
 		var node := _build_actor(ctx, kind, root_name, frames, frame, origin, tile)
 		ActorBuild.set_feet(node, ctx.catalog.effective(a))
+		ActorBuild.add_shadow(node, ctx.catalog.effective(a))
 		if kind == "player":
 			_augment_player(ctx, node, fo, tile)
 		_save(ctx, node, char_path, issues)
@@ -125,6 +126,7 @@ func build(ctx: BuildContext) -> Array:
 		if kind == "player" and a["id"] == player_asset.get("id", ""):
 			var main := _build_actor(ctx, "player", "Player", frames, frame, origin, tile)
 			ActorBuild.set_feet(main, ctx.catalog.effective(a))
+			ActorBuild.add_shadow(main, ctx.catalog.effective(a))
 			_augment_player(ctx, main, fo, tile)
 			_save(ctx, main, PLAYER_PATH, issues)
 	var write_err := JsonUtil.write(INDEX_PATH, index)

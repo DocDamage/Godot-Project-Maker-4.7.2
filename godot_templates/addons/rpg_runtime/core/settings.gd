@@ -23,6 +23,7 @@ var screen_shake := true  # camera shake and hit-stop of the action RPG
 var language := ""  # a locale of generated/i18n ("fr"), or "" for the system's (T12.56)
 var day_night := false  # the time-of-day cycle of outdoor maps (T12.62), off by default
 var minimap := true  # the HUD minimap (T12.64)
+var quest_tracker := true  # the HUD's quest tracker (1.5.0)
 
 var _defaults := {}  # action -> Array[InputEvent], captured before user bindings are applied
 ## The kind of device used last: prompts show its glyphs (not saved; a keyboard at start).
@@ -65,6 +66,10 @@ func set_text_speed(speed: String) -> void:
 
 func set_minimap(on: bool) -> void:
 	minimap = on
+	changed.emit()
+
+func set_quest_tracker(on: bool) -> void:
+	quest_tracker = on
 	changed.emit()
 
 func set_day_night(on: bool) -> void:
@@ -139,6 +144,7 @@ func save_settings() -> bool:
 	cfg.set_value("game", "screen_shake", screen_shake)
 	cfg.set_value("game", "day_night", day_night)
 	cfg.set_value("game", "minimap", minimap)
+	cfg.set_value("game", "quest_tracker", quest_tracker)
 	var bindings := _stored_bindings()
 	for action: String in bindings.keys():
 		cfg.set_value("input", action, bindings[action])
@@ -161,6 +167,7 @@ func load_settings() -> void:
 	screen_shake = RpgUtil.to_bool(cfg.get_value("game", "screen_shake", true))
 	day_night = RpgUtil.to_bool(cfg.get_value("game", "day_night", false))
 	minimap = RpgUtil.to_bool(cfg.get_value("game", "minimap", true))
+	quest_tracker = RpgUtil.to_bool(cfg.get_value("game", "quest_tracker", true))
 	if cfg.has_section("input"):
 		for action in cfg.get_section_keys("input"):
 			if not InputMap.has_action(action):

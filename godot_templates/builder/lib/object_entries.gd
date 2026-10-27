@@ -7,6 +7,9 @@ extends RefCounted
 ## An entry drawn for the isometric view (T17.14) has two more keys, and only such an entry has
 ## them: iso ([w, h], the diamond of its pack) and stands_on ([columns, rows], the cells it
 ## stands on). Its origin is the middle of the cell of those nearest the camera.
+## An entry of a thing that moves (an assets-only project, 2026-10-26: a fountain, a campfire, a
+## lantern, an arrow, an impact) has `frames_path` (its SpriteFrames) and `animation` (the one it
+## plays), and only such an entry has them; one whose pack draws its shadow has `shadow`.
 
 const JsonUtil := preload("json_util.gd")
 const BuildContext := preload("build_context.gd")
@@ -15,6 +18,13 @@ const IsoTileset := preload("iso_tileset.gd")
 const IsoHouse := preload("iso_house.gd")
 
 const SPRITE_ROLES := ["DECORATION", "BUILDING", "INTERIOR", "ITEM"]
+## What else the dock places in an assets-only project: what flies and what bursts (2026-10-26).
+const ASSETS_ONLY_ROLES := ["PROJECTILE", "EFFECT"]
+const SPRITE_FRAMES_DIR := "res://generated/sprite_frames/"
+## The pieces of a stack that are painted on a height layer and never placed alone: what hangs on
+## a storey's face or a wall, and what lies over another tile (2026-10-26). A thing for a roof is
+## placed, and stands on the roof under it (the dock's placement).
+const PAINTED_ONLY := ["on_storey", "on_wall", "overlay"]
 
 ## The tags of a thing cut from a sheet that the farm and the maps know what to do with.
 const NAMED_THINGS := ["tree", "bush", "rock", "flowers", "grass", "stump", "fence", "well"]
@@ -81,15 +91,19 @@ static func entries(ctx: BuildContext) -> Array[Dictionary]:
 		# an isometric piece of a thing (a crate, a statue, a house: a role the dock places, not
 		# ground or wall) is placed from the dock in an assets-only project as well as painted
 		# (T17.33); the cut cells of a sheet have no rise to tell them by
-		var standing: bool = assets_only and usage == "iso_tile"
-		if not SPRITE_ROLES.has(eff.get("role", "")) or not (usage == "sprite" or cut or standing):
+		var standing: bool = assets_only and usage == "iso_tile" and not PAINTED_ONLY.has(JsonUtil.to_str(eff.get("stack", "")))
+		var role := JsonUtil.to_str(eff.get("role", ""))
+		var placed_role := SPRITE_ROLES.has(role) or (assets_only and ASSETS_ONLY_ROLES.has(role))
+		if not placed_role or not (usage == "sprite" or cut or standing):
 			continue
 		var anims: Dictionary = eff.get("animations", {})
-		# An animated asset is not an object, except a chest strip (its 2 frames are read as an
-		# animation by the analyzer) and anything with an `open` animation.
+		# An animated asset is not an object in a game, except a chest strip (its 2 frames are
+		# read as an animation by the analyzer) and anything with an `open` animation; in an
+		# assets-only project it is one that plays (2026-10-26).
 		var eff_tags: Array = eff.get("tags", [])
 		var is_chest_strip: bool = eff_tags.has("chest")
-		if not eff.has("size") or (not anims.is_empty() and not anims.has("open") and not is_chest_strip):
+		var plays: bool = assets_only and not anims.is_empty() and not anims.has("open") and not is_chest_strip and usage == "sprite"
+		if not eff.has("size") or (not anims.is_empty() and not anims.has("open") and not is_chest_strip and not plays):
 			continue
 		var size: Array = eff.get("frame", eff["size"])
 		var region := [0, 0, JsonUtil.to_int(size[0]), JsonUtil.to_int(size[1])]
@@ -108,6 +122,12 @@ static func entries(ctx: BuildContext) -> Array[Dictionary]:
 			"sha256": a.get("sha256", ""),
 			"open_region": open_region(eff, region),
 		})
+		if plays:
+			var made_plays: Dictionary = out[out.size() - 1]
+			made_plays["frames_path"] = SPRITE_FRAMES_DIR + "%s.tres" % a["id"]
+			made_plays["animation"] = "idle_down" if anims.has("idle_down") else JsonUtil.to_str(_sorted_keys(anims)[0])
+		if eff.has("shadow"):
+			out[out.size() - 1]["shadow"] = JsonUtil.to_str(eff["shadow"])
 		if JsonUtil.to_str(eff.get("projection", "")) == IsoTileset.PROJECTION and JsonUtil.to_array(eff.get("footprint", [])).size() == 2:
 			var made: Dictionary = out[out.size() - 1]
 			var stands := IsoTileset.stands_on(eff)
@@ -118,6 +138,11 @@ static func entries(ctx: BuildContext) -> Array[Dictionary]:
 		out.append(house)
 	out.sort_custom(func(x: Dictionary, y: Dictionary) -> bool: return JsonUtil.to_str(x["id"]) < JsonUtil.to_str(y["id"]))
 	return out
+
+static func _sorted_keys(d: Dictionary) -> Array:
+	var keys := d.keys()
+	keys.sort()
+	return keys
 
 ## The house of pieces of an isometric project (T17.22, IsoHouse): the entry of a building that
 ## is put together from the packs' wall, door and roof tiles, when the project is isometric,

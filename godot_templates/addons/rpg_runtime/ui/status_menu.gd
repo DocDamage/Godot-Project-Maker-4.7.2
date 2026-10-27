@@ -75,10 +75,19 @@ func _build(focus_slot: StringName = &"") -> void:
 			var b := Button.new()
 			b.name = "Slot_%s" % slot
 			b.text = "%s: %s" % [tr(RpgEquipPicker.slot_key(slot)), tr(def.display_name) if def != null else tr("UI_EMPTY")]
+			var wear := state.wear_of(id, slot)
+			if wear[1] > 0:  # a piece that wears (1.5.0)
+				b.text += "  " + tr("UI_WEAR") % [wear[0], wear[1]]
 			b.alignment = HORIZONTAL_ALIGNMENT_LEFT
 			b.pressed.connect(_open_picker.bind(slot))
 			list.add_child(b)
 			_slot_buttons.append(b)
+		for worn_set in state.worn_sets(id):  # the sets worn (1.5.0)
+			var item_set := state.item_set_of(StringName(str(worn_set["set_id"])))
+			var set_label := Label.new()
+			set_label.name = "Set_%s" % worn_set["set_id"]
+			set_label.text = tr("UI_SET_BONUS") % [tr(item_set.title) if item_set != null and item_set.title != "" else str(worn_set["set_id"]), RpgUtil.to_int(worn_set["worn"])]
+			list.add_child(set_label)
 	var ring: Array = _slot_buttons.duplicate()
 	if _pager != null:
 		ring.push_front(_pager)

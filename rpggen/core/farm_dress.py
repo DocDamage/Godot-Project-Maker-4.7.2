@@ -365,6 +365,10 @@ def animal_houses(catalog: Any, farm_ids: set[str], roots: dict[str, Path] | Non
             str(t).startswith("unused_because:other_size") for t in asset.detected.get("tags") or []
         ):
             continue  # the pack drawn in another size: its own size's barn is the one
+        if {"unused_because:shadow", "pack_manifest"} & set(asset.detected.get("tags") or []):
+            # a house's shadow is no house, and a picture its pack's manifest says what it is
+            # (Gridwright's ``cottage_left``, a BUILDING already) is that (2026-10-26)
+            continue
         size = asset.detected.get("size") or [0, 0]
         w, h = int(size[0]), int(size[1])
         if w < MIN_HOUSE or h < MIN_HOUSE:

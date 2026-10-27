@@ -527,6 +527,11 @@ def _another_form(asset: Asset) -> bool:
     )
 
 
+def _used(asset: Asset) -> bool:
+    """Not set aside: neither UNUSED nor of the role NONE (the status follows the role later)."""
+    return asset.status != "UNUSED" and effective(asset).get("role") != "NONE"
+
+
 def assign_tilesets(
     catalog: Catalog,
     previous: Catalog | None,
@@ -552,10 +557,15 @@ def assign_tilesets(
     if previous:
         catalog.id_allocations = copy.deepcopy(previous.id_allocations)
 
+    # a sheet set aside (a pack's preview of 1920 x 1080 read as tiles of 8: thirty thousand
+    # tiles a picture, 2026-10-26) is no source, unless it was one: a painted map keeps its tiles
     tile_assets = [
         a
         for a in sorted(catalog.assets, key=lambda a: _sort_key(a.id))
-        if effective(a).get("usage") == "tiles" and a.status != "MISSING" and not _another_form(a)
+        if effective(a).get("usage") == "tiles"
+        and a.status != "MISSING"
+        and (_used(a) or a.id in prev_source_of)
+        and not _another_form(a)
     ]
     missing_sources = {
         a.id for a in catalog.assets if a.status == "MISSING" and a.id in prev_source_of
@@ -2145,6 +2155,7 @@ def assemble(
     # the things cut from a sheet set aside as another form are set aside too (T17.29: the
     # 16 000 objects of *Modern Farm*'s sheets at three sizes and in a complete set)
     by_id = {a.id: a for a in catalog.assets}
+    set_aside_preview_objects(catalog, previous)
     for obj in catalog.objects:
         sheet = by_id.get(obj.sheet) if obj.source == "auto" else None
         if sheet is not None and _another_form(sheet) and obj.status != "CONFIRMED":
@@ -2577,6 +2588,26 @@ def _carry_previous(
             prev_pack = next((p for p in previous.packs if p.pack_id == old.pack_id), None)
             if prev_pack is not None:
                 catalog.packs.append(CatalogPack.from_json(prev_pack.to_json()))
+
+
+def set_aside_preview_objects(catalog: Catalog, previous: Catalog | None) -> None:
+    """The things cut from a pack's preview (its sheet set aside as ``preview_folder``) are
+    none (2026-10-26: Gridwright's 1920 x 1080 previews gave 19,600 objects and as many scenes),
+    unless the user confirmed one or the project already had it in use."""
+    from rpggen.core import classifier
+
+    in_use = {o.id for o in previous.objects if o.status != "UNUSED"} if previous else set()
+    preview = classifier.UNUSED_TAG + classifier.UNUSED_PREVIEW_FOLDER
+    by_id = {a.id: a for a in catalog.assets}
+    for obj in catalog.objects:
+        sheet = by_id.get(obj.sheet) if obj.source == "auto" else None
+        if (
+            sheet is not None
+            and obj.status != "CONFIRMED"
+            and obj.id not in in_use
+            and preview in (effective(sheet).get("tags") or [])
+        ):
+            obj.status = "UNUSED"
 
 
 def _add_objects(

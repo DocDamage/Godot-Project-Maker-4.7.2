@@ -103,6 +103,7 @@ def test_combat_is_off_for_a_farm_and_the_older_kinds_are_as_they_were() -> None
         assert [k for k, on in config.default_features(kind).items() if not on] == [
             "dialogue",
             "navigation",
+            "progression",
         ], kind
     # what a farm needs of the packs is what a top-down game needs
     assert requirements.REQUIRED.get("farm", requirements.REQUIRED["turn_based"]) == [

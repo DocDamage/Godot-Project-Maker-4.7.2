@@ -40,6 +40,11 @@ func _create_services(router: RpgSceneRouter) -> void:
 	minimap_layer.layer = 9
 	minimap_layer.add_child(RpgMinimap.new())
 	router.add_child(minimap_layer)
+	var tracker_layer := CanvasLayer.new()  # 1.5.0: drawn in code too, under the minimap
+	tracker_layer.name = "QuestTrackerLayer"
+	tracker_layer.layer = 9
+	tracker_layer.add_child(RpgQuestTracker.new())
+	router.add_child(tracker_layer)
 	var controller := RpgUiController.new()
 	controller.name = "UiController"
 	router.add_child(controller)

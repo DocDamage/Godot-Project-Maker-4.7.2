@@ -45,6 +45,7 @@ M6_STEPS = [
     "credits_screen",
     "mutate_then_load",
     "pause_menu",
+    "skills_and_achievements",
 ]
 UI_SCENES = [
     "dialogue_box", "title_screen", "pause_menu", "inventory_menu", "status_menu",

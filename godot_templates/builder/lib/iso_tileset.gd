@@ -130,9 +130,11 @@ static func collision_polygons(collision: Dictionary, footprint: Vector2i, origi
 static func _tags(eff: Dictionary) -> Array:
 	return JsonUtil.to_array(eff.get("tags", []))
 
-## What the maps ask a tile: `{asset_id, footstep, tillable, water}`. The surface is the
-## asset's `surface:<name>` tag; `tillable` and `water` are said by the catalog (the tags of
-## those names, the role WATER), never guessed from the art.
+## What the maps ask a tile: `{asset_id, footstep, tillable, water, lift, stack}`. The surface
+## is the asset's `surface:<name>` tag; `tillable` and `water` are said by the catalog (the tags
+## of those names, the role WATER), never guessed from the art. `lift` (how high a piece raises
+## what stands on it) and `stack` (a block, a storey, a roof, ...) are what a level's height
+## layers ask (the tools addon's `height_layers.gd`, 2026-10-26).
 static func custom_data(asset: Dictionary, eff: Dictionary) -> Dictionary:
 	var tags := _tags(eff)
 	var surface := ""
@@ -145,6 +147,8 @@ static func custom_data(asset: Dictionary, eff: Dictionary) -> Dictionary:
 		"footstep": surface,
 		"tillable": tags.has("tillable"),
 		"water": tags.has("water") or JsonUtil.to_str(eff.get("role", "")) == "WATER",
+		"lift": JsonUtil.to_int(eff.get("lift", 0)),
+		"stack": JsonUtil.to_str(eff.get("stack", "")),
 	}
 
 ## Puts a sprite that shows an object (a tree, a house) on the middle of a cell: its picture's
@@ -196,10 +200,17 @@ static func inputs(catalog: CatalogReader) -> Array:
 			var row := [id, asset.get("sha256", ""), eff.get("origin"), eff.get("collision"), eff.get("role"), eff.get("tags", [])]
 			if eff.has("iso_terrain"):  # only a piece of a terrain has it (T17.31)
 				row.append(eff["iso_terrain"])
+			for key: String in ["lift", "stack"]:  # only a piece of a stack has them (2026-10-26)
+				if eff.has(key):
+					row.append([key, eff[key]])
+			var placed := JsonUtil.to_dict(tiles[id])
+			if placed.has("frames"):  # only a tile that moves
+				row.append(["frames", placed["frames"], placed.get("fps", 8.0)])
 			out.append(row)
 	return out
 
-## The tiles of the definition that lie in the source `source_id`: [{id, coords, at}], by id.
+## The tiles of the definition that lie in the source `source_id`: [{id, coords, at, frames,
+## fps}], by id; `frames` is 1 for a tile that does not move.
 static func tiles_of_source(def: Dictionary, source_id: int) -> Array[Dictionary]:
 	var out: Array[Dictionary] = []
 	var tiles := JsonUtil.to_dict(def.get("tiles", {}))
@@ -208,7 +219,7 @@ static func tiles_of_source(def: Dictionary, source_id: int) -> Array[Dictionary
 	for id: Variant in ids:
 		var entry := JsonUtil.to_dict(tiles[id])
 		if JsonUtil.to_int(entry.get("source", -1)) == source_id:
-			out.append({"id": JsonUtil.to_str(id), "coords": _vec(entry.get("coords")), "at": _vec(entry.get("at"))})
+			out.append({"id": JsonUtil.to_str(id), "coords": _vec(entry.get("coords")), "at": _vec(entry.get("at")), "frames": maxi(1, JsonUtil.to_int(entry.get("frames", 1))), "fps": JsonUtil.to_float(entry.get("fps", 8.0))})
 	return out
 
 ## Sets the layer `layer_name` of a tile when the tile set has it and the value differs.
@@ -232,6 +243,19 @@ static func configure_tile(ts: TileSet, src: TileSetAtlasSource, coords: Vector2
 	for layer_name: String in data.keys():
 		_set_data(ts, td, layer_name, data[layer_name])
 	return is_new
+
+## Makes a tile that moves play its frames: they lie in the `frames - 1` cells after its own
+## in the atlas (rpggen/core/iso_atlas.py), in one row, at `fps`. A tile of one frame is left
+## as it is.
+static func animate(src: TileSetAtlasSource, coords: Vector2i, frames: int, fps: float) -> void:
+	if frames < 2:
+		return
+	if src.get_tile_animation_columns(coords) != frames:
+		src.set_tile_animation_columns(coords, frames)
+	if src.get_tile_animation_frames_count(coords) != frames:
+		src.set_tile_animation_frames_count(coords, frames)
+	if not is_equal_approx(src.get_tile_animation_speed(coords), fps):
+		src.set_tile_animation_speed(coords, fps)
 
 ## A navigation polygon over the diamond, for a ground tile nobody blocks (T9.06).
 static func navigation_polygon(footprint: Vector2i) -> NavigationPolygon:

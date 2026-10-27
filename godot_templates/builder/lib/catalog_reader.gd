@@ -9,6 +9,10 @@ const ISOMETRIC := "isometric"
 const ISO_ATLAS_USAGE := "iso_atlas"
 
 var catalog: Dictionary = {}
+## asset id -> asset, of the list `_indexed` (`asset`)
+var _index: Dictionary = {}
+var _indexed: Array = []
+var _indexed_size := -1
 ## How the project is seen (the config's `projection`, T17.13): the build context sets it.
 ## `assets()` and everything built on it leave out what was drawn for the other view.
 var projection: String = TOP_DOWN
@@ -96,7 +100,20 @@ func assets() -> Array[Dictionary]:
 
 func asset(id: String) -> Dictionary:
 	var raw: Array = catalog.get("assets", [])
-	for a: Dictionary in raw:
+	# an index by id (2026-10-26: a recipe that asks for 935 tiles of a catalog of 100,000
+	# assets once an actor took 40 s an actor), made again when the list is another or grew
+	if not is_same(raw, _indexed) or raw.size() != _indexed_size:
+		_index.clear()
+		for a: Dictionary in raw:
+			if not _index.has(a["id"]):
+				_index[a["id"]] = a
+		_indexed = raw
+		_indexed_size = raw.size()
+	if _index.has(id):
+		var found: Dictionary = _index[id]
+		if found.get("id") == id:
+			return found
+	for a: Dictionary in raw:  # an entry changed in place since the index was made
 		if a["id"] == id:
 			return a
 	return {}

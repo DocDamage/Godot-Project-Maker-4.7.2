@@ -26,6 +26,11 @@ const QUEST_ID := "errand"
 const QUEST_PATH := "res://game/data/quests/errand.tres"
 const SHOP_ID := "village_shop"
 const SHOP_PATH := "res://game/data/shops/village_shop.tres"
+## The chest of the starter map that the errand sends the player to.
+const CHEST_ID := "starter_map_chest_001"
+## The set of the starter weapon and armour (1.5.0: with the feature `progression` on, the two
+## name it; progression_recipe.gd seeds the set).
+const GEAR_SET := "traveler"
 
 const STATS := "res://addons/rpg_runtime/data/stats.gd"
 const ACTOR_DEF := "res://addons/rpg_runtime/data/actor_definition.gd"
@@ -87,7 +92,19 @@ func outputs(ctx: BuildContext) -> PackedStringArray:
 	return SeedUtil.missing(wanted)
 
 func input_hash(ctx: BuildContext) -> String:
-	return ctx.stable_hash({"v": RECIPE_VERSION, "icon": _icon_asset(ctx).get("id", ""), "player": _player_id(ctx), "demo_removed": ctx.demo_removed, "gear": _gear(ctx), "chest": _has_chest(ctx), "party": _has_party_demo(ctx), "turn_based": _turn_based(ctx)}.merged({"start_map": _start_map(ctx)} if _no_village(ctx) else {}).merged({"kind_items": _kind_items(ctx), "kind_gold": _kind_gold(ctx), "kind_shop": _farm_shop_hash(), "kind_start": _kind_start(ctx)} if _farm(ctx) else {}))
+	return ctx.stable_hash({"v": RECIPE_VERSION, "icon": _icon_asset(ctx).get("id", ""), "player": _player_id(ctx), "demo_removed": ctx.demo_removed, "gear": _gear(ctx), "chest": _has_chest(ctx), "party": _has_party_demo(ctx), "turn_based": _turn_based(ctx)}.merged({"start_map": _start_map(ctx)} if _no_village(ctx) else {}).merged({"kind_items": _kind_items(ctx), "kind_gold": _kind_gold(ctx), "kind_shop": _farm_shop_hash(), "kind_start": _kind_start(ctx)} if _farm(ctx) else {}).merged({"gear_set": true} if _gear_set(ctx, _gear(ctx)) else {}))
+
+## True when the starter weapon and armour make a set: the feature `progression` is on (1.5.0;
+## a config from before has no such key) and the packs give both.
+func _gear_set(ctx: BuildContext, gear: Dictionary) -> bool:
+	if not JsonUtil.to_bool(ctx.section("features").get("progression", false)):
+		return false
+	var weapon := false
+	var armor := false
+	for word: String in gear:
+		weapon = weapon or WEAPON_WORDS.has(word)
+		armor = armor or ARMOR_WORDS.has(word)
+	return weapon and armor
 
 func _player_id(ctx: BuildContext) -> String:
 	var players: Array = ctx.catalog.assets_by_role("PLAYER")
@@ -135,7 +152,10 @@ func build(ctx: BuildContext) -> Array:
 	for word: String in gear:
 		var asset: Dictionary = gear[word]
 		if not FileAccess.file_exists(_gear_path(word)):
-			_save(ctx, _gear_item(ctx, word, asset), _gear_path(word), issues)
+			var item := _gear_item(ctx, word, asset)
+			if _gear_set(ctx, gear):
+				item.set("set_id", StringName(GEAR_SET))
+			_save(ctx, item, _gear_path(word), issues)
 	if not FileAccess.file_exists(HERO_PATH):
 		_save(ctx, _hero(ctx, _turn_based(ctx)), HERO_PATH, issues)
 	if not FileAccess.file_exists(NEW_GAME_PATH):
@@ -360,7 +380,7 @@ func _quest(has_chest: bool = true) -> Resource:
 	quest.set("title", "QUEST_ERRAND_TITLE")
 	var stages: Array = [{"id": "talk", "description": "QUEST_ERRAND_TALK", "complete_when": "flag:starter_npc.talked", "target": "starter_npc"}]
 	if has_chest:  # a map without a chest would leave the quest stuck here
-		stages.append({"id": "chest", "description": "QUEST_ERRAND_CHEST", "complete_when": "flag:starter_map_chest_001.opened", "target": "starter_map_chest_001"})
+		stages.append({"id": "chest", "description": "QUEST_ERRAND_CHEST", "complete_when": "flag:%s.opened" % CHEST_ID, "target": CHEST_ID})
 	stages.append({"id": "return", "description": "QUEST_ERRAND_RETURN", "complete_when": "flag:starter_npc.reported", "target": "starter_npc"})
 	quest.set("stages", SeedUtil.dict_array(stages))
 	quest.set("rewards", {"gold": 25, "experience": 5})

@@ -3,7 +3,7 @@ extends RefCounted
 ## inventory, status, save/load, settings, notification, the basic HUD, shop, journal and credits. Scripts live in
 ## addons/rpg_runtime/ui/ and find their nodes by unique name (%Name).
 
-const RECIPE_VERSION := 13
+const RECIPE_VERSION := 14
 
 const SceneUtil := preload("../lib/scene_util.gd")
 const UiUtil := preload("../lib/ui_util.gd")
@@ -96,6 +96,7 @@ func _build_pause_menu() -> Node:
 	info.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_menu_buttons(box, [
 		["Resume", "UI_RESUME"], ["Inventory", "UI_INVENTORY"], ["Status", "UI_STATUS"], ["Journal", "UI_JOURNAL"],
+		["Skills", "UI_SKILLS"], ["Achievements", "UI_ACHIEVEMENTS"],  # 1.5.0: hidden in a game without
 		["WorldMap", "UI_WORLD_MAP"],
 		["Save", "UI_SAVE"], ["Load", "UI_LOAD"], ["Settings", "UI_SETTINGS"], ["Credits", "UI_CREDITS"],
 		["Title", "UI_TITLE"],
@@ -237,7 +238,8 @@ func _build_shop_menu() -> Node:
 	box.add_child(tabs)
 	var buy_tab := UiUtil.button(tabs, "BuyTab", "UI_BUY")
 	var sell_tab := UiUtil.button(tabs, "SellTab", "UI_SELL")
-	for tab: Button in [buy_tab, sell_tab]:
+	var buyback_tab := UiUtil.button(tabs, "BuybackTab", "UI_BUYBACK")  # 1.5.0
+	for tab: Button in [buy_tab, sell_tab, buyback_tab]:
 		tab.toggle_mode = true
 		UiUtil.unique(tab)
 	var scroll := ScrollContainer.new()
@@ -258,7 +260,7 @@ func _build_shop_menu() -> Node:
 	sell_all.visible = false
 	var back := UiUtil.button(box, "Back", "UI_BACK")
 	UiUtil.unique(back)
-	UiUtil.wire_vertical([buy_tab, sell_tab, back])
+	UiUtil.wire_vertical([buy_tab, sell_tab, buyback_tab, back])
 	return root
 
 func _build_save_load_menu() -> Node:
@@ -338,6 +340,11 @@ func _build_settings_menu() -> Node:
 	minimap.text = "UI_MINIMAP"
 	UiUtil.unique(minimap)
 	inner.add_child(minimap)
+	var tracker := CheckButton.new()
+	tracker.name = "QuestTracker"
+	tracker.text = "UI_QUEST_TRACKER"
+	UiUtil.unique(tracker)
+	inner.add_child(tracker)
 	var day_night := CheckButton.new()
 	day_night.name = "DayNight"
 	day_night.text = "UI_DAY_NIGHT"

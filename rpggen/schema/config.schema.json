@@ -105,6 +105,9 @@
         },
         "debug_tools": {
           "type": "boolean"
+        },
+        "progression": {
+          "type": "boolean"
         }
       },
       "additionalProperties": false

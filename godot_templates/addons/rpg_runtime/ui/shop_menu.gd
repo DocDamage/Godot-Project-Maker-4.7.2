@@ -7,11 +7,16 @@ extends Control
 ## RpgUiController.open_shop (the dialogue event `open_shop:<id>`), which sets `shop` before the
 ## menu enters the tree. Every control is reachable with the gamepad: one vertical ring (tabs,
 ## items, Sell all, Back), left / right switches the tab.
+##
+## 1.5.0: a row of limited stock says how many are left ("Sold out" at none), the gold line names
+## the shop's gold when it has a purse, and a Buy back tab (in a scene that has one) lists what
+## was sold here, the latest first, for what the shop paid.
 
 signal closed
 
 const BUY := &"buy"
 const SELL := &"sell"
+const BUYBACK := &"buyback"
 
 var shop: RpgShopDefinition = null
 var mode: StringName = BUY
@@ -19,6 +24,7 @@ var mode: StringName = BUY
 var _rows: Array[Button] = []
 var _row_items: Dictionary = {}  # Button -> item id
 var _quantity: Dictionary = {}  # item id -> how many the row is set to (none: 1)
+var _row_sales: Dictionary = {}  # Button -> the index of its sale (the Buy back tab)
 var _sell_all_armed := false
 
 func _ready() -> void:
@@ -27,6 +33,9 @@ func _ready() -> void:
 	(get_node("%Back") as Button).pressed.connect(close)
 	(get_node("%BuyTab") as Button).pressed.connect(set_mode.bind(BUY))
 	(get_node("%SellTab") as Button).pressed.connect(set_mode.bind(SELL))
+	var buyback_tab := buyback_tab()
+	if buyback_tab != null:
+		buyback_tab.pressed.connect(set_mode.bind(BUYBACK))
 	(get_node("%Heading") as Label).text = tr(shop.title)
 	var sell_all := sell_all_button()
 	if sell_all != null:
@@ -42,6 +51,15 @@ func item_of(button: Button) -> StringName:
 	var item_id: StringName = _row_items.get(button, &"")
 	return item_id
 
+## The Buy back tab, or null in a scene built before 1.5 (it gets one on regeneration) or for a
+## shop that does not buy back.
+func buyback_tab() -> Button:
+	var tab := get_node_or_null("%BuybackTab") as Button
+	if tab != null and shop != null and not shop.buyback:
+		tab.visible = false
+		return null
+	return tab
+
 ## The Sell all button, or null in a scene built before 1.1 (it gets one on regeneration).
 func sell_all_button() -> Button:
 	return get_node_or_null("%SellAll") as Button
@@ -52,8 +70,10 @@ func set_mode(new_mode: StringName) -> void:
 	_rebuild()
 
 func _item_ids(state: RpgGameState) -> Array[StringName]:
+	if mode == BUYBACK:
+		return []  # its rows are sales (_add_buyback_rows)
 	if mode == BUY:
-		return shop.offered(state.items)
+		return shop.offered_now(state)
 	var out: Array[StringName] = []
 	for slot in state.inventory.slots:
 		var item_id: StringName = slot["item_id"]
@@ -75,7 +95,9 @@ func max_quantity(item_id: StringName) -> int:
 	var room := state.inventory.room_for(item_id)
 	var price := shop.buy_price(item_id, state.items)
 	var affordable := room if price <= 0 else floori(float(state.gold) / float(price))
-	return maxi(1, mini(room, affordable))
+	var most := mini(room, affordable)
+	var left := shop.left_of(state, item_id)
+	return maxi(1, mini(most, left) if left >= 0 else most)
 
 ## How many the row of `item_id` is set to.
 func quantity_of(item_id: StringName) -> int:
@@ -107,7 +129,7 @@ func _refresh_row(item_id: StringName) -> void:
 	if state == null or row == null:
 		return
 	var def: RpgItemDefinition = state.items.get(item_id)
-	row.text = row_text(tr(def.display_name), _unit_price(state, item_id), state.inventory.count(item_id) if mode == SELL else -1, quantity_of(item_id))
+	row.text = row_text(tr(def.display_name), _unit_price(state, item_id), state.inventory.count(item_id) if mode == SELL else -1, quantity_of(item_id), shop.left_of(state, item_id) if mode == BUY else -1)
 
 ## Rebuilds the item list for the current tab. `keep_index` (>= 0) refocuses that row, clamped,
 ## after a purchase or a sale.
@@ -118,12 +140,16 @@ func _rebuild(keep_index: int = -1) -> void:
 		child.queue_free()
 	_rows.clear()
 	_row_items.clear()
+	_row_sales.clear()
 	_sell_all_armed = false
 	var state := RpgUtil.state()
 	var buy_tab := get_node("%BuyTab") as Button
 	var sell_tab := get_node("%SellTab") as Button
+	var back_tab := buyback_tab()
 	buy_tab.set_pressed_no_signal(mode == BUY)
 	sell_tab.set_pressed_no_signal(mode == SELL)
+	if back_tab != null:
+		back_tab.set_pressed_no_signal(mode == BUYBACK)
 	var back := get_node("%Back") as Button
 	var desc := get_node("%Description") as Label
 	var sell_all := sell_all_button()
@@ -131,7 +157,9 @@ func _rebuild(keep_index: int = -1) -> void:
 		sell_all.visible = false
 	if state == null:
 		return
-	(get_node("%Gold") as Label).text = "%s: %d" % [tr("UI_GOLD"), state.gold]
+	(get_node("%Gold") as Label).text = gold_text(state)
+	if mode == BUYBACK:
+		_add_buyback_rows(state, list)
 	for item_id in _item_ids(state):
 		var def: RpgItemDefinition = state.items.get(item_id)
 		var price := _unit_price(state, item_id)
@@ -143,7 +171,7 @@ func _rebuild(keep_index: int = -1) -> void:
 		b.icon = def.icon
 		b.expand_icon = true
 		b.custom_minimum_size = Vector2(0, 20)
-		b.text = row_text(tr(def.display_name), price, state.inventory.count(item_id) if mode == SELL else -1, quantity_of(item_id))
+		b.text = row_text(tr(def.display_name), price, state.inventory.count(item_id) if mode == SELL else -1, quantity_of(item_id), shop.left_of(state, item_id) if mode == BUY else -1)
 		b.pressed.connect(_on_row_pressed.bind(item_id))
 		b.focus_entered.connect(_describe.bind(item_id))
 		b.gui_input.connect(_on_row_input.bind(item_id))
@@ -151,10 +179,14 @@ func _rebuild(keep_index: int = -1) -> void:
 		_rows.append(b)
 		_row_items[b] = item_id
 	if _rows.is_empty():
-		desc.text = tr("UI_NOTHING_FOR_SALE") if mode == BUY else tr("UI_NOTHING_TO_SELL")
+		desc.text = tr("UI_NOTHING_FOR_SALE" if mode == BUY else ("UI_NOTHING_TO_SELL" if mode == SELL else "UI_NOTHING_TO_BUY_BACK"))
 	else:
 		desc.text = ""
-	var ring: Array = [buy_tab, sell_tab]
+	var tabs: Array[Button] = [buy_tab, sell_tab]
+	if back_tab != null:
+		tabs.append(back_tab)
+	var ring: Array = []
+	ring.append_array(tabs)
 	ring.append_array(_rows)
 	if sell_all != null:
 		sell_all.visible = mode == SELL and shop.sell_all_value(state) > 0
@@ -163,22 +195,78 @@ func _rebuild(keep_index: int = -1) -> void:
 			ring.append(sell_all)
 	ring.append(back)
 	RpgMenuUtil.wire_vertical(ring)
-	buy_tab.focus_neighbor_left = buy_tab.get_path_to(sell_tab)
-	buy_tab.focus_neighbor_right = buy_tab.get_path_to(sell_tab)
-	sell_tab.focus_neighbor_left = sell_tab.get_path_to(buy_tab)
-	sell_tab.focus_neighbor_right = sell_tab.get_path_to(buy_tab)
-	var start: Button = buy_tab if mode == BUY else sell_tab
+	for i in tabs.size():
+		tabs[i].focus_neighbor_left = tabs[i].get_path_to(tabs[(i - 1 + tabs.size()) % tabs.size()])
+		tabs[i].focus_neighbor_right = tabs[i].get_path_to(tabs[(i + 1) % tabs.size()])
+	var start: Button = buy_tab if mode == BUY else (sell_tab if mode == SELL or back_tab == null else back_tab)
 	if not _rows.is_empty():
 		start = _rows[clampi(keep_index, 0, _rows.size() - 1)] if keep_index >= 0 else _rows[0]
 	start.grab_focus.call_deferred()
 
 ## "Potion — 10 G" or, when selling, "Potion x3 — 5 G" (x3: how many you hold). With a quantity
-## above one the row names it and the total: "Potion (3) — 30 G", "Potion x3 (2) — 10 G".
-static func row_text(item_name: String, price: int, held: int = -1, qty: int = 1) -> String:
+## above one the row names it and the total: "Potion (3) — 30 G", "Potion x3 (2) — 10 G". A row of
+## limited stock (`left` 0 or more) says how many are left: "Potion — 10 G · 2 left", or "Sold out".
+static func row_text(item_name: String, price: int, held: int = -1, qty: int = 1, left: int = -1) -> String:
 	var suffix := " x%d" % held if held >= 0 else ""
 	if qty > 1:
 		suffix += " (%d)" % qty
-	return "%s%s — %d %s" % [item_name, suffix, price * maxi(1, qty), TranslationServer.translate("UI_GOLD_SHORT")]
+	var text := "%s%s — %d %s" % [item_name, suffix, price * maxi(1, qty), TranslationServer.translate("UI_GOLD_SHORT")]
+	if left == 0:
+		return "%s · %s" % [text, TranslationServer.translate("UI_SOLD_OUT")]
+	if left > 0:
+		return "%s · %s" % [text, TranslationServer.translate("UI_SHOP_LEFT") % left]
+	return text
+
+## "Gold: 120", and the shop's own when it has a purse: "Gold: 120 · Shop's gold: 300".
+func gold_text(state: RpgGameState) -> String:
+	var text := "%s: %d" % [tr("UI_GOLD"), state.gold]
+	var purse := shop.funds_of(state)
+	if purse >= 0:
+		text += " · %s: %d" % [tr("UI_SHOP_FUNDS"), purse]
+	return text
+
+## The rows of the Buy back tab: "Potion x3 — 15 G", the latest sale first.
+func _add_buyback_rows(state: RpgGameState, list: VBoxContainer) -> void:
+	var sales := shop.buyback_rows(state)
+	for i in sales.size():
+		var item_id := StringName(str(sales[i].get("item_id", "")))
+		var def: RpgItemDefinition = state.items.get(item_id)
+		if def == null:
+			continue
+		var b := Button.new()
+		b.name = "Sale_%d" % i
+		b.alignment = HORIZONTAL_ALIGNMENT_LEFT
+		b.icon = def.icon
+		b.expand_icon = true
+		b.custom_minimum_size = Vector2(0, 20)
+		b.text = row_text(tr(def.display_name), RpgUtil.to_int(sales[i].get("price", 0)), RpgUtil.to_int(sales[i].get("qty", 1)))
+		b.pressed.connect(_on_sale_pressed.bind(i))
+		b.focus_entered.connect(_describe.bind(item_id))
+		list.add_child(b)
+		_rows.append(b)
+		_row_items[b] = item_id
+		_row_sales[b] = i
+
+## Buys back sale `index` (the Buy back tab) and says so, or why not.
+func buy_back(index: int) -> String:
+	var state := RpgUtil.state()
+	if state == null:
+		return RpgShopDefinition.NOT_FOR_SALE
+	var sales := shop.buyback_rows(state)
+	var result := shop.buy_back(state, index)
+	if result == RpgShopDefinition.OK:
+		var def: RpgItemDefinition = state.items.get(StringName(str(sales[index].get("item_id", ""))))
+		var qty := RpgUtil.to_int(sales[index].get("qty", 1))
+		if def != null:
+			RpgUtil.notify(tr("UI_BOUGHT") % (tr(def.display_name) if qty == 1 else "%s x%d" % [tr(def.display_name), qty]))
+	return result
+
+func _on_sale_pressed(index: int) -> void:
+	var result := buy_back(index)
+	if result == RpgShopDefinition.OK:
+		_rebuild(maxi(_rows.find(_focus_owner()), 0))
+	else:
+		RpgUtil.notify(refusal_text(result))
 
 func _describe(item_id: StringName) -> void:
 	var state := RpgUtil.state()
@@ -186,7 +274,7 @@ func _describe(item_id: StringName) -> void:
 	if def == null:
 		return
 	var text := "%s\n%s" % [tr(def.display_name), tr(def.description)]
-	if max_quantity(item_id) > 1:
+	if mode != BUYBACK and max_quantity(item_id) > 1:
 		text += "\n" + tr("UI_SHOP_QUANTITY_HINT")
 	(get_node("%Description") as Label).text = text
 
@@ -266,6 +354,10 @@ func refusal_text(result: String) -> String:
 			return tr("UI_NOT_ENOUGH_GOLD")
 		RpgShopDefinition.NO_ROOM:
 			return tr("UI_NO_ROOM")
+		RpgShopDefinition.SOLD_OUT:
+			return tr("UI_SOLD_OUT")
+		RpgShopDefinition.SHOP_CANNOT_PAY:
+			return tr("UI_SHOP_CANNOT_PAY")
 		_:
 			return tr("UI_CANNOT_TRADE")
 

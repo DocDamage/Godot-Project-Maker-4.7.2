@@ -26,6 +26,9 @@ static func strike(user: RpgBattleActor, target: RpgBattleActor, battle: RpgBatt
 		return out
 	var roll := RpgBattleMath.roll_damage(user.stat(&"attack") + power, target.stat(&"defense"), target.defending, battle.rng)
 	var crit := RpgUtil.to_bool(roll["crit"])
+	var state := RpgUtil.state()
+	if user.is_player_side and state != null:
+		state.wear_stats(user.stats, &"weapon")  # only gear with a durability wears (1.5.0)
 	var key := "BATTLE_SKILL_HIT"
 	var args: Array = [target.display_name]
 	if plain:
@@ -60,6 +63,9 @@ static func damage(target: RpgBattleActor, amount: int, element: StringName, cri
 		out.append(_entry("text", _t("BATTLE_RESISTED", [target.display_name])))
 	if target.is_player_side:
 		RpgUtil.emit(&"player_damaged", [dealt])
+		var state := RpgUtil.state()
+		if state != null and dealt > 0:
+			state.wear_from_hit(target.stats)
 	if target.alive and dealt > 0 and not target.wake().is_empty():
 		out.append(_entry("status", _t("BATTLE_WAKES", [target.display_name]), target))
 	out.append_array(fall_check(target))

@@ -178,10 +178,28 @@ const FLAT_WEIGHTS := [2, 2, 2, 2]  # seen from above every side counts the same
 ## tile thick): for each way the terrain can meet others (16 matched by sides, 47 by corners and
 ## sides) that no tile of the source fits, the nearest tile it does draw is added again as an
 ## alternative tile with those bits, the same picture with the same collision and data. Made
-## once: a source whose terrain tiles have alternatives already is left as it is.
+## once: a source whose terrain tiles have alternatives already is left as it is, and a source of
+## a project made before 1.5.0 is not completed at all (its TileSet stays what its version built;
+## see `completes`).
 static func complete_terrains(ts: TileSet, src: TileSetAtlasSource, sets: Array) -> void:
 	_complete_terrains_of_one(ts, src, sets)
 	complete_corner_sets(ts, src, sets)
+	src.set_meta(COMPLETE_META, true)
+
+## The meta of a source whose terrains this version completes (set by complete_terrains).
+const COMPLETE_META := &"rpg_terrains_complete"
+
+## Whether the terrains of an existing source are completed: a source this version made (it has
+## COMPLETE_META, or alternative tiles: a source of 1.5.0 made before the meta), never one an
+## older version built (it stays as it was, even when a pack added to the project brings new
+## sources beside it).
+static func completes(src: TileSetAtlasSource) -> bool:
+	if src.has_meta(COMPLETE_META):
+		return true
+	for i in src.get_tiles_count():
+		if src.get_alternative_tiles_count(src.get_tile_id(i)) > 1:
+			return true
+	return false
 
 ## Sets of two terrains matched by corners (T17.33: Medieval Town's plates of road and pavement)
 ## draw seldom all 16 ways of the four corners (the plates have no two opposite corners): each
@@ -681,7 +699,8 @@ func _build_source(ctx: BuildContext, ts: TileSet, def: Dictionary, s: Dictionar
 			if runs.has(coords):
 				var run_spec: Dictionary = runs[coords]
 				_apply_animation(ctx, src, coords, run_spec, asset, issues)
-	complete_terrains(ts, src, JsonUtil.to_array(def.get("terrain_sets", [])))
+	if not exists or completes(src):  # a source of an older project keeps the tiles it had
+		complete_terrains(ts, src, JsonUtil.to_array(def.get("terrain_sets", [])))
 	# Tiles are never removed. Cells that became empty are reported (TILE-005).
 	var emptied: Array = []
 	for i in src.get_tiles_count():
@@ -856,7 +875,8 @@ func _build_iso_source(ctx: BuildContext, ts: TileSet, def: Dictionary, s: Dicti
 		issues.append(ctx.make_issue("VAL-002", {"file": tex_path}, tex_path))
 		return
 	var src: TileSetAtlasSource
-	if ts.has_source(source_id):
+	var exists := ts.has_source(source_id)
+	if exists:
 		src = ts.get_source(source_id) as TileSetAtlasSource
 	else:
 		src = TileSetAtlasSource.new()
@@ -877,11 +897,14 @@ func _build_iso_source(ctx: BuildContext, ts: TileSet, def: Dictionary, s: Dicti
 			issues.append(ctx.make_issue("CAT-004", {"asset": asset_id, "file": "(catalog)"}))
 			continue
 		var eff: Dictionary = ctx.catalog.effective(asset)
-		if (coords.x + 1) * atlas_cell.x > tex.get_width() or (coords.y + 1) * atlas_cell.y > tex.get_height():
+		var frames: int = tile["frames"]
+		if (coords.x + frames) * atlas_cell.x > tex.get_width() or (coords.y + 1) * atlas_cell.y > tex.get_height():
 			issues.append(ctx.make_issue("TILE-002", {"asset": atlas_id, "coords": "%d,%d" % [coords.x, coords.y]}, tex_path))
 			continue
 		placed[coords] = true
 		var is_new := IsoTileset.configure_tile(ts, src, coords, at, atlas_cell, asset, eff)
+		var fps: float = tile["fps"]
+		IsoTileset.animate(src, coords, frames, fps)
 		var td := src.get_tile_data(coords, 0)
 		var iso_terrain: Variant = eff.get("iso_terrain")
 		if iso_terrain is Dictionary and (is_new or td.terrain_set == -1):
@@ -895,7 +918,8 @@ func _build_iso_source(ctx: BuildContext, ts: TileSet, def: Dictionary, s: Dicti
 		_apply_collision(ctx, td, asset, spec_hash, desired, is_new, "%s/%d/%d,%d" % [ts_name, source_id, coords.x, coords.y], issues)
 		if _nav_enabled and JsonUtil.to_str(eff.get("role", "")) == "GROUND" and collision.get("profile", "NONE") == "NONE" and td.get_navigation_polygon(0) == null:
 			td.set_navigation_polygon(0, IsoTileset.navigation_polygon(footprint))
-	complete_terrains(ts, src, JsonUtil.to_array(def.get("terrain_sets", [])))
+	if not exists or completes(src):  # a source of an older project keeps the tiles it had
+		complete_terrains(ts, src, JsonUtil.to_array(def.get("terrain_sets", [])))
 	var emptied: Array = []
 	for i in src.get_tiles_count():
 		var coords := src.get_tile_id(i)
@@ -917,11 +941,12 @@ func _configure_navigation(td: TileData, role: String, collision: Dictionary, at
 	poly.add_polygon(PackedInt32Array([0, 1, 2, 3]))
 	td.set_navigation_polygon(0, poly)
 
-## TileMapPatterns from sheet objects (T4.06): one pattern per object, in object id order. Every
-## existing pattern is removed first, so a rebuild never duplicates them.
+## TileMapPatterns from sheet objects (T4.06): one pattern per object, in object id order. The
+## patterns a rebuild makes replace the existing ones, so they are never duplicated; when they
+## are the same cell for cell the existing ones stay, so a TileSet saved again keeps the ids its
+## patterns have in the file (a project of an older version regenerates byte for byte).
 func _build_patterns(ctx: BuildContext, ts: TileSet, sources: Array[Dictionary]) -> void:
-	while ts.get_patterns_count() > 0:
-		ts.remove_pattern(0)
+	var made: Array[TileMapPattern] = []
 	var source_of := {}
 	for s in sources:
 		source_of[s["asset"]] = JsonUtil.to_int(s["source_id"])
@@ -948,4 +973,26 @@ func _build_patterns(ctx: BuildContext, ts: TileSet, sources: Array[Dictionary])
 				if src.has_tile(coords):
 					pattern.set_cell(coords - first, source_id, coords, 0)
 		if not pattern.is_empty():
-			ts.add_pattern(pattern)
+			made.append(pattern)
+	var same := made.size() == ts.get_patterns_count()
+	for i in made.size():
+		same = same and patterns_equal(made[i], ts.get_pattern(i))
+	if same:
+		return
+	while ts.get_patterns_count() > 0:
+		ts.remove_pattern(0)
+	for pattern in made:
+		ts.add_pattern(pattern)
+
+## True when two patterns have the same cells, each from the same source, atlas cell and
+## alternative.
+static func patterns_equal(a: TileMapPattern, b: TileMapPattern) -> bool:
+	if a == null or b == null or a.get_size() != b.get_size():
+		return false
+	var cells := a.get_used_cells()
+	if cells.size() != b.get_used_cells().size():
+		return false
+	for cell in cells:
+		if not b.has_cell(cell) or a.get_cell_source_id(cell) != b.get_cell_source_id(cell) 				or a.get_cell_atlas_coords(cell) != b.get_cell_atlas_coords(cell) 				or a.get_cell_alternative_tile(cell) != b.get_cell_alternative_tile(cell):
+			return false
+	return true

@@ -71,7 +71,11 @@ def test_the_config_of_a_run_and_gun_is_valid_and_keeps_its_options() -> None:
     with pytest.raises(Exception):  # noqa: B017, PT011
         schema.validate("config", {**data, "archetype": "pinball"})
     assert features.RUN_AND_GUN_AVAILABLE is True, "the wizard offers it since the gate of 1.4"
-    assert [k for k, on in cfg.features.items() if not on] == ["dialogue", "navigation"]
+    assert [k for k, on in cfg.features.items() if not on] == [
+        "dialogue",
+        "navigation",
+        "progression",
+    ]
     assert options.stages_text("run_and_gun", {}) == "3 stages, seen from the side"
 
 

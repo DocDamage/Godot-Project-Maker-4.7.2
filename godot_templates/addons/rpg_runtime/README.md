@@ -20,6 +20,9 @@ precedence**, so `a or b and c` means `(a or b) and c`.
 | `quest:<id>=<state>` | the quest is in that state |
 | `quest_active:<id>` / `quest_done:<id>` | the quest is under way / finished |
 | `quest_stage:<id>:<stage>` | the quest is at that stage |
+| `quest_failed:<id>` | the quest failed |
+| `quest_available:<id>` | the quest has not started and what it `requires` holds |
+| `quest_ready:<id>` | the quest's stage waits to be turned in, and its condition and the items it takes are there |
 | `party:<actor id>` | the character is in the party (the player always is) |
 | `var:<name><op><N>` | the variable compares so with N; `op` is `>=`, `<=`, `==`, `!=`, `>` or `<` (a variable never set is 0) |
 | `friendship:<id>>=N` | the person has at least N hearts (a farm; false in every other game) |
@@ -31,6 +34,8 @@ precedence**, so `a or b and c` means `(a or b) and c`.
 
 `set_flag:<entity>.<key>=<value>`, `give_item:<id>[:qty]`, `take_item:<id>[:qty]`, `give_gold:N`,
 `set_quest:<id>=<state>`, `quest_start:<id>`, `quest_stage:<id>:<stage>`, `quest_complete:<id>`,
+`quest_turn_in:<id>` (finishes a stage that waits to be turned in), `quest_fail:<id>`,
+`track_quest:<id>` (the HUD's tracker shows it),
 `join_party:<actor id>` / `leave_party:<actor id>` (see below), `heal_full` (the whole party), `open_shop:<id>` (opens `game/data/shops/<id>.tres` when the
 dialogue closes), `set_var:<name>=<N>`, `add_var:<name>:<N>` (N may be negative),
 `run_sequence:<id>` (plays `game/data/sequences/<id>.tres` once the dialogue has closed),
@@ -99,7 +104,18 @@ shoot arrows. The save keeps the worn items (optional key `equipment`).
 A shop is an `RpgShopDefinition` (`game/data/shops/<id>.tres`): `stock` is `[{item_id, price}]`
 (a price below 0 means the item's `value`) and `sell_ratio` (default 0.5) is what it pays. The
 dialogue event `open_shop:<id>` opens `shop_menu` when the dialogue closes; key and quest items are
-never bought.
+never bought. A stock row with `qty` sells out until the shop restocks (`restock_minutes` of
+play, or `restock_each_day` with a calendar); `funds` is the shop's own gold (-1: no end);
+`wares`, a loot table, is rolled at each restock for more rows; what you sell can be bought back
+for what the shop paid (the Buy back tab; `buyback: false` turns it off). What a shop has sold is
+saved (`GameState.shops`).
+
+Nothing given to a full bag is lost: `GameState.give_items` keeps what does not fit in
+`pending_items` and puts it in the bag as soon as there is room (quest rewards, `give_item`,
+chests and battle drops go through it). `RpgInventory.transact(giving, taking)` trades several
+rows all or nothing. An item with a `durability` wears (a weapon with each blow, armour and an
+accessory with each hit taken) and breaks at it; an item with a `set_id` counts towards an
+`RpgItemSet` (`game/data/item_sets/<id>.tres`) whose `bonuses` add modifiers for enough pieces.
 
 ## Quests
 
@@ -109,9 +125,15 @@ An `RpgQuestDefinition` (`game/data/quests/<id>.tres`) has a `title` key, ordere
 stage completes it and gives the rewards once); `target`, optional, is the entity id the minimap
 marks. Also optional: `next` (the stage that follows instead of the one below, or `done` to
 finish the quest there), `rewards` (given when the stage's condition finishes it) and `title`.
+A stage with `turn_in: true` waits while its condition holds (the quest is *ready to turn
+in*) until the event `quest_turn_in:<id>`; `take` ([{item_id, qty}]) is taken from the bag when
+the stage finishes. The quest's `requires` (a condition) must hold before it can start, with
+`auto_start` it starts by itself then (a chain), and `fail_when` fails it while under way.
 `problems()` lists what is wrong with a quest and `reached(state)` says where it gets to.
-`GameState.quests[id]` is the current stage id or `"done"`. Events and conditions are in the
-tables above; the pause menu's Journal lists active and finished quests.
+`GameState.quests[id]` is the current stage id, `"done"` or `"failed"`. Events and conditions
+are in the tables above; the pause menu's Journal lists active and finished quests, and
+confirming one tracks it: the HUD's tracker (under the minimap; a setting turns it off) shows
+the tracked quest's stage and its counts, live ("Bring logs (Log 5/8)").
 
 ## Keys, switches and gates
 

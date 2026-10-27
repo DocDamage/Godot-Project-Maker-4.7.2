@@ -98,29 +98,13 @@ UNUSED_REASONS = {
         "role to use it whole as well."
     ),
     "animation_frame": (
-        "a later frame of a tile its pack animates (water, lava, a fire); rpggen's isometric "
-        "tiles do not animate yet, and the first frame is used. Give it a role to use it."
-    ),
-    "overlay_tile": (
-        "a piece laid over another tile (shore foam, a waterfall on a block's face); rpggen "
-        "does not lay one tile over another yet. Give it a role to use it alone."
-    ),
-    "ramp": (
-        "a ramp or stairs up to the top of a block; rpggen's isometric maps are flat. Give it "
-        "a role to use it."
-    ),
-    "building_piece": (
-        "a storey, a roof or a piece of a front that the pack's maps stack on a building's "
-        "cells; rpggen does not stack pieces yet (the pack's whole buildings are used). Give it "
-        "a role to use it alone."
-    ),
-    "on_wall": (
-        "a thing hung on a wall or opening in one (a sconce, a door); rpggen places nothing on "
-        "a wall yet. Give it a role to use it alone."
+        "a later frame of a piece its pack animates (water, lava, a fire, a fountain): the "
+        "first frame is the asset, and Godot plays this one after it. Give it a role to use it "
+        "alone as well."
     ),
     "shadow": (
-        "the shadow of a thing of the pack, drawn under it in the pack's own maps; rpggen does "
-        "not draw it. Give it a role to use it."
+        "the shadow of a thing or a character of the pack: it is drawn under what it belongs "
+        "to. Give it a role to use it alone as well."
     ),
     "sheet_frame": (
         "one frame of a character the pack has in sheets as well, a sheet an animation; the "

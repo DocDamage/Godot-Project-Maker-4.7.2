@@ -323,6 +323,28 @@ should know:
   no animation names (they need review), Kenney's outlined grass caps, ladders on a backdrop,
   doors and keys are unread, slopes are not built, a 128-px pack needs a larger resolution by
   hand; nobody played by hand.
+* **Gridwright's isometric kits and stacking (2026-10-26, branch `gridwright`)**: all thirteen
+  kits are read by their own JSON, and nothing they draw is set aside but copies. Blocks, ramps,
+  storeys, roofs, rooftop things, awnings, wall lanterns and overlays are stacked on a level's
+  **height layers** (the dock's *World tools*), tiles that move animate, shadows are drawn, and
+  a creator's layers are a layered character. Probed in two projects, Tiles + City + Characters +
+  Hero Creator and the other nine kits: 0 holes, 0 wrong. Each has a house of three storeys with a
+  roof and a thing on it, a hill with a ramp, and a thing dropped on the hill that stands on it.
+  The nine kits hold about 100,000 pictures: the copies are left out of Godot's import, and the
+  generation takes about 21 minutes. Short of it: a stack is drawn, not walked; the
+  vehicles (diagonal facings) are placed, not driven; nobody has built a level by hand.
+* **Quests, shops, the bag, skill trees and achievements (2026-10-26, branch `gridwright`)**:
+  designs from the Godot kits the owner keeps beside the packs (ideas only), written for the
+  runtime: quests that wait for others, start by themselves, fail and are turned in, with live
+  counts and a tracker on the HUD; shops with stock that runs out and refills, their own gold,
+  rolled wares and buying back; trades all or nothing, rewards that wait for room, gear that
+  wears and breaks, sets of gear; skill trees and achievements with their own screens (Pause →
+  Skills, Pause → Achievements). The runtime CHANGELOG (1.5.0, last section) has the list.
+  The dock has Skills, Achievements and Item sets tabs, and the option *Skills and
+  achievements* seeds a starter tree, achievements and the traveler's set in a new project.
+  Tested by the GDScript suite and the integration runs; nobody has played them by hand or
+  looked at the new screens and tabs in a window. The crafting kit is left out (Part E of the
+  farm spec leaves crafting out by design).
 * **Not built.** Dropping onto diamonds with a mouse (the
   editor dock counts diamonds since T17.27, run by a test in an editor without a window); terrains on a diamond's sides; height (a raised ground
   block does not block); the farmer's tool strips of a pack (set aside, not played); *working

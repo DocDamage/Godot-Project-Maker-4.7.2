@@ -32,6 +32,32 @@ static func set_feet(root: Node, eff: Dictionary) -> void:
 	if shape != null:
 		shape.size = Vector2(maxf(4.0, JsonUtil.to_float(eff["feet"])), shape.size.y)
 
+## How opaque a pack's shadow is drawn (Gridwright's READMEs: "at about 35% opacity").
+const SHADOW_ALPHA := 0.35
+
+## The shadow a pack draws under a character or a thing (the facet `shadow`, 2026-10-26): a
+## Sprite2D `Shadow` under the picture. A thing's shadow is drawn with the thing's anchor (its
+## picture may be larger: an altar's falls beyond it), so it lies at the thing's `picture_offset`
+## when one is given (`aligned`); a character's (an oval for under the feet) is centred on them.
+## Nothing is added when the facet is not there or its file is missing.
+static func add_shadow(root: Node, eff: Dictionary, picture_offset: Vector2 = Vector2.ZERO, aligned: bool = false) -> void:
+	var path := JsonUtil.to_str(eff.get("shadow", ""))
+	if path == "" or root.get_node_or_null("Shadow") != null:
+		return
+	var res_path := path if path.begins_with("res://") else "res://" + path
+	var texture := load(res_path) as Texture2D if ResourceLoader.exists(res_path) else null
+	if texture == null:
+		return
+	var shadow := Sprite2D.new()
+	shadow.name = "Shadow"
+	shadow.texture = texture
+	shadow.modulate = Color(1, 1, 1, SHADOW_ALPHA)
+	if aligned:
+		shadow.centered = false
+		shadow.offset = picture_offset
+	root.add_child(shadow)
+	root.move_child(shadow, 0)  # drawn first: under the picture
+
 ## kind: "base", "player" or "npc". `frames` may be null (base and npc templates). `frame` is the
 ## frame size and `origin` the feet pixel inside it.
 static func build(kind: String, root_name: String, frames: SpriteFrames, frame: Vector2i, origin: Vector2i, tile: int) -> CharacterBody2D:
