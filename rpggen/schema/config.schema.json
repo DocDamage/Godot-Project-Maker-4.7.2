@@ -179,6 +179,7 @@
         "elimination": {"type": "boolean"},
         "starting_money": {"type": "integer", "minimum": 0, "maximum": 99999},
         "pass_out_loss": {"type": "boolean"},
+        "exhaustion": {"type": "boolean"},
         "fishing": {"type": "boolean"},
         "days_per_season": {"enum": [7, 14, 28]},
         "day_length": {"enum": ["short", "normal", "long"]},
@@ -186,7 +187,7 @@
         "courtable": {"type": "integer", "minimum": 0, "maximum": 6},
         "farm_size": {"enum": ["small", "medium", "large"]},
         "plot": {"enum": ["small", "medium", "large"]},
-        "animals": {"enum": ["none", "coop", "coop_and_barn"]},
+        "animals": {"enum": ["none", "auto", "coop", "barn", "coop_and_barn"]},
         "added_maps": {
           "type": "array",
           "maxItems": 8,

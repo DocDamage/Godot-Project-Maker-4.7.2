@@ -350,3 +350,94 @@ func test_a_bed_is_remembered_and_a_new_game_has_none(t) -> void:
 	other.remember()
 	t.eq(RpgBed.home(state).get("position"), Vector2(200, 208), "until it is slept in")
 	_cleanup()
+
+# ---------------------------------------------------------------- exhaustion (T18.11)
+
+## A farmer of `game`'s mode on a map of `test_farmer.gd`, holding the hoe over tillable ground.
+func _farmer_at_work(game: Dictionary) -> RpgFarmer:
+	var Farmer: GDScript = load("res://tests/unit/test_farmer.gd")
+	var builder: RefCounted = Farmer.new()
+	var map: Dictionary = builder.call("_map")
+	_made.append(map["root"])
+	var state: RpgGameState = game["state"]
+	for id: StringName in [&"hoe", &"watering_can", &"farm_axe"]:
+		state.items[id] = Fixtures.item(id)
+	state.inventory.add(&"hoe")
+	var mode: RpgFarmMode = game["mode"]
+	var farmer := RpgFarmer.new()
+	farmer.name = "Player"
+	farmer.mode = mode
+	farmer.field = map["field"]
+	(map["entities"] as Node2D).add_child(farmer)
+	farmer.position = (Vector2(3, 1) + Vector2(0.5, 0.5)) * 16.0
+	farmer.facing = "down"
+	mode.hotbar.hold_item(&"hoe")
+	return farmer
+
+func _try(farmer: RpgFarmer) -> bool:
+	var done := farmer.use_held()
+	farmer._end_use()
+	return done
+
+func test_working_at_zero_energy_ends_the_day_on_the_third_try(t) -> void:
+	var game := _game()
+	var state: RpgGameState = game["state"]
+	var mode: RpgFarmMode = game["mode"]
+	var calendar: RpgCalendar = game["calendar"]
+	var day_end: RpgDayEnd = game["day_end"]
+	mode.exhaustion_ends_day = true
+	day_end.exhaustion = true
+	var home := _bed_and_farmer(game)
+	(home["bed"] as RpgBed).remember()
+	var farmer := _farmer_at_work(game)
+	day_end.farmer = home["farmer"]
+	var toasts: Array = []
+	RpgUtil.events().notify.connect(func(text: String) -> void: toasts.append(text))
+	state.gold = 300
+	mode.energy.value = 0
+	calendar.minute = 14 * 60
+	t.ok(not _try(farmer), "the first try: too tired")
+	t.ok(toasts.has(RpgFarmStrings.t("FARM_TIRED")))
+	t.ok(not _try(farmer), "the second")
+	t.ok(toasts.has(RpgFarmStrings.t("FARM_EXHAUSTED")), "says the farmer is exhausted")
+	t.eq(calendar.day, 1, "the day goes on")
+	t.ok(not _try(farmer), "the third")
+	t.eq(calendar.day, 2, "the day ended")
+	t.eq(day_end.last_night, RpgDayEnd.PASSED_OUT)
+	t.ok(day_end.collapsed and not day_end.knocked_out)
+	# the morning: as after 2:00
+	t.eq(mode.energy.value, 50, "the next morning's energy is reduced")
+	t.eq([state.gold, day_end.money_lost], [270, 30], "a share of the gold is gone")
+	t.eq((home["farmer"] as Node2D).position, Vector2(100, 58), "woken at the bed")
+	t.eq([day_end.tries, day_end.minutes_at_zero], [0, 0], "a new day starts afresh")
+	_cleanup()
+
+func test_an_hour_at_zero_energy_ends_the_day(t) -> void:
+	var game := _game()
+	var mode: RpgFarmMode = game["mode"]
+	var calendar: RpgCalendar = game["calendar"]
+	var day_end: RpgDayEnd = game["day_end"]
+	day_end.exhaustion = true
+	calendar.minute = 10 * 60
+	mode.energy.value = 0
+	calendar.pass_minutes(RpgDayEnd.EXHAUST_MINUTES - 1)
+	t.eq(calendar.day, 1, "59 minutes at zero: still up")
+	calendar.pass_minutes(1)
+	t.eq(calendar.day, 2, "an hour: the farmer collapses")
+	t.ok(day_end.collapsed)
+	_cleanup()
+
+func test_without_the_option_working_at_zero_only_says_so(t) -> void:
+	var game := _game()
+	var mode: RpgFarmMode = game["mode"]
+	var calendar: RpgCalendar = game["calendar"]
+	var day_end: RpgDayEnd = game["day_end"]
+	t.ok(not mode.exhaustion_ends_day and not day_end.exhaustion, "a farm made before the card")
+	var farmer := _farmer_at_work(game)
+	mode.energy.value = 0
+	calendar.minute = 10 * 60
+	for i in 4:
+		t.ok(not _try(farmer))
+	calendar.pass_minutes(RpgDayEnd.EXHAUST_MINUTES * 2)
+	t.eq(calendar.day, 1, "the day goes on as before")
+	_cleanup()

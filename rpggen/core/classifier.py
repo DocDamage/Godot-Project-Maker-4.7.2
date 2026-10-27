@@ -389,9 +389,12 @@ GROWTH_MIN_STAGES_BY_SIZE = 3
 
 # A character using a tool (T17.10): ``farmer_hoe_down_16x16_3frames`` beside the farmer's walk
 # is an animation of the farmer, not a second character. The word -> the animation it is
-# (``RpgFarmTool.animation``: hoe, water, sickle, axe, rod).
+# (``RpgFarmTool.animation``: hoe, water, sickle, axe, rod); the build adds it to the farmer's
+# frames as ``<animation>_<direction>`` (T18.10). A pickaxe is no tool of the farm: its strip is
+# added under its own name, for a tool a user adds.
 USE_ANIM_WORDS = {"hoe": "hoe", "water": "water", "watering": "water", "sickle": "sickle",
-                  "scythe": "sickle", "axe": "axe", "rod": "rod", "fish": "rod"}  # fmt: skip
+                  "scythe": "sickle", "axe": "axe", "rod": "rod", "fish": "rod",
+                  "pickaxe": "pickaxe"}  # fmt: skip
 USE_ANIM_TAG = "use_anim:"
 USE_ANIM_OF_TAG = "of:"
 UNUSED_USE_ANIM = "use_anim"

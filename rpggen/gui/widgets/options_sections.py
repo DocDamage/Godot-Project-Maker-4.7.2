@@ -1415,7 +1415,13 @@ class FarmBox(ArcadeBox):
             "animals",
             "Animals",
             "The animal houses on the farm, each with its yard",
-            (("none", "None"), ("coop", "A coop"), ("coop_and_barn", "A coop and a barn")),
+            (
+                ("auto", "Those of the packs' animals"),
+                ("none", "None"),
+                ("coop", "A coop"),
+                ("barn", "A barn"),
+                ("coop_and_barn", "A coop and a barn"),
+            ),
         ),
         (
             "combo",
@@ -1502,6 +1508,25 @@ class FarmBox(ArcadeBox):
         self.preview.setAccessibleName(
             self.tr("The planned farm: its house, its plot, its water and the way to the village")
         )
+        # a house no animal of the packs lives in (T18.05): said under the choice, with auto
+        animals = self.combos["animals"]
+        holder = animals.parentWidget()
+        column = holder.layout() if holder is not None else None
+        self.animals_note = _muted("", "farmAnimalsNote")
+        self.animals_note.setProperty("state", "warning")
+        self.animals_note.setVisible(False)
+        self.animals_auto = QPushButton(self.tr("Use the packs' animals"))
+        self.animals_auto.setObjectName("farmAnimalsAuto")
+        self.animals_auto.setVisible(False)
+        self.animals_auto.clicked.connect(self.use_pack_animals)
+        if column is not None:
+            column.addWidget(self.animals_note)
+            column.addWidget(self.animals_auto)
+
+    def use_pack_animals(self) -> None:
+        """The choice ``auto``: the houses whose animals the packs have."""
+        combo = self.combos["animals"]
+        combo.setCurrentIndex(max(0, combo.findData(farm_plan.AUTO)))
 
     def set_footprint(self, footprint: tuple[int, int] | None) -> None:
         """The diamond the picture is drawn on (None: squares, a farm seen from above)."""
@@ -1582,6 +1607,11 @@ class FarmBox(ArcadeBox):
             return
         words = [options.farm_text(plans), *(str(note) for note in plans.get("notes", []))]
         self.summary.setText("  ".join(words))
+        empty = [str(house) for house in plans.get("empty_houses", [])]
+        lines = [self.tr("The packs have no animal for the {0}").format(h) for h in empty]
+        self.animals_note.setText("\n".join(lines))
+        self.animals_note.setVisible(bool(empty))
+        self.animals_auto.setVisible(bool(empty))
         counts = map_preview.farm_markers(plans["map"])
         for key, item in self.legend_items.items():
             item.setVisible(counts.get(key, 0) > 0)

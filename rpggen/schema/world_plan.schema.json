@@ -79,7 +79,7 @@
         "map": {"type": "string", "minLength": 1},
         "farm_size": {"enum": ["small", "medium", "large"]},
         "plot": {"enum": ["small", "medium", "large"]},
-        "animals": {"enum": ["none", "coop", "coop_and_barn"]},
+        "animals": {"enum": ["none", "auto", "coop", "barn", "coop_and_barn"]},
         "difficulty": {"enum": ["easy", "normal", "hard"]},
         "size": {"$ref": "#/$defs/Cell"},
         "house": {"$ref": "#/$defs/FarmBuilding"},

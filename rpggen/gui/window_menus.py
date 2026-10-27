@@ -412,7 +412,6 @@ class WindowMenus:
         if action is not None:
             action.setChecked(True)
 
-
     def set_reduce_motion(self, checked: bool = False) -> None:
         """View > Reduce motion: from now on the user's choice, not the system's."""
         app_settings.update(reduce_motion="on" if checked else "off")

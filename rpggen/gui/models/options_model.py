@@ -513,8 +513,12 @@ class OptionsModel:
         )
 
     def starter_defaults(self) -> dict[str, Any]:
+        """What Reset gives: the defaults, and for a farm what a new farm chooses (M18)."""
         assert self.draft is not None
-        return config_mod.starter_map_defaults(self.draft.archetype)
+        out = config_mod.starter_map_defaults(self.draft.archetype)
+        if self.draft.archetype == "farm":
+            out.update(config_mod.NEW_FARM_OPTIONS)
+        return out
 
     def store_starter(self, values: dict[str, Any]) -> None:
         """Stores only what differs from the defaults of the archetype. The starter map of a

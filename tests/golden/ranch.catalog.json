@@ -2867,6 +2867,73 @@
       "status": "NEEDS_REVIEW"
     },
     {
+      "confidence": 0.435484,
+      "detected": {
+        "animations": {
+          "idle_down": {
+            "fps": 4.0,
+            "frames": [
+              [
+                0,
+                0
+              ],
+              [
+                1,
+                0
+              ],
+              [
+                2,
+                0
+              ]
+            ],
+            "loop": true
+          }
+        },
+        "frame": [
+          16,
+          16
+        ],
+        "grid": {
+          "cell": [
+            16,
+            16
+          ],
+          "margin": [
+            0,
+            0
+          ],
+          "separation": [
+            0,
+            0
+          ]
+        },
+        "origin": [
+          8,
+          15
+        ],
+        "role": "NONE",
+        "size": [
+          48,
+          16
+        ],
+        "tags": [
+          "of:ranch.characters.farmer.farmer_walk_down_16x16_4frames",
+          "tool",
+          "unused_because:use_anim",
+          "use_anim:axe"
+        ],
+        "usage": "sprite"
+      },
+      "detected_by": "strips",
+      "id": "ranch.characters.farmer.farmer_axe_down_16x16_3frames",
+      "kind": "image",
+      "overrides": {},
+      "pack_id": "ranch",
+      "path": "assets/packs/ranch/characters/farmer/farmer_axe_down_16x16_3frames.png",
+      "sha256": "9b17e3e130e172440bab4f4e593e775276de087cd92e71fc0dc9b99ba4e556b6",
+      "status": "UNUSED"
+    },
+    {
       "confidence": 0.625,
       "detected": {
         "animations": {
@@ -3989,7 +4056,7 @@
       "pack_id": "ranch",
       "profile_id": null,
       "root": "assets/packs/ranch",
-      "source_sha256": "c2a3776e2fd369fef1ae04eea131c735b2853c8e57e3724b9c252cf0fa877f6a",
+      "source_sha256": "661eb0913b5f05842773280afe0cd524535c23304c137d0f1e7872012f28827c",
       "warnings": [
         "strips_direction_assumed:animals/chickens/hen_01/black/sleep/hen_01_black_sleep_16x16_2frames.png",
         "strips_direction_assumed:animals/chickens/hen_01/brown/sleep/hen_01_brown_sleep_16x16_2frames.png",

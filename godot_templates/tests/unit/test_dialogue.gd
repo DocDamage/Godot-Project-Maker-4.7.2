@@ -283,3 +283,44 @@ func test_every_choice_of_a_line_is_on_the_screen(t) -> void:
 		screen.get_parent().remove_child(screen)
 		screen.free()
 	DirAccess.remove_absolute(BOX_TMP)
+
+func test_a_line_with_twenty_choices_scrolls(t) -> void:
+	var box := _box_on_screen(8)
+	var screen := box.get_parent() as SubViewport
+	var line := _line("ask", "Which one?")
+	var many: Array[RpgDialogueChoice] = []
+	for i in 20:
+		many.append(_choice("Choice number %d" % (i + 1), ""))
+	line.choices = many
+	box.open(_res([line]))
+	(box.get_node("%Body") as RichTextLabel).visible_ratio = 1.0
+	box.call("_show_choices")
+	await Fixtures.tree().process_frame
+	await Fixtures.tree().process_frame
+	var panel := box.get_node("%Panel") as Control
+	var scroll := box.choices_scroll()
+	t.ok(scroll != null and scroll.follow_focus, "the choices are in a scroll that follows the focus")
+	t.ok(panel.get_global_rect().size.y <= RpgDialogueBox.MAX_SHARE * float(BASE_RESOLUTION.y) + 0.5, "the box %s is no taller than the share" % panel.get_global_rect())
+	t.near(panel.get_global_rect().end.y, float(BASE_RESOLUTION.y) - 8.0, 0.01, "it stands on the bottom edge")
+	var buttons := (box.get_node("%Choices") as Container).get_children()
+	t.eq(buttons.size(), 20)
+	var last := buttons[19] as Button
+	t.ok(not scroll.get_global_rect().encloses(last.get_global_rect()), "choice 20 starts out of view")
+	for i in 19:
+		var down := InputEventAction.new()
+		down.action = &"ui_down"
+		down.pressed = true
+		screen.push_input(down)
+		var up := InputEventAction.new()
+		up.action = &"ui_down"
+		up.pressed = false
+		screen.push_input(up)
+		await Fixtures.tree().process_frame
+	await Fixtures.tree().process_frame
+	await Fixtures.tree().process_frame
+	t.ok(last.has_focus(), "the down key reaches choice 20")
+	t.ok(scroll.get_global_rect().grow(0.5).encloses(last.get_global_rect()), "and it is in view when focused: %s in %s" % [last.get_global_rect(), scroll.get_global_rect()])
+	box.call("_close")
+	screen.get_parent().remove_child(screen)
+	screen.free()
+	DirAccess.remove_absolute(BOX_TMP)

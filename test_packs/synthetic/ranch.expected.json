@@ -125,6 +125,10 @@
   "buildings/house.png": {
     "role": "BUILDING"
   },
+  "characters/farmer/farmer_axe_down_16x16_3frames.png": {
+    "role": "NONE",
+    "usage": "sprite"
+  },
   "characters/farmer/farmer_hoe_down_16x16_3frames.png": {
     "role": "NONE",
     "usage": "sprite"

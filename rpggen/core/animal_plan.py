@@ -142,6 +142,20 @@ def facts_of(catalog: Any, houses: Any = ()) -> dict[str, Any]:
     return {"houses": [h for h in HOUSES if h in set(houses or ())], "animals": animals}
 
 
+def pack_houses(animals: Any) -> list[str]:
+    """The houses whose animals the packs have (T18.05): ``animals`` is ``facts_of(...)
+    ["animals"]``; the farm kit's drawn hen, which stands in when the packs have none, does not
+    count. The coop first."""
+    from rpggen.core import farm_kit
+
+    kinds = {
+        str(a["kind"])
+        for a in animals or []
+        if not str(a["asset"]).startswith(farm_kit.KIT_PACK + ".")
+    }
+    return [h for h in HOUSES if any(house_of(k) == h for k in kinds)]
+
+
 def houses_of(farm_map: Any) -> list[dict[str, Any]]:
     """The animal houses of a farm's own plan (``farm.map``) as the game needs them: ``kind``,
     the scene of the room (``map``), the scene of the map its yard is on (``yard_map``) and how

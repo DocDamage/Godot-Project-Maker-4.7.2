@@ -21,7 +21,14 @@ var ui_scale := 1.0
 var autosave := true  # an automatic save when a map is entered (SaveManager.autosave)
 var screen_shake := true  # camera shake and hit-stop of the action RPG
 var language := ""  # a locale of generated/i18n ("de"), or "" for the system's (T12.56)
-var day_night := false  # the time-of-day cycle of outdoor maps (T12.62), off by default
+## The time-of-day cycle of outdoor maps (T12.62) as the player chose it; setting it is a choice
+## (`day_night_chosen`). Until one is made, day_night_on() is the game's default (T18.06).
+var day_night := false:
+	set(value):
+		day_night = value
+		day_night_chosen = true
+## True once the player chose (or a settings file of before 1.5 had the cycle on).
+var day_night_chosen := false
 var minimap := true  # the HUD minimap (T12.64)
 var quest_tracker := true  # the HUD's quest tracker (1.5.0)
 
@@ -74,6 +81,20 @@ func set_quest_tracker(on: bool) -> void:
 
 func set_day_night(on: bool) -> void:
 	day_night = on
+	changed.emit()
+
+## Whether outdoor maps follow the time of day (1.5.0, T18.06): the player's choice once made,
+## else the game's default: on in a game whose calendar drives the light (a farm), off elsewhere.
+func day_night_on() -> bool:
+	if day_night_chosen:
+		return day_night
+	var calendar := RpgCalendar.current()
+	return calendar != null and calendar.drives_light
+
+## Forgets the player's choice: the game's default applies again.
+func clear_day_night_choice() -> void:
+	day_night = false
+	day_night_chosen = false
 	changed.emit()
 
 func set_screen_shake(on: bool) -> void:
@@ -142,7 +163,9 @@ func save_settings() -> bool:
 	cfg.set_value("access", "ui_scale", ui_scale)
 	cfg.set_value("game", "autosave", autosave)
 	cfg.set_value("game", "screen_shake", screen_shake)
-	cfg.set_value("game", "day_night", day_night)
+	if day_night_chosen:  # stored once the player changed it (T18.06)
+		cfg.set_value("game", "day_night", day_night)
+		cfg.set_value("game", "day_night_chosen", true)
 	cfg.set_value("game", "minimap", minimap)
 	cfg.set_value("game", "quest_tracker", quest_tracker)
 	var bindings := _stored_bindings()
@@ -165,7 +188,9 @@ func load_settings() -> void:
 	ui_scale = scale if UI_SCALES.has(scale) else 1.0
 	autosave = RpgUtil.to_bool(cfg.get_value("game", "autosave", true))
 	screen_shake = RpgUtil.to_bool(cfg.get_value("game", "screen_shake", true))
+	# a file of before 1.5 always holds `day_night`; only on was a choice (off was the default)
 	day_night = RpgUtil.to_bool(cfg.get_value("game", "day_night", false))
+	day_night_chosen = RpgUtil.to_bool(cfg.get_value("game", "day_night_chosen", false)) or day_night
 	minimap = RpgUtil.to_bool(cfg.get_value("game", "minimap", true))
 	quest_tracker = RpgUtil.to_bool(cfg.get_value("game", "quest_tracker", true))
 	if cfg.has_section("input"):

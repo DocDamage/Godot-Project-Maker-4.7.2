@@ -12,7 +12,8 @@ extends RefCounted
 ## written (nor in the hash) in any other, whose mode is the scene it was. `fights` (T17.24)
 ## the same for a farm that fights (FarmBuild.fights), whose HUD has the farmer's health too.
 ## `courting` (T17.26) is the same for marriage: true in a farm with `starter_map.courtable`
-## above 0 whose plan has somebody to court.
+## above 0 whose plan has somebody to court. `exhaustion_ends_day` (T18.11) the same for the
+## option `starter_map.exhaustion`, which a farm made before the card lacks.
 
 const RECIPE_VERSION := 5
 ## The folder of the files that are the user's once they exist (crops.json, people.json, ...).
@@ -34,6 +35,8 @@ func input_hash(ctx: BuildContext) -> String:
 		hashed["fights"] = true
 	if FarmBuild.courting(ctx):  # only a farm with marriage has the key (T17.26)
 		hashed["courting"] = true
+	if FarmBuild.exhaustion(ctx):  # only a farm with the option has the key (T18.11)
+		hashed["exhaustion"] = true
 	return ctx.stable_hash(hashed)
 
 func build(ctx: BuildContext) -> Array:
@@ -52,6 +55,8 @@ func build(ctx: BuildContext) -> Array:
 		root.set("fights", true)
 	if FarmBuild.courting(ctx):
 		root.set("courting", true)
+	if FarmBuild.exhaustion(ctx):
+		root.set("exhaustion_ends_day", true)
 	root.add_child(HudRecipe.build_hud(ctx, FarmBuild.fights(ctx)))
 	root.add_child(HudRecipe.build_weather(ctx))
 	var err := SceneUtil.save_scene(root, FarmBuild.MODE_PATH)

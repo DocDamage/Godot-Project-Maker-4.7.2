@@ -160,6 +160,11 @@ static func option(ctx: BuildContext, key: String, fallback: Variant) -> Variant
 static func starting_money(ctx: BuildContext) -> int:
 	return maxi(0, JsonUtil.to_int(option(ctx, "starting_money", START_MONEY), START_MONEY))
 
+## True when working at zero energy ends the day (`starter_map.exhaustion`, T18.11): a new farm
+## has it, a farm made before lacks the key.
+static func exhaustion(ctx: BuildContext) -> bool:
+	return JsonUtil.to_bool(option(ctx, "exhaustion", false), false)
+
 ## False when staying up to 2:00 costs no money (`starter_map.pass_out_loss`).
 static func pass_out_loss(ctx: BuildContext) -> bool:
 	return JsonUtil.to_bool(option(ctx, "pass_out_loss", true), true)

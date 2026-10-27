@@ -133,9 +133,13 @@ MACHINE_NOTES = ("ENV-", "BUILD-006")
 
 
 def _config(source: Path, pack_id: str) -> config.GeneratorConfig:
-    return config.default_for(
+    cfg = config.default_for(
         "Green Acre", [config.pack_ref_from_source(source, pack_id)], archetype="farm"
     )
+    # these farms keep no animals (a new farm builds the houses of the packs' animals since
+    # T18.05; the animals have farms of their own below)
+    cfg.starter_map["animals"] = "none"
+    return cfg
 
 
 def _errors(result) -> list[str]:
@@ -939,7 +943,7 @@ def test_a_ranch_with_a_coop_and_a_barn_keeps_its_hens_and_cows(barn) -> None:
 
 
 def test_a_farm_without_animals_has_nothing_of_them(plain, ranch) -> None:
-    """``animals: none``, the default: no house, no plan of animals, no file of theirs; the
+    """``animals: none`` (the default of a farm made before T18.05): no house, no plan of animals, no file of theirs; the
     steps of the animals pass with a note each. What such a farm has of this card is the code
     (inert), its lines in the translations and the part of the README."""
     for target, _result in (plain, ranch):

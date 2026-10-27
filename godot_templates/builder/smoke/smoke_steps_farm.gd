@@ -681,9 +681,12 @@ func _use_on(thing: Node2D, kind: String, cell: Vector2i, stand: Vector2i, facin
 		return "the tile ahead is %s, the %s lies at %s" % [_farmer().tile_ahead(), kind, cell]
 	mode.energy.fill()
 	var energy := mode.energy.value
-	await _tap("use")
+	var seen: Array[String] = await _use_watched()
 	if not await _wait_for(func() -> bool: return field.clearable_at(cell, kinds) == null, 60):
 		return "`use` with %s did not clear the %s at %s" % [tool_id, kind, cell]
+	var played := _strip_played(tool.animation, seen)
+	if played != "":
+		return played
 	if mode.energy.value != energy - tool.energy_cost:
 		return "clearing cost %d energy, expected %d" % [energy - mode.energy.value, tool.energy_cost]
 	if id == "" or _state().get_flag(id, "collected", false) != true:
@@ -702,9 +705,12 @@ func _till_a_cell() -> String:
 	if failure != "":
 		return failure
 	var before := mode.energy.value
-	await _tap("use")
+	var seen: Array[String] = await _use_watched()
 	if not await _wait_for(func() -> bool: return field.state_of(cell) == RpgField.SOIL, 60):
 		return "`use` with the hoe did not till %s (it is %s)" % [cell, field.state_of(cell)]
+	var played := _strip_played("hoe", seen)
+	if played != "":
+		return played
 	var cost := mode.tool_for(&"hoe").energy_cost
 	if mode.energy.value != before - cost:
 		return "the hoe cost %d energy, expected %d" % [before - mode.energy.value, cost]
@@ -747,14 +753,45 @@ func _water_it() -> String:
 	if failure != "":
 		return failure
 	RpgFarmWateringCan.fill()
-	await _tap("use")
+	var seen: Array[String] = await _use_watched()
 	if not await _wait_for(func() -> bool: return field.is_watered(cell), 60):
 		return "`use` with the can did not water %s" % cell
+	var played := _strip_played("water", seen)
+	if played != "":
+		return played
 	if RpgFarmWateringCan.charges() != RpgFarmWateringCan.SIZE - 1:
 		return "the can holds %d, expected %d" % [RpgFarmWateringCan.charges(), RpgFarmWateringCan.SIZE - 1]
 	if not field.shows_soil(cell, true):
 		return "the Soil layer does not show watered soil at %s" % cell
 	return ""
+
+## Taps `use` and gives the animations the farmer's picture played meanwhile (T18.10).
+func _use_watched() -> Array[String]:
+	var seen: Array[String] = []
+	var sprite := _farmer().get_node_or_null("Visual") as AnimatedSprite2D
+	var watch := func() -> void: seen.append(String(sprite.animation))
+	if sprite != null:
+		sprite.animation_changed.connect(watch)
+	await _tap("use")
+	await _frames(1)
+	if sprite != null and sprite.animation_changed.is_connected(watch):
+		sprite.animation_changed.disconnect(watch)
+	return seen
+
+## "" when the farmer's strip of `tool_anim` (`hoe_down`, ...) was played while it was used, or
+## when its sheet has none (a note: the tool's icon is shown over its hands); else what was.
+func _strip_played(tool_anim: String, seen: Array[String]) -> String:
+	var sprite := _farmer().get_node_or_null("Visual") as AnimatedSprite2D
+	if sprite == null or sprite.sprite_frames == null or tool_anim == "":
+		return ""
+	var strips := Array(sprite.sprite_frames.get_animation_names()).filter(func(n: String) -> bool: return n.begins_with(tool_anim + "_"))
+	if strips.is_empty():
+		print("[rpggen] INFO the farmer's sheet has no strip of the %s: its icon is shown" % tool_anim)
+		return ""
+	for name in seen:
+		if strips.has(name):
+			return ""
+	return "the farmer's strip of the %s (%s) was not played: it played %s" % [tool_anim, ", ".join(PackedStringArray(strips)), seen]
 
 func _a_night_grows_it() -> String:
 	var field := RpgField.current()

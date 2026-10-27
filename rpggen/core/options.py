@@ -300,8 +300,12 @@ def plan_farm(cfg: config_mod.GeneratorConfig, catalog: Any, project: Any = None
         festivals = len((kept.get("events") or {}).get("festivals") or []) or len(
             event_plan.SEASONS
         )
+    # a house of the choice that no animal of the packs lives in (T18.05); a stored farm keeps
+    # its houses, so it is not asked
+    empty = [] if stored else farm_plan.empty_houses(str(chosen.get("animals", "none")), facts)
     return {
         "map": section,
+        "empty_houses": empty,
         "crops": crops,
         "people": people,
         "festivals": festivals,
@@ -320,6 +324,9 @@ def farm_numbers(starter_map: dict[str, Any], crops: int | None = None) -> list[
     except farm_plan.FarmPlanError:
         return []
     days = starter_map.get("days_per_season", config_mod.FARM_DAYS_PER_SEASON)
+    if opts["animals"] == farm_plan.AUTO:
+        auto = [f"{days} days a season", "the animal houses of the packs' animals"]
+        return auto + ([_count(crops, "crop")] if crops is not None else [])
     houses = farm_plan.ANIMALS[opts["animals"]]
     out = [f"{days} days a season"]
     out.append(" and ".join(f"a {house}" for house in houses) if houses else "no animals")

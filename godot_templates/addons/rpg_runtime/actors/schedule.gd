@@ -28,6 +28,16 @@ extends Node
 ## appears at the door nearest to its place. On a map without navigation, or when no path leads
 ## there, the NPC fades out, is moved and fades in again (`fade_s`; 0 moves it at once).
 ##
+## **Making way** (1.5.0, T18.07). While it walks, the NPC looks a short way ahead along its path
+## with the shape of its own body (`blocker`): the player or another person standing there
+## (collision layers 2 and 4) makes it slow down and step to the side that is free (`SLOW`,
+## `free_side`), back onto its way once the way ahead is clear. Where there is no room at either
+## side it waits, facing them; after `WAIT_S` it asks for a new way as soon as they move. The
+## time it may take to arrive (after which it is put at its place) counts only the time it was
+## free to walk, so a player standing in a doorway does not make it jump. It never walks into
+## a body: a person's own collision mask has only the world, so the look ahead is what keeps it
+## off.
+##
 ## **A day that is not like the others** (T17.25: a festival of a farm) does not change the
 ## entries: whoever knows of it sets `RpgSchedule.override`, and the entry it gives for a person
 ## at an hour wins over everything the person's own entries say, whatever the weather. `pick`
@@ -48,6 +58,16 @@ const DAY_FIRST_HOUR := 6
 const ARRIVE_PX := 2.0
 ## How far from a place the end of a path may be and still count as leading there.
 const REACH_PX := 12.0
+## Making way (T18.07): how far ahead it looks, how far it may step aside in one go, how much it
+## slows while it does, how long it waits before it asks for a new way, and whom it makes way
+## for (the collision layers of the player and of people).
+const LOOK_AHEAD_PX := 10.0
+const SIDE_PX := 6.0
+const SLOW := 0.5
+const WAIT_S := 1.5
+## How long it keeps to the side it chose once the way ahead is clear again (it does not dither).
+const KEEP_SIDE_S := 0.75
+const MAKE_WAY_MASK := 2 | 8
 
 @export var entries: Array[Dictionary] = []
 ## Whose schedule this is: the id of a person. A schedule without entries takes those `source`
@@ -83,6 +103,10 @@ var _leaving := false
 var _walk_left := 0.0
 var _speed_before := -1.0
 var _tween: Tween = null
+var _blocked_s := 0.0  # how long the way ahead has been taken (T18.07)
+var _side := Vector2.ZERO  # the side it is stepping to, or none
+var _side_s := 0.0  # how long since it last stepped aside: the side is kept for a while
+var _waited_at := Vector2.INF  # where the one it waits for stood when it began to wait
 
 # ------------------------------------------------------------------ the entry in force
 
@@ -399,7 +423,6 @@ func _physics_process(delta: float) -> void:
 	if calendar != null and calendar.stands_still():
 		actor.move_dir(Vector2.ZERO)  # somebody talks to it, or a cutscene plays
 		return
-	_walk_left -= delta
 	var to := _path[_path_at] - actor.global_position
 	while to.length() <= ARRIVE_PX and _path_at < _path.size() - 1:
 		_path_at += 1
@@ -410,7 +433,98 @@ func _physics_process(delta: float) -> void:
 		_stop()
 		_land(target, leaving)
 		return
-	actor.move_dir(to.normalized())
+	var dir := to.normalized()
+	var ahead := blocker(dir, minf(LOOK_AHEAD_PX, to.length()))
+	if ahead == null:
+		_walk_left -= delta  # only the time it was free to walk counts
+		_blocked_s = 0.0
+		_side_s += delta
+		if _side_s >= KEEP_SIDE_S:
+			_side = Vector2.ZERO
+		_waited_at = Vector2.INF
+		_set_pace(1.0)
+		actor.move_dir(dir)
+		return
+	_make_way(dir, ahead, delta)
+
+## The player or the person whose body is `ahead` px along `dir` (with the shape of this NPC's
+## body, on the layers of MAKE_WAY_MASK; `ignore` is not counted), or null when the way is free.
+func blocker(dir: Vector2, ahead: float = LOOK_AHEAD_PX, ignore: Node2D = null) -> Node2D:
+	var body := _body_shape()
+	if body == null or not actor.is_inside_tree() or body.shape == null:
+		return null
+	var query := PhysicsShapeQueryParameters2D.new()
+	query.shape = body.shape
+	query.transform = body.global_transform.translated(dir * ahead)
+	query.collision_mask = MAKE_WAY_MASK
+	query.exclude = [actor.get_rid()] if ignore == null or not (ignore is CollisionObject2D) else [actor.get_rid(), (ignore as CollisionObject2D).get_rid()]
+	for hit: Dictionary in actor.get_world_2d().direct_space_state.intersect_shape(query, 8):
+		var found: Object = hit.get("collider")
+		var other := found as Node2D
+		if other != null and other != actor and other.visible:
+			return other
+	return null
+
+func _body_shape() -> CollisionShape2D:
+	for child in actor.get_children():
+		if child is CollisionShape2D and not (child as CollisionShape2D).disabled:
+			return child as CollisionShape2D
+	return null
+
+## The side (a unit vector across `dir`) it can step to round `other`: no other body there and
+## no wall in the way; the side away from `other` first. Zero when there is no room on either.
+func free_side(dir: Vector2, other: Node2D) -> Vector2:
+	var across := dir.orthogonal()
+	if across.dot(actor.global_position - other.global_position) < 0.0:
+		across = -across
+	for side: Vector2 in [across, -across]:
+		if blocker(side, SIDE_PX, other) == null and not actor.test_move(actor.global_transform, side * SIDE_PX):
+			return side
+	return Vector2.ZERO
+
+## The way ahead is taken by `other`: slow down and step aside, or wait facing them, and after
+## WAIT_S ask for a new way once they have moved.
+func _make_way(dir: Vector2, other: Node2D, delta: float) -> void:
+	_blocked_s += delta
+	_side_s = 0.0
+	# a point of the way that the other stands on is passed by: the next one is aimed at
+	var body := _body_shape()
+	var reach := (body.shape.get_rect().size.length() if body != null and body.shape != null else 12.0) + ARRIVE_PX
+	while _path_at < _path.size() - 1 and _path[_path_at].distance_to(other.global_position) < reach:
+		_path_at += 1
+	if _side != Vector2.ZERO and absf(_side.dot(dir)) > 0.5:
+		_side = Vector2.ZERO  # the way turned: choose again
+	if _side == Vector2.ZERO or blocker(_side, SIDE_PX, other) != null or actor.test_move(actor.global_transform, _side * 2.0):
+		var kept := _side
+		_side = free_side(dir, other)
+		if kept != Vector2.ZERO and _side != Vector2.ZERO and _side.dot(kept) < 0.0 and blocker(kept, SIDE_PX, other) == null and not actor.test_move(actor.global_transform, kept * 2.0):
+			_side = kept
+	if _side != Vector2.ZERO:
+		_set_pace(SLOW)
+		actor.move_dir(_side)
+		return
+	actor.move_dir(Vector2.ZERO)
+	actor.set_facing(RpgAnimationDriver.dir_to_facing(other.global_position - actor.global_position))
+	if _blocked_s < WAIT_S:
+		return
+	if _waited_at == Vector2.INF:
+		_waited_at = other.global_position
+	elif other.global_position.distance_to(_waited_at) > ARRIVE_PX * 2.0:
+		var again := path_to(_target)  # they moved: a new way, from here
+		if not again.is_empty():
+			_path = again
+			_path_at = 0
+		_blocked_s = 0.0
+		_waited_at = Vector2.INF
+
+func _set_pace(share: float) -> void:
+	var movement := actor.component("Movement") as RpgMovement
+	if movement != null:
+		movement.speed = speed * share
+
+## True while the way ahead is taken and it is waiting (not stepping aside).
+func waiting() -> bool:
+	return not _path.is_empty() and _blocked_s > 0.0 and _side == Vector2.ZERO
 
 ## Ends a walk or a fade where it is.
 func _stop() -> void:
@@ -421,6 +535,10 @@ func _stop() -> void:
 	if _path.is_empty():
 		return
 	_path = PackedVector2Array()
+	_blocked_s = 0.0
+	_side = Vector2.ZERO
+	_side_s = 0.0
+	_waited_at = Vector2.INF
 	actor.move_dir(Vector2.ZERO)
 	var movement := actor.component("Movement") as RpgMovement
 	if movement != null and _speed_before >= 0.0:

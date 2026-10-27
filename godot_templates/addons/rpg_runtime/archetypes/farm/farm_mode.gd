@@ -17,6 +17,9 @@ const HOTBAR_NODE := "Hotbar"
 ## False: staying up to 2:00 costs no money (the option `starter_map.pass_out_loss`; the mode's
 ## recipe sets it).
 @export var pass_out_loss: bool = true
+## True: working at zero energy ends the day (T18.11, the option `starter_map.exhaustion`; the
+## mode's recipe sets it for a farm that has it, and a farm made before has it off).
+@export var exhaustion_ends_day: bool = false
 ## The days of a season and the real seconds of a game minute (the options
 ## `starter_map.days_per_season` and `starter_map.day_length`; the mode's recipe sets them). The
 ## mode gives both to the calendar it asks for.
@@ -134,6 +137,7 @@ func ensure_parts() -> void:
 		day_end.name = RpgDayEnd.NODE_NAME
 		add_child(day_end)
 	day_end.pass_out_loss = pass_out_loss
+	day_end.exhaustion = exhaustion_ends_day
 	if weather == null:
 		weather = get_node_or_null(RpgFarmWeather.NODE_NAME) as RpgFarmWeather
 	if weather == null:

@@ -247,7 +247,10 @@ func use_held() -> bool:
 
 func _use_tool(found: RpgFarmMode, plot: RpgField, tool: RpgFarmTool, target: Vector2i, item: StringName) -> bool:
 	if found.energy.is_exhausted():
-		RpgUtil.notify(RpgFarmStrings.t("FARM_TIRED"))
+		# the first try says so; with exhaustion on, the next ones end the day (T18.11)
+		var ended := found.day_end != null and found.day_end.tried_exhausted()
+		if not ended and (found.day_end == null or found.day_end.tries <= 1):
+			RpgUtil.notify(RpgFarmStrings.t("FARM_TIRED"))
 		return false
 	if plot == null or not tool.can_use(plot, target):
 		if tool is RpgFarmWateringCan and plot != null and plot.can_water(target):
@@ -287,7 +290,7 @@ func _begin_use(tool: RpgFarmTool, item: StringName) -> void:
 		return
 	move_locked = true
 	move_dir(Vector2.ZERO)
-	if hold_animation(tool.animation) or hold_animation("attack"):
+	if hold_animation_any(tool.animation) or hold_animation("attack"):
 		return
 	var state := RpgUtil.state()
 	var def: RpgItemDefinition = state.items.get(item) if state != null else null

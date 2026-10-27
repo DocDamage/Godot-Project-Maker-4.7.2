@@ -859,7 +859,15 @@ def _iso_farm_facts(
         coop=own["coop"],
         barn=own["barn"],
         grounds=_added_grounds(cfg, catalog),
+        animal_houses=_pack_animal_houses(catalog),
     )
+
+
+def _pack_animal_houses(catalog: catalog_mod.Catalog) -> list[str]:
+    """The animal houses whose animals the packs have (T18.05), what ``auto`` builds."""
+    from rpggen.core import animal_plan
+
+    return animal_plan.pack_houses(animal_plan.facts_of(catalog)["animals"])
 
 
 def farm_facts(cfg: config_mod.GeneratorConfig, catalog: catalog_mod.Catalog) -> dict[str, Any]:
@@ -889,6 +897,7 @@ def farm_facts(cfg: config_mod.GeneratorConfig, catalog: catalog_mod.Catalog) ->
         coop=own["coop"],
         barn=own["barn"],
         grounds=_added_grounds(cfg, catalog),
+        animal_houses=_pack_animal_houses(catalog),
     )
 
 

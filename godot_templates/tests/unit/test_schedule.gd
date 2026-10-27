@@ -406,3 +406,134 @@ func test_a_schedule_without_entries_takes_those_of_its_person(t) -> void:
 	t.ok(not schedule.at_work())
 	t.eq(other.position, START, "nobody knows bert: he stays")
 	_clear()
+
+# ---------------------------------------------------------------- making way (T18.07)
+
+## Ground with a navigation polygon on every cell of `cells`, walls (StaticBody2D, layer 1) as
+## rectangles of `walls`, a villager walking from cell (1, 3) to cell (13, 3) at 9:00 and the
+## player standing on its way at cell (7, 3).
+func _way(t, cells: Array[Vector2i], walls: Array[Rect2]) -> Array:
+	await Fixtures.tree().process_frame
+	var calendar := _calendar(8)
+	var map := _village()
+	var tiles := TileSet.new()
+	tiles.tile_size = Vector2i(TILE, TILE)
+	tiles.add_navigation_layer()
+	var source := TileSetAtlasSource.new()
+	source.texture = ImageTexture.create_from_image(Image.create_empty(TILE, TILE, false, Image.FORMAT_RGBA8))
+	source.texture_region_size = Vector2i(TILE, TILE)
+	tiles.add_source(source, 0)
+	source.create_tile(Vector2i(0, 0))
+	var polygon := NavigationPolygon.new()
+	var half := TILE / 2.0
+	polygon.vertices = PackedVector2Array([Vector2(-half, -half), Vector2(half, -half), Vector2(half, half), Vector2(-half, half)])
+	polygon.add_polygon(PackedInt32Array([0, 1, 2, 3]))
+	source.get_tile_data(Vector2i(0, 0), 0).set_navigation_polygon(0, polygon)
+	var ground := TileMapLayer.new()
+	ground.name = "Ground"
+	ground.tile_set = tiles
+	for cell in cells:
+		ground.set_cell(cell, 0, Vector2i(0, 0))
+	map.add_child(ground)
+	map.move_child(ground, 0)
+	for rect in walls:
+		var wall := StaticBody2D.new()
+		var shape := CollisionShape2D.new()
+		var box := RectangleShape2D.new()
+		box.size = rect.size
+		shape.shape = box
+		shape.position = rect.get_center()
+		wall.add_child(shape)
+		map.add_child(wall)
+	var npc := ActorBuild.build("npc", "Villager", null, Vector2i(16, 24), Vector2i(8, 23), TILE) as RpgNpc
+	var schedule := RpgSchedule.new()
+	schedule.name = RpgSchedule.NODE_NAME
+	var day: Array[Dictionary] = [{"hour": 6, "map": "village", "cell": [1, 3]}, {"hour": 9, "map": "village", "cell": [13, 3]}]
+	schedule.entries = day
+	schedule.speed = 60.0
+	npc.add_child(schedule)
+	map.get_node("Entities").add_child(npc)
+	var player := ActorBuild.build("player", "Player", null, Vector2i(16, 24), Vector2i(8, 23), TILE) as RpgActor
+	player.position = RpgSchedule.cell_position(map, Vector2i(7, 3))
+	player.set_physics_process(false)
+	var reads_input := player.find_child("PlayerInput", true, false)
+	if reads_input != null:  # a test has no move actions: the player stands still
+		reads_input.get_parent().remove_child(reads_input)
+		reads_input.free()
+	map.get_node("Entities").add_child(player)
+	Fixtures.tree().root.add_child(map)
+	for i in 8:
+		await Fixtures.tree().physics_frame
+	var done := [false]
+	schedule.arrived.connect(func() -> void: done[0] = true)
+	calendar.pass_minutes(60)
+	t.ok(schedule.walking(), "9:00: it walks")
+	return [schedule, npc, player, done]
+
+## Frames until it arrived (or `frames` ran out); false when its body ever overlapped the player's.
+func _walk(schedule: RpgSchedule, done: Array, frames: int) -> bool:
+	var apart := true
+	for i in frames:
+		await Fixtures.tree().physics_frame
+		if schedule.blocker(Vector2.RIGHT, 0.0) != null:
+			apart = false
+		if done[0]:
+			break
+	return apart
+
+func test_a_villager_goes_round_the_player_where_there_is_room(t) -> void:
+	var cells: Array[Vector2i] = []
+	for y in 8:
+		for x in 16:
+			cells.append(Vector2i(x, y))
+	var made: Array = await _way(t, cells, [] as Array[Rect2])
+	var schedule: RpgSchedule = made[0]
+	var npc: RpgNpc = made[1]
+	var done: Array = made[3]
+	var apart: bool = await _walk(schedule, done, 600)
+	t.ok(done[0], "it arrived")
+	t.ok(apart, "and never overlapped the player's body")
+	t.ok(npc.global_position.distance_to(RpgSchedule.cell_position(npc.map_node(), Vector2i(13, 3))) <= 4.0, "at its place, walked: %s" % npc.global_position)
+	_clear()
+
+func test_a_villager_waits_where_there_is_no_room_and_arrives_once_the_player_steps_away(t) -> void:
+	var cells: Array[Vector2i] = []
+	for x in 16:
+		cells.append(Vector2i(x, 3))
+	# walls tight above and below the feet of whoever walks along row 3 (its middle is y = 56)
+	var walls: Array[Rect2] = [Rect2(0, 0, 256, 49), Rect2(0, 58, 256, 60)]
+	var made: Array = await _way(t, cells, walls)
+	var schedule: RpgSchedule = made[0]
+	var npc: RpgNpc = made[1]
+	var player: RpgActor = made[2]
+	var done: Array = made[3]
+	# twice what the walk would take: its time runs only while it is free to walk
+	var apart: bool = await _walk(schedule, done, 480)
+	t.ok(not done[0], "it was not put at its place while the player stood in the way")
+	t.ok(schedule.waiting(), "it waits")
+	t.ok(apart, "without walking into the player")
+	t.eq(npc.facing, "right", "facing the player")
+	t.ok(npc.global_position.x < player.global_position.x, "on its side of the player")
+	player.global_position = Vector2(300, 300)  # the player steps away
+	apart = await _walk(schedule, done, 600)
+	t.ok(done[0], "and it arrives once the player stepped away")
+	t.ok(npc.global_position.distance_to(RpgSchedule.cell_position(npc.map_node(), Vector2i(13, 3))) <= 4.0, "at its place: %s" % npc.global_position)
+	_clear()
+
+func test_villagers_make_way_for_each_other(t) -> void:
+	var cells: Array[Vector2i] = []
+	for y in 8:
+		for x in 16:
+			cells.append(Vector2i(x, y))
+	var made: Array = await _way(t, cells, [] as Array[Rect2])
+	var schedule: RpgSchedule = made[0]
+	var player: RpgActor = made[2]
+	var done: Array = made[3]
+	# another villager stands in the way instead of the player
+	var other := ActorBuild.build("npc", "Other", null, Vector2i(16, 24), Vector2i(8, 23), TILE) as RpgNpc
+	other.global_position = player.global_position
+	player.global_position = Vector2(300, 300)
+	player.get_parent().add_child(other)
+	var apart: bool = await _walk(schedule, done, 600)
+	t.ok(done[0] and apart, "it went round the other villager")
+	_clear()

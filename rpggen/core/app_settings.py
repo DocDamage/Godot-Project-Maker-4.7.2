@@ -102,7 +102,6 @@ class AppSettings:
             "cache_limit_gb": self.cache_limit_gb,
             "keep_full_failed_runs": self.keep_full_failed_runs,
             "confirm_regeneration": self.confirm_regeneration,
-
             "group_by_folder": self.group_by_folder,
             "tours_seen": list(self.tours_seen),
             "reduce_motion": self.reduce_motion,

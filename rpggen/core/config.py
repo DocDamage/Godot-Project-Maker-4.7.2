@@ -235,7 +235,17 @@ def starter_map_defaults(archetype: str = "turn_based") -> dict[str, Any]:
         from rpggen.core import farm_plan
 
         options.update(farm_plan.defaults())
+        # what a farm of 1.5 adds that an older config lacks (M18): off, unless a new farm
+        # chose it (NEW_FARM_OPTIONS)
+        options["exhaustion"] = False
     return options
+
+
+# What a new farm chooses that a farm made before these keys did not (M18): its config writes
+# them, so an older config, which lacks them, keeps the defaults above and what it had.
+#   animals     T18.05: the animal houses whose animals the packs have
+#   exhaustion  T18.11: working at zero energy ends the day
+NEW_FARM_OPTIONS: dict[str, Any] = {"animals": "auto", "exhaustion": True}
 
 
 ARCADE_KINDS = ("shmup", "run_and_gun", "racing")
@@ -449,7 +459,7 @@ def default_for(
     archetype: str = "turn_based",
     base_tile_size: int = 16,
 ) -> GeneratorConfig:
-    """A config with every default filled in."""
+    """A config with every default filled in (and a new farm's choices, NEW_FARM_OPTIONS)."""
     return GeneratorConfig(
         project_name=project_name,
         packs=list(packs),
@@ -457,6 +467,7 @@ def default_for(
         base_tile_size=base_tile_size,
         features=default_features(archetype),
         resolution=resolution_for(base_tile_size),
+        starter_map=dict(NEW_FARM_OPTIONS) if archetype == "farm" else {},
     )
 
 

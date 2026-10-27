@@ -106,6 +106,18 @@ func hold_animation(base: String) -> bool:
 	animation_locked = true
 	return true
 
+## hold_animation() in the facing the actor has, else in the first direction the sheet has it
+## (a pack that drew a tool's use looking down only, T18.10). False when it has none.
+func hold_animation_any(base: String) -> bool:
+	if hold_animation(base):
+		return true
+	for other: String in ["down", "right", "left", "up"]:
+		if _driver.has_animation(base, other):
+			_driver.play_exact(base, other)
+			animation_locked = true
+			return true
+	return false
+
 ## Back to the walk / idle animations.
 func release_animation() -> void:
 	animation_locked = false

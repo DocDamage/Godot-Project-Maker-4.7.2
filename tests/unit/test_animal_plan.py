@@ -333,3 +333,92 @@ def test_a_pack_without_an_animal_keeps_the_drawn_hen(tmp_path: Path) -> None:
     assert hen is not None
     hen.status = "UNUSED"
     assert animal_plan.facts_of(found, ["coop"])["animals"] == []
+
+
+# ------------------------------------------------------------------------ the houses a farm builds (T18.05)
+
+HENS = [_fact("p.animals.hen_01_black_move_down_16x16_4frames", "black")]
+COWS = [_fact("p.animals.cow_01_brown_move_down_32x32_4frames", "brown")]
+KIT_HEN = [_fact(f"{farm_kit.KIT_PACK}.farm_kit.hen_16", "")]
+PACKS = {
+    "hens only": HENS,
+    "cows only": COWS,
+    "mixed": HENS + COWS,
+    "no animal": KIT_HEN,  # the farm kit's drawn hen stands in, and does not count
+}
+# choice -> pack -> (the houses built, the houses the Options page warns are empty)
+CHOICES = {
+    "auto": {
+        "hens only": (["coop"], []),
+        "cows only": (["barn"], []),
+        "mixed": (["coop", "barn"], []),
+        "no animal": ([], []),
+    },
+    "coop": {
+        "hens only": (["coop"], []),
+        "cows only": (["coop"], ["coop"]),
+        "mixed": (["coop"], []),
+        "no animal": (["coop"], ["coop"]),
+    },
+    "barn": {
+        "hens only": (["barn"], ["barn"]),
+        "cows only": (["barn"], []),
+        "mixed": (["barn"], []),
+        "no animal": (["barn"], ["barn"]),
+    },
+    "coop_and_barn": {
+        "hens only": (["coop", "barn"], ["barn"]),
+        "cows only": (["coop", "barn"], ["coop"]),
+        "mixed": (["coop", "barn"], []),
+        "no animal": (["coop", "barn"], ["coop", "barn"]),
+    },
+}
+
+
+@pytest.mark.parametrize("choice", list(CHOICES))
+@pytest.mark.parametrize("pack", list(PACKS))
+def test_the_houses_of_each_choice_on_each_pack(choice: str, pack: str) -> None:
+    facts = farm_plan.facts_of(animal_houses=animal_plan.pack_houses(PACKS[pack]))
+    built, empty = CHOICES[choice][pack]
+    farm = farm_plan.plan({"animals": choice}, 7, facts)
+    assert [b["kind"] for b in farm["animal_houses"]] == built
+    assert farm_plan.empty_houses(choice, facts) == empty
+    # the animals planned live in the houses built; a house nobody lives in has its note
+    animals = animal_plan.plan({}, 7, {"houses": built, "animals": PACKS[pack]})
+    assert {k["house"] for k in animals["kinds"]} <= set(built)
+    for house in empty:
+        if pack != "no animal":
+            assert f"The packs have no animal for the {house}: it stays empty." in animals["notes"]
+
+
+def test_a_new_farm_is_auto_and_an_older_config_keeps_its_houses() -> None:
+    from rpggen.core import config
+
+    new_farm = config.default_for("Farm", [], archetype="farm")
+    assert new_farm.starter_map_options()["animals"] == "auto"
+    # an older config has its choice written, and means what it meant
+    assert farm_plan.normalized({"animals": "coop_and_barn"})["animals"] == "coop_and_barn"
+    assert farm_plan.normalized({})["animals"] == "none", "a missing key is not auto"
+    assert farm_plan.houses_for("coop_and_barn", {"animal_houses": []}) == ("coop", "barn")
+    with pytest.raises(farm_plan.FarmPlanError):
+        farm_plan.normalized({"animals": "pigsty"})
+
+
+def test_a_cows_only_pack_makes_a_farm_with_a_barn_and_no_coop_by_default(tmp_path: Path) -> None:
+    """The farm sample without its hens (and its profile): its cows are its only animals, and
+    the default choice (auto) builds the barn."""
+    import shutil
+
+    from rpggen.core import config, orchestrator
+
+    shutil.copytree(
+        REPO / "sample_pack_farm",
+        tmp_path / "cows",
+        ignore=shutil.ignore_patterns("hen_*", "*.rpgprofile.json"),
+    )
+    cat = _catalog(tmp_path / "cows", "cows")
+    cfg = config.default_for("Farm", [], archetype="farm")
+    facts = orchestrator.farm_facts(cfg, cat)
+    assert facts["animal_houses"] == ["barn"]
+    farm = farm_plan.plan(cfg.starter_map_options(), cfg.seed, facts)
+    assert [b["kind"] for b in farm["animal_houses"]] == ["barn"]

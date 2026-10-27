@@ -654,9 +654,12 @@ def test_a_dry_run_of_a_farm_describes_its_plan(
     assert code == 0, err
     summary = doc["summary"]
     assert summary["archetype"] == "farm"
+    # a new farm builds the houses of the packs' animals (T18.05): the ranch has hens and cows
+    houses = ", a coop, a barn" if pack == "ranch" else "(, a coop)?(, a barn)?"
     text = (
-        r"a farm of 40 x 30 with a plot of 96 cells, a (pond|well), \d+ crops, \d+ people, "
-        r"4 festivals"
+        r"a farm of 40 x 30 with a plot of 96 cells, a (pond|well)"
+        + houses
+        + r", \d+ crops, \d+ people, 4 festivals"
     )
     assert re.fullmatch(text, summary["map"]["farm"]), summary["map"]
     # the starter map is the village: nobody to fight, and the demo's villager alone

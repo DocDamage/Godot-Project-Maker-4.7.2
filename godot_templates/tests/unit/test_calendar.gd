@@ -330,7 +330,7 @@ func test_a_mode_makes_the_calendar_and_others_find_it(t) -> void:
 
 func test_the_light_follows_the_calendar(t) -> void:
 	var settings := Fixtures.install("RpgSettings", Fixtures.SETTINGS) as RpgSettingsStore
-	settings.day_night = false
+	settings.clear_day_night_choice()  # the game's default: on with a calendar (T18.06)
 	var calendar := _game()
 	var state := RpgUtil.state()
 	state.playtime_s = 600.0  # the clock of T12.62 says something else
