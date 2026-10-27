@@ -48,8 +48,8 @@ window's title names the project and the page you are on, with the percentage wh
 generation runs, so the taskbar tells you how far it is. The steps on the left show which pages
 are done (a tick), which need a look (a warning sign, with a count) and which cannot be opened
 yet; in a narrow window they shrink to their circles. rpggen follows the display scaling of your system (125 %, 150 %, 200 %):
-pictures stay sharp, and everything can be reached and is announced by a screen reader. **View > Language** picks the wizard's language (*Follow the system*, English, or a
-language that has a translation; French is the first); it applies the next time rpggen starts.
+pictures stay sharp, and everything can be reached and is announced by a screen reader. The
+wizard is in English; the games it makes can be translated (the game's *Settings* have a **Language** choice; see *4. In Godot*).
 
 ![About rpggen](images/about_dialog.png)
 

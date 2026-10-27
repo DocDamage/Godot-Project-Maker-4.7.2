@@ -21,9 +21,8 @@ from PySide6.QtWidgets import (
 )
 
 from rpggen import logging_setup
-from rpggen.core import app_settings
 from rpggen.errors import CODES
-from rpggen.gui import theme, translations, workers
+from rpggen.gui import theme, workers
 from rpggen.gui.dialogs import diagnostic_export
 from rpggen.gui.wizard import MainWindow
 
@@ -97,7 +96,7 @@ def create_app(argv: list[str] | None = None) -> QApplication:
     app.setStyle("Fusion")
     theme.apply_theme(theme.saved_theme(), remember=False)
     theme.install_focus_ring(app)
-    translations.install(app_settings.get().language)  # before any widget sets its texts
+
     return app
 
 

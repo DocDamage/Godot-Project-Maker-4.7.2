@@ -183,7 +183,7 @@ All thirteen cards are done (2026-10-09). What the plan did not foresee, and wha
 | Pack-coverage study | ARCHITECTURE §51 | About 30 popular packs: the tier that handles each, the audit edits; ship profiles for any big vendor family. Table in [coverage.md](coverage.md). |
 | Manual test pass | T11.29 | The 15 rows of `docs/spec/M11_pre_release.md` T11.29 on a frozen build: dock placement and rebuild, a real RPG Maker A2 sheet, the installer on a clean account, regeneration with the editor open, gamepad play of both archetypes, layers and Y-sort, audio, cancel, the Godot download, the online profile, display scaling at 150 % and 200 %, a 300–500 asset audit, the SmartScreen screenshot. |
 | Manual rows for M12 | T12.66 | Equip, buy and sell, recruit, finish the demo quest; walk an encounter zone and run a cutscene; switch the game's language and open the credits; use the minimap, world map and lighting; use the dialogue dock and a custom recipe in the editor; import a Tiled and an LDtk map; export to Web, Linux and macOS; resolve a conflict; check learned rules on a second pack. |
-| French translation | T12.56 | A native speaker reviews the 83 translated wizard texts (flagged in CONTRIBUTING). |
+
 | Code signing | M10 | Windows signing waits for the code-signing application ([release.md](release.md)); macOS has no Developer ID or notarization in 1.0 (the README explains the Gatekeeper step). Not a gate item. |
 
 When all of section 1 and 2 is done, T12.66 is closed and `v1.0.0` is tagged
@@ -354,10 +354,7 @@ should know:
   (Part E of the spec).
 * **Faults that are known and left.** A coop on a pack that has only cows stays empty. With
   a calendar the outdoor light follows it whatever the player's *Day and night* setting says.
-  A walking villager does not avoid the player. The texts the Options page takes from its
-  model (the reason under a *View* that cannot be chosen, the note of an existing map) are
-  not in the translation file: they are passed to `tr()` as constants, which the extraction
-  does not see. A crop that is still standing in a saved game when its kind is removed from
+  A walking villager does not avoid the player. A crop that is still standing in a saved game when its kind is removed from
   `crops.json` stays where it is and cannot be picked. A dialogue line with so many choices
   that its box is higher than the screen is not scrolled.
 * **Faults of the first list that were mended** (2026-10-13, after the documentation): the
@@ -374,7 +371,7 @@ should know:
   One was no fault: the welcome view's cards are 4 px taller than in the pictures of 1.3
   because their height of 160 px has held since a fix of M16 (`CardButton.set_floor_height`),
   not because of the seven samples; the goldens only showed it when they were next made.
-* The French file has the new wizard texts of M17 unfinished.
+
 
 The gate (T17.20) is open:
 
@@ -403,7 +400,7 @@ should know:
   of zips as a bundle) has run on synthetic files only. The bundle chooser (T16.22) was not run
   on the real *CuteSCKR* archive.
 * Colour variants are one card in the audit and on the Mapping page, not in the editor dock.
-* The French file has the new wizard texts of M16 unfinished.
+
 
 The gate (T16.20) is open:
 
@@ -444,7 +441,7 @@ The gate (T15.25) is open:
 | CI on `m15` | Every suite green on Windows and Ubuntu, on both PySide6 legs. The visual goldens were made on Windows with the bundled font: the first run shows whether the Ubuntu legs (FreeType of the system, PySide6 6.7 and the newest) draw it within the limits. If one does not, look at its `_failed` artifact before widening a limit. Perf within its ceilings, with the two regeneration rows. |
 | Frozen smoke test | `python tools/package.py --smoke` on the three systems: the icons and `style.qss.in` must be in the bundle. |
 | Upgrade test | The upgrade test of M13 with the 1.3 build over a 1.0, a 1.1 and a 1.2 project: no prompt, nothing under `game/` changes, and the second regeneration repeats no check (the first one is full: those projects have no fingerprint). |
-| Manual rows | Both themes at 100 %, 150 % and 200 % on every page and dialog; a 300-asset audit with the filter row; the seven pages with NVDA; keyboard only from the welcome view to Results; reduce motion on and off; the French wizard (the longer texts must fit the rows and the stepper). The new wizard texts of M15 are marked unfinished in the French file. |
+| Manual rows | Both themes at 100 %, 150 % and 200 % on every page and dialog; a 300-asset audit with the filter row; the seven pages with NVDA; keyboard only from the welcome view to Results; reduce motion on and off. |
 
 ## What is left before 1.2.0
 

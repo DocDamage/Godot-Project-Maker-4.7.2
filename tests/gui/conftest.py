@@ -8,7 +8,6 @@ import pytest  # noqa: E402
 
 from rpggen import paths  # noqa: E402
 from rpggen.gui import app as gui_app  # noqa: E402
-from rpggen.gui import translations  # noqa: E402
 
 
 @pytest.fixture(autouse=True)
@@ -32,6 +31,4 @@ def _delete_closed_widgets(qapp):
 @pytest.fixture(scope="session", autouse=True)
 def _styled_app(qapp):
     gui_app.create_app()
-    # the tests read English texts, whatever the machine's language or saved choice (T12.56)
-    translations.install("en")
     return qapp

@@ -12,7 +12,7 @@ Read these files in order before writing any code:
    up to the `v1.0.0` tag. `M13_polish.md` (release 1.1.0), `M14_metroidvania.md` (release
    1.2.0), `M15_ui_polish.md` (release 1.3.0), `M16_arcade_archetypes.md` (release 1.4.0)
    and `M17_farm_isometric.md` (release 1.5.0) follow the tag, in that
-   order.
+   order; `M18_finishing.md` finishes release 1.5.0 before its gate.
    What is finished and what is left is summed up in `docs/status.md`.
 
 ---
@@ -123,6 +123,7 @@ If an API in a card does not exist in 4.7.2, find the closest equivalent. Record
 | `M15_ui_polish.md` | M15 | Release 1.3.0: the look, feel and ease of use of the wizard (design tokens, one stylesheet, button kinds, icons, cards, the stepper sidebar, page headers, every page and dialog), the Generate log fix, actionable failures, regeneration that skips unchanged work, visual goldens. |
 | `M16_arcade_archetypes.md` | M16 | Release 1.4.0: three more kinds of game on a shared arcade framework (shoot 'em up, run and gun with a grapple, racing), three sample packs, and the kinds sketched for M17. |
 | `M17_farm_isometric.md` | M17 | Release 1.5.0, implemented on the branch `m17` with its gate open: a farm and life sim (the calendar, tools, soil and crops, animals, the shop and the shipping bin, people with schedules and friendship, fishing, weather) and isometric tiles as a second view of the top-down kinds and the racing game; the kinds left for later. |
+| `M18_finishing.md` | M18 | Release 1.5.0, finished: the wizard in English only; the dock's Shops and Items tabs, repair; the faults M17 left; the farm's tool strips, exhaustion, a pail, animal names, crafting, cooking and children; the mouse drop and height on diamonds; an isometric race with its people. |
 
 Each milestone ends with a **Milestone Gate** card. All its checks must pass before the next milestone starts.
 

@@ -308,14 +308,16 @@ does not ask for the isometric view is built as it was.
   * **Crops of a mixed tile sheet.** In a farming pack, a row of growth stages on a mixed sheet
     (a plant on its mound of soil in each cell, each covering more of its cell than the one
     before) is a crop: CuteSCKR's *Farm Tileset* grows ten crops of its own.
+* **The wizard is in English only**: its French translation, the *View > Language* menu and
+  the translation tooling were removed (the games' own languages stay). A settings file that
+  names a wizard language still loads; the key is ignored.
 
 **Known limits.** Nobody has played either the farm or an isometric game by hand yet: what is
 known is what their tests and check runs assert. A farm's ground is one tile, and its soil,
 water and paths meet it with hard edges (no map is painted with terrains yet), and the door to an
 added map is a mark on the ground beside the farm's edge, which a tree before it can hide. An imported isometric map has no height: the stairs of a sample are pictures walked across, and a second floor is only drawn higher. A
 room of an isometric project has walls only when the packs have isometric wall pieces. An
-isometric race is shown from above on the Options page. The French file has the new texts
-unfinished.
+isometric race is shown from above on the Options page.
 
 ## 1.4.0 (in work)
 

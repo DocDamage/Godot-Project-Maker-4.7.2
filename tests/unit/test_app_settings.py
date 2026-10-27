@@ -290,6 +290,22 @@ def test_a_settings_file_from_1_0_and_a_damaged_history_load(_cache: Path) -> No
     assert len(app_settings.load().phase_history["build"]) == 10
 
 
+def test_a_settings_file_with_the_wizard_language_of_1_4_loads_and_drops_it(
+    _cache: Path, caplog
+) -> None:
+    """The wizard's translation went in 1.5.0 (T18.01): the key is ignored, without a warning,
+    and the next save no longer writes it."""
+    path = app_settings.settings_path()
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps({"theme": "light", "language": "pt_BR"}), "utf-8")
+    with caplog.at_level("WARNING"):
+        old = app_settings.load()
+    assert old.theme == "light" and not caplog.records
+    assert not hasattr(old, "language")
+    app_settings.save(old)
+    assert "language" not in json.loads(path.read_text("utf-8"))
+
+
 def test_the_orchestrator_remembers_the_phases_that_finished(_cache: Path) -> None:
     from types import SimpleNamespace
 

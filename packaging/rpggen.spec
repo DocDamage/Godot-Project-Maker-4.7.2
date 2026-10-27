@@ -68,10 +68,7 @@ datas += [(os.path.join(ROOT, "rpggen", "gui", "style.qss.in"), os.path.join("rp
 ICONS = os.path.join(ROOT, "rpggen", "gui", "icons")
 datas += [(os.path.join(ICONS, f), os.path.join("rpggen", "gui", "icons"))
           for f in sorted(os.listdir(ICONS)) if f.endswith(".svg")]
-# the wizard's compiled translations (tools/package.py builds them first; T12.56)
-I18N = os.path.join(ROOT, "rpggen", "gui", "i18n")
-datas += [(os.path.join(I18N, f), os.path.join("rpggen", "gui", "i18n"))
-          for f in sorted(os.listdir(I18N)) if f.endswith(".qm")] if os.path.isdir(I18N) else []
+
 datas += collect_data_files("jsonschema_specifications")  # referenced schemas of jsonschema
 
 hidden = ["psutil"]  # imported inside a function (promote.editor_open)
