@@ -364,3 +364,30 @@ def test_the_slots_defaults_from_the_packs_file_names(tmp_path: Path) -> None:
     assert [race[k].rsplit(".", 1)[-1] for k in ("sfx_engine", "sfx_skid", "sfx_lap", "music_results")] == [
         "engine_loop", "tyre_skid", "lap_done", "results_jingle"]  # fmt: skip
     assert "sfx_engine" not in sound_slots.default_sounds(cat, "arpg")
+
+
+def test_an_isometric_race_without_a_car_of_eight_headings_gets_one_drawn_at_its_angle(
+    tmp_path: Path,
+) -> None:
+    """T18.19: sixteen headings of a box with a cabin seen at the view's angle, the same every
+    time; the kit draws it for an isometric race whose packs have no car of eight headings or
+    more, and marks it as drawn for that view."""
+    first = arcade_kit.iso_car((32, 16))
+    assert first.size == (48 * arcade_kit.CAR_HEADINGS, 40)
+    assert first.tobytes() == arcade_kit.iso_car((32, 16)).tobytes()
+    cell = 48
+    shapes = set()
+    for k in range(arcade_kit.CAR_HEADINGS):
+        frame = first.crop((k * cell, 0, (k + 1) * cell, 40))
+        assert frame.getbbox() is not None, k
+        shapes.add(frame.tobytes())
+    assert len(shapes) >= 8, "the headings look different"
+    cat = catalog.Catalog()
+    added, _issues = arcade_kit.add(cat, "racing", 16, tmp_path, "isometric", (32, 16))
+    assert "car" in added
+    car = next(a for a in cat.assets if a.id == arcade_kit.asset_id(arcade_kit.CAR))
+    facets = catalog.effective(car)
+    assert facets["projection"] == "isometric" and facets["headings"] == 16
+    assert catalog.fits_projection(car, "isometric") and not catalog.fits_projection(
+        car, "top_down"
+    )

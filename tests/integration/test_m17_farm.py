@@ -75,6 +75,9 @@ ANIMAL_STEPS = [
 # the last step (T17.18): the game is saved, changed and loaded, and the field, the date, the
 # money, the bag, the herd and the friendships are what they were
 SAVE_STEPS = ["save_and_load"]
+# crafting on the farm (T18.15), before the last: in a farm without a workbench it passes with a
+# note
+CRAFT_STEPS = ["craft_a_sprinkler", "cook_a_dish"]
 # the steps of the cave (T17.24), after the forest and the beach: in a farm that does not fight
 # each passes with a note
 CAVE_STEPS = [
@@ -104,8 +107,9 @@ MARRIAGE_STEPS = [
     "propose_with_a_pendant",
     "the_wedding",
     "spouse_at_home",
+    "a_child_is_born",  # T18.17
 ]
-TAIL = ANIMAL_STEPS + ADDED_STEPS + EVENT_STEPS + MARRIAGE_STEPS + SAVE_STEPS
+TAIL = ANIMAL_STEPS + ADDED_STEPS + EVENT_STEPS + MARRIAGE_STEPS + CRAFT_STEPS + SAVE_STEPS
 TOOLS = ("hoe", "watering_can", "sickle", "farm_axe", "fishing_rod")
 START_TOOLS = ("hoe", "watering_can")  # the others are bought at the shop (T17.08, T17.10)
 FILES = [
@@ -133,9 +137,13 @@ MACHINE_NOTES = ("ENV-", "BUILD-006")
 
 
 def _config(source: Path, pack_id: str) -> config.GeneratorConfig:
-    return config.default_for(
+    cfg = config.default_for(
         "Green Acre", [config.pack_ref_from_source(source, pack_id)], archetype="farm"
     )
+    # these farms keep no animals (a new farm builds the houses of the packs' animals since
+    # T18.05; the animals have farms of their own below)
+    cfg.starter_map["animals"] = "none"
+    return cfg
 
 
 def _errors(result) -> list[str]:
@@ -191,7 +199,11 @@ def test_the_kind_is_generated_with_its_own_features_and_controls(plain) -> None
     target, _result = plain
     assert features.FARM_AVAILABLE is True, "the wizard offers it since the gate of 1.5"
     saved = jsonio.read(target / paths.CONFIG)
-    assert saved["archetype"] == "farm" and "starter_map" not in saved
+    assert saved["archetype"] == "farm"
+    # what a new farm chooses that an older one lacks (M18) is written; the rest is the default
+    assert {
+        k: v for k, v in saved["starter_map"].items() if v != config.starter_map_defaults("farm")[k]
+    } == {"exhaustion": True, "cooking": True, "children": True}
     assert saved["features"]["combat"] is False and saved["features"]["dialogue"] is True
     bindings = saved["input"]
     assert bindings["use"]["keys"] == ["Space", "J"] and bindings["use"]["joy_buttons"] == [0]
@@ -428,7 +440,11 @@ def test_the_farm_is_built_from_its_stored_plan(plain) -> None:
     # cells of the scene to the plan's, and `clear_debris` the things to clear)
     debris = [f"Debris_{d['cell'][0]}_{d['cell'][1]}" for d in stored["debris"]]
     assert sorted(_nodes(farm, "Debris_")) == sorted(debris)
-    assert farm.count('metadata/farm_clear = "') == len(debris)
+    # and a farm that crafts breaks its rocks for stone (T18.15): they are cleared too
+    rocks = [t for t in stored.get("scenery", []) if t["kind"] == "rock"]
+    assert "workbench" in stored, "a new farm crafts"
+    assert farm.count('metadata/farm_clear = "') == len(debris) + len(rocks)
+    assert farm.count('entity_id = "farm_rock_') == len(rocks)
     assert farm.count('entity_id = "farm_debris_') == len(debris)
     assert len(_nodes(farm, "Tree")) == len(stored["trees"])
     scenery = [n for kind in ("Bush", "Rock", "Flowers") for n in _nodes(farm, kind)]
@@ -939,7 +955,7 @@ def test_a_ranch_with_a_coop_and_a_barn_keeps_its_hens_and_cows(barn) -> None:
 
 
 def test_a_farm_without_animals_has_nothing_of_them(plain, ranch) -> None:
-    """``animals: none``, the default: no house, no plan of animals, no file of theirs; the
+    """``animals: none`` (the default of a farm made before T18.05): no house, no plan of animals, no file of theirs; the
     steps of the animals pass with a note each. What such a farm has of this card is the code
     (inert), its lines in the translations and the part of the README."""
     for target, _result in (plain, ranch):
@@ -994,7 +1010,9 @@ def _sample_config(**starter_map) -> config.GeneratorConfig:
         sample.name, [config.pack_ref_from_source(pack, sample.folder)], archetype="farm"
     )
     cfg.starter = mapping.default_starter(cat, sample.archetype, sample.projection)
-    cfg.starter_map = dict(starter_map)
+    # what a new farm chooses (M18), but no animals unless asked: the animals have farms of
+    # their own below
+    cfg.starter_map = {**config.NEW_FARM_OPTIONS, "animals": "none", **starter_map}
     return cfg
 
 
@@ -1358,10 +1376,11 @@ def test_green_acre_with_a_forest_and_a_beach_is_walked_to_both(green_acre_added
     target, result = green_acre_added
     names = _smoke(target)
     assert names[-len(STEPS + TAIL) :] == STEPS + TAIL
-    assert names[-len(ADDED_STEPS + EVENT_STEPS + MARRIAGE_STEPS) - 1 :] == [
+    assert names[-len(ADDED_STEPS + EVENT_STEPS + MARRIAGE_STEPS + CRAFT_STEPS) - 1 :] == [
         *ADDED_STEPS,
         *EVENT_STEPS,
         *MARRIAGE_STEPS,
+        *CRAFT_STEPS,
         "save_and_load",
     ]
     assert _vacuous(target) == ANIMAL_STEPS + CAVE_STEPS, "the steps of the added maps are played"
@@ -1600,8 +1619,8 @@ def test_green_acre_has_a_festival_a_season_and_a_birthday_for_everybody(green_a
     assert "game/data/events.json" in readme and '"birthday"' in readme
     # the steps are played, none with a note
     names = _smoke(target)
-    assert names[-len(EVENT_STEPS + MARRIAGE_STEPS + SAVE_STEPS) :] == (
-        EVENT_STEPS + MARRIAGE_STEPS + SAVE_STEPS
+    assert names[-len(EVENT_STEPS + MARRIAGE_STEPS + CRAFT_STEPS + SAVE_STEPS) :] == (
+        EVENT_STEPS + MARRIAGE_STEPS + CRAFT_STEPS + SAVE_STEPS
     )
     assert not set(_vacuous(target)) & set(EVENT_STEPS)
     log = _text(target, "rpggen/logs/godot_smoke.log")
@@ -1700,7 +1719,9 @@ def test_green_acre_courts_and_marries_a_villager(green_acre) -> None:
     assert "courting = true" in _text(target, "generated/scenes/combat/combat_mode.tscn")
     # the steps are played, none with a note
     names = _smoke(target)
-    assert names[-len(MARRIAGE_STEPS + SAVE_STEPS) :] == MARRIAGE_STEPS + SAVE_STEPS
+    assert names[-len(MARRIAGE_STEPS + CRAFT_STEPS + SAVE_STEPS) :] == (
+        MARRIAGE_STEPS + CRAFT_STEPS + SAVE_STEPS
+    )
     assert not set(_vacuous(target)) & set(MARRIAGE_STEPS)
     log = _text(target, "rpggen/logs/godot_smoke.log")
     assert "INFO court_with_a_bouquet:" in log

@@ -53,6 +53,10 @@ static func _corners(ts: TileSet) -> Array:
 const SURFACES: Array[String] = ["water", "dirt", "path", "road", "sand", "stone", "soil", "snow", "grass", "dark", "rock"]
 ## What a level is furnished with: role and how many.
 const FURNISH := [["BUILDING", 2], ["DECORATION", 10], ["NPC", 2], ["ANIMAL", 2], ["ENEMY", 2], ["CHEST", 1]]
+## The Terrain tool lays a terrain's variants by their probability with Godot's global random
+## numbers; seeded, a level paints the same on every run and system (an unseeded one laid the
+## middle of a terrain of the sample 67 % its main tile once on CI, 2026-10-27).
+const PAINT_SEED := 1733
 
 func _enter_tree() -> void:
 	if FileAccess.file_exists(IN):
@@ -103,6 +107,7 @@ func _run() -> void:
 	var size := Vector2i(40, 23) if side else (Vector2i(14, 14) if iso else Vector2i(40, 26))
 	report["size"] = [size.x, size.y]
 	var painted: Array[Dictionary] = []
+	seed(PAINT_SEED)
 	if side:
 		painted = _paint_side(ground, base, size)
 		report["specials"] = _place_specials(ground, _specials(ts), size)
@@ -654,6 +659,21 @@ func _stack(root: Node, ts: TileSet) -> Dictionary:
 			out["tiles"]["on_roof"] = tops[0]
 			(out["layers"] as Array).append({"name": String(on_roof.name), "height": top_height, "cells": 1})
 	out["top_of_house"] = heights.call("top_at", root, Vector2i(4, 4))
+	# a plateau of the ground's floor two blocks up, given its sides by the dock (T18.20): blocks
+	# of its surface under the edges that face the camera
+	var floors: Array[String] = []
+	for id: String in by_id:
+		if id.contains("floor_grass"):
+			floors.push_front(id)  # the ground's own kind first
+		elif id.contains("floor_"):
+			floors.append(id)
+	if not floors.is_empty():
+		var plateau: TileMapLayer = heights.call("add_layer", root, 32, manager)
+		for cell: Vector2i in [Vector2i(11, 2), Vector2i(12, 2), Vector2i(11, 3), Vector2i(12, 3)]:
+			_put(plateau, by_id, floors[0], cell)
+		var catalog: Dictionary = (load(CATALOG_EDIT) as GDScript).call("load_catalog")
+		var sides: int = heights.call("face_sides", root, plateau, manager, catalog)
+		out["plateau"] = {"floor": floors[0], "height": 32, "sides": sides, "top": heights.call("top_at", root, Vector2i(12, 3))}
 	return out
 
 func _cell_world(root: Node, cell: Vector2i) -> Vector2:

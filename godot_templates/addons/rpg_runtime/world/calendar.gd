@@ -56,8 +56,9 @@ const NIGHT_WEATHER := 400
 @export var days_per_season: int = DAYS_PER_SEASON
 ## True: time stands still while the player is in an interior map.
 @export var stops_indoors: bool = false
-## True: the day and night light of the outdoor maps follows this calendar, whatever the setting
-## of the older cycle (RpgSettings.day_night) says.
+## True: the day and night light of the outdoor maps follows this calendar, and the player's
+## *Day and night* setting is on by default (RpgSettings.day_night_on, T18.06); turned off, the
+## light stays full day and the time goes on.
 @export var drives_light: bool = true
 
 var minute: int = DAY_START

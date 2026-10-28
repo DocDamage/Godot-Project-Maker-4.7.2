@@ -80,6 +80,12 @@ FEATURE_INFO: dict[str, tuple[str, str, str]] = {
         "gear worn together. Edit them in the editor dock's Skills, Achievements and Item sets "
         "tabs.",
     ),
+    "crafting": (
+        "Game systems",
+        "Crafting",
+        "Recipes made by hand or at a station (a workbench, a stove), learned or found, with a "
+        "crafting window. Edit them in the editor dock's Recipes tab.",
+    ),
     "editor_tools": (
         "Tools",
         "Editor tools",
@@ -123,6 +129,8 @@ FARM_FEATURE_TEXT = {
     "area. You can remove it later.",
     "progression": "Achievements for the farm's work (and a bonus for the starter gear worn "
     "together). Edit them in the editor dock's Achievements and Item sets tabs.",
+    "crafting": "A workbench beside the farmhouse to make fences, chests, sprinklers and more of "
+    "wood and stone, and recipes by hand. Edit them in the editor dock's Recipes tab.",
 }
 
 
@@ -141,7 +149,7 @@ def hidden_features(archetype: str) -> tuple[str, ...]:
     if archetype in config_mod.ARCADE_KINDS:
         return ARCADE_HIDDEN
     if archetype == "metroidvania":
-        return ("navigation",)
+        return ("navigation", "crafting")
     return FARM_HIDDEN if archetype == "farm" else ()
 
 
@@ -187,7 +195,7 @@ ARCADE_NAMES = {"shmup": "Shoot 'em up", "run_and_gun": "Run and gun", "racing":
 # The features an arcade kind has no use for: its stages are not a demo scene one can leave
 # out, and nothing in them looks for a path. The Options page does not show them and leaves
 # their values as the config has them.
-ARCADE_HIDDEN = ("demo", "navigation", "progression")
+ARCADE_HIDDEN = ("demo", "navigation", "progression", "crafting")
 
 
 def _count(number: int, noun: str) -> str:
@@ -300,8 +308,12 @@ def plan_farm(cfg: config_mod.GeneratorConfig, catalog: Any, project: Any = None
         festivals = len((kept.get("events") or {}).get("festivals") or []) or len(
             event_plan.SEASONS
         )
+    # a house of the choice that no animal of the packs lives in (T18.05); a stored farm keeps
+    # its houses, so it is not asked
+    empty = [] if stored else farm_plan.empty_houses(str(chosen.get("animals", "none")), facts)
     return {
         "map": section,
+        "empty_houses": empty,
         "crops": crops,
         "people": people,
         "festivals": festivals,
@@ -320,6 +332,9 @@ def farm_numbers(starter_map: dict[str, Any], crops: int | None = None) -> list[
     except farm_plan.FarmPlanError:
         return []
     days = starter_map.get("days_per_season", config_mod.FARM_DAYS_PER_SEASON)
+    if opts["animals"] == farm_plan.AUTO:
+        auto = [f"{days} days a season", "the animal houses of the packs' animals"]
+        return auto + ([_count(crops, "crop")] if crops is not None else [])
     houses = farm_plan.ANIMALS[opts["animals"]]
     out = [f"{days} days a season"]
     out.append(" and ".join(f"a {house}" for house in houses) if houses else "no animals")

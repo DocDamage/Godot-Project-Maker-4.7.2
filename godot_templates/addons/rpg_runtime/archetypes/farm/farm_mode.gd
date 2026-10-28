@@ -17,6 +17,9 @@ const HOTBAR_NODE := "Hotbar"
 ## False: staying up to 2:00 costs no money (the option `starter_map.pass_out_loss`; the mode's
 ## recipe sets it).
 @export var pass_out_loss: bool = true
+## True: working at zero energy ends the day (T18.11, the option `starter_map.exhaustion`; the
+## mode's recipe sets it for a farm that has it, and a farm made before has it off).
+@export var exhaustion_ends_day: bool = false
 ## The days of a season and the real seconds of a game minute (the options
 ## `starter_map.days_per_season` and `starter_map.day_length`; the mode's recipe sets them). The
 ## mode gives both to the calendar it asks for.
@@ -37,6 +40,18 @@ const HOTBAR_NODE := "Hotbar"
 ## `starter_map.courtable` above 0; the mode's recipe sets it, and a mode that is made by code
 ## has none).
 @export var courting: bool = false
+## True: the farm crafts (T18.15, the feature *Crafting*; the mode's recipe sets it): its child
+## `Workshop` gives wood and stone for what is cleared and places what the workbench made.
+@export var crafting: bool = false
+## True: the farm cooks (T18.16, `starter_map.cooking`); with `stove_for_sale` its farmhouse was
+## built without a kitchen and the shop sells a stove. The mode's recipe sets both.
+@export var cooking: bool = false
+## True: a married farmer can have children (T18.17, `starter_map.children` with marriage; the
+## mode's recipe sets it).
+@export var children: bool = false
+## The scene of a child of the packs, or "" (the spouse's scene, smaller, stands in).
+@export var child_scene: String = ""
+@export var stove_for_sale: bool = false
 
 var energy: RpgEnergy = null
 var hotbar: RpgHotbar = null
@@ -63,6 +78,11 @@ var crops: RpgCropData = null
 ## Fighting (RpgFarmFight, T17.24: its child `Fight`, which does nothing in a farm without
 ## `fights`).
 var fight: RpgFarmFight = null
+## Crafting on the farm (RpgFarmWorkshop, T18.15: its child `Workshop`, which does nothing in a
+## farm without `crafting`).
+var workshop: RpgFarmWorkshop = null
+## The children (RpgFarmChildren, T18.17: its child `Children`).
+var family: RpgFarmChildren = null
 
 var _tools: Dictionary = {}  # item id -> RpgFarmTool
 
@@ -92,6 +112,8 @@ func _ready() -> void:
 	marriage.attach()  # after the animals and before the day's end: the spouse's morning help is saved
 	day_end.attach()  # after the fields: its night (NIGHT_SHOP) and its morning follow theirs
 	forage.attach()
+	workshop.attach()
+	family.attach()
 	fishing.attach()
 	fight.attach()  # after the day's end: the morning heals after the farmer is put at the bed
 	events.attach()  # after the friendships and the fishing: it asks the one and hears the other
@@ -134,6 +156,7 @@ func ensure_parts() -> void:
 		day_end.name = RpgDayEnd.NODE_NAME
 		add_child(day_end)
 	day_end.pass_out_loss = pass_out_loss
+	day_end.exhaustion = exhaustion_ends_day
 	if weather == null:
 		weather = get_node_or_null(RpgFarmWeather.NODE_NAME) as RpgFarmWeather
 	if weather == null:
@@ -152,6 +175,23 @@ func ensure_parts() -> void:
 		animals = RpgAnimalHouse.new()
 		animals.name = RpgAnimalHouse.NODE_NAME
 		add_child(animals)
+	if workshop == null:
+		workshop = get_node_or_null(RpgFarmWorkshop.NODE_NAME) as RpgFarmWorkshop
+	if workshop == null:
+		workshop = RpgFarmWorkshop.new()
+		workshop.name = RpgFarmWorkshop.NODE_NAME
+		add_child(workshop)
+	workshop.enabled = crafting
+	if family == null:
+		family = get_node_or_null(RpgFarmChildren.NODE_NAME) as RpgFarmChildren
+	if family == null:
+		family = RpgFarmChildren.new()
+		family.name = RpgFarmChildren.NODE_NAME
+		add_child(family)
+	family.enabled = children and courting
+	family.child_scene = child_scene
+	workshop.cooking = cooking
+	workshop.stove_for_sale = stove_for_sale
 	if forage == null:
 		forage = get_node_or_null(RpgForage.NODE_NAME) as RpgForage
 	if forage == null:

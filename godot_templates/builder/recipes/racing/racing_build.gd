@@ -45,7 +45,11 @@ static func rubber_band(ctx: BuildContext) -> bool:
 static func elimination(ctx: BuildContext) -> bool:
 	return JsonUtil.to_bool(ArcadeBuild.option(ctx, "elimination", false))
 
-## The pictures of the rivals: the other vehicles of the packs, then their enemies that are
+## The drivers are people and people stand along the tracks (config.starter_map.racers, T18.19).
+static func racers(ctx: BuildContext) -> bool:
+	return JsonUtil.to_bool(ArcadeBuild.option(ctx, "racers", false))
+
+## The pictures of the rivals:the other vehicles of the packs, then their enemies that are
 ## sprites. Fewer than the rivals there are: the rest drive the player's car in another colour.
 static func rival_assets(ctx: BuildContext) -> Array[Dictionary]:
 	var mine := JsonUtil.to_str(car_asset(ctx).get("id", ""))

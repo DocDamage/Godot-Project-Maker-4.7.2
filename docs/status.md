@@ -183,7 +183,7 @@ All thirteen cards are done (2026-10-09). What the plan did not foresee, and wha
 | Pack-coverage study | ARCHITECTURE §51 | About 30 popular packs: the tier that handles each, the audit edits; ship profiles for any big vendor family. Table in [coverage.md](coverage.md). |
 | Manual test pass | T11.29 | The 15 rows of `docs/spec/M11_pre_release.md` T11.29 on a frozen build: dock placement and rebuild, a real RPG Maker A2 sheet, the installer on a clean account, regeneration with the editor open, gamepad play of both archetypes, layers and Y-sort, audio, cancel, the Godot download, the online profile, display scaling at 150 % and 200 %, a 300–500 asset audit, the SmartScreen screenshot. |
 | Manual rows for M12 | T12.66 | Equip, buy and sell, recruit, finish the demo quest; walk an encounter zone and run a cutscene; switch the game's language and open the credits; use the minimap, world map and lighting; use the dialogue dock and a custom recipe in the editor; import a Tiled and an LDtk map; export to Web, Linux and macOS; resolve a conflict; check learned rules on a second pack. |
-| French translation | T12.56 | A native speaker reviews the 83 translated wizard texts (flagged in CONTRIBUTING). |
+
 | Code signing | M10 | Windows signing waits for the code-signing application ([release.md](release.md)); macOS has no Developer ID or notarization in 1.0 (the README explains the Gatekeeper step). Not a gate item. |
 
 When all of section 1 and 2 is done, T12.66 is closed and `v1.0.0` is tagged
@@ -331,7 +331,7 @@ should know:
   Hero Creator and the other nine kits: 0 holes, 0 wrong. Each has a house of three storeys with a
   roof and a thing on it, a hill with a ramp, and a thing dropped on the hill that stands on it.
   The nine kits hold about 100,000 pictures: the copies are left out of Godot's import, and the
-  generation takes about 21 minutes. Short of it: a stack is drawn, not walked; the
+  generation takes about 21 minutes. Short of it: a stack is walked since T18.20 (not yet on these kits by hand); the
   vehicles (diagonal facings) are placed, not driven; nobody has built a level by hand.
 * **Quests, shops, the bag, skill trees and achievements (2026-10-26, branch `gridwright`)**:
   designs from the Godot kits the owner keeps beside the packs (ideas only), written for the
@@ -343,23 +343,38 @@ should know:
   The dock has Skills, Achievements and Item sets tabs, and the option *Skills and
   achievements* seeds a starter tree, achievements and the traveler's set in a new project.
   Tested by the GDScript suite and the integration runs; nobody has played them by hand or
-  looked at the new screens and tabs in a window. The crafting kit is left out (Part E of the
-  farm spec leaves crafting out by design).
-* **Not built.** Dropping onto diamonds with a mouse (the
-  editor dock counts diamonds since T17.27, run by a test in an editor without a window); terrains on a diamond's sides; height (a raised ground
-  block does not block); the farmer's tool strips of a pack (set aside, not played); *working
-  at zero energy ends the day*; a pail; a naming screen for animals; an isometric car and
-  isometric people for a race; the diamond picture of an isometric race on the Options page
-  (it is shown from above). Festivals and birthdays are in (T17.25: nobody has played one by hand, and a farm from before them has its calendar in the pause menu only and its eggs round the square). Marriage is in (T17.26: nobody has courted anybody by hand, the smoke run is given the hearts, and a farmhouse from before it keeps its one bed). Children, cooking and crafting are left out by design
-  (Part E of the spec).
-* **Faults that are known and left.** A coop on a pack that has only cows stays empty. With
-  a calendar the outdoor light follows it whatever the player's *Day and night* setting says.
-  A walking villager does not avoid the player. The texts the Options page takes from its
-  model (the reason under a *View* that cannot be chosen, the note of an existing map) are
-  not in the translation file: they are passed to `tr()` as constants, which the extraction
-  does not see. A crop that is still standing in a saved game when its kind is removed from
-  `crops.json` stays where it is and cannot be picked. A dialogue line with so many choices
-  that its box is higher than the screen is not scrolled.
+  looked at the new screens and tabs in a window. Crafting came with M18 (below).
+* **M18, finishing 1.5.0 (`docs/spec/M18_finishing.md`, branch `m18`)**: the wizard's French
+  translation is gone (T18.01); the dock has *Shops* and *Items* tabs, and a new project's
+  starter shop restocks, keeps gold, buys back and repairs (T18.02–T18.04); a farm builds the
+  houses of its packs' animals, follows the *Day and night* setting, has villagers that make
+  way, choices that scroll, orphaned crops that can be cleared, the farmer's tool strips,
+  exhaustion, a pail and shears, named animals, crafting at a workbench, cooking in a kitchen
+  and children (T18.05–T18.17); the dock's drop with the mouse on diamonds shows the cell and
+  is one undo step (T18.18); an isometric race has a drawn car seen at its angle, drivers with
+  names and faces, a marshal, spectators and a podium, and its picture on the Options page is
+  drawn on diamonds (T18.19); height on diamonds blocks and is walked, up and down ramps, with
+  the sides of raised ground made of the packs' blocks (T18.20). The detail is in
+  [the notes](dev/implementation_notes.md). Tested by the unit, GUI, GDScript and integration
+  suites on Windows; nobody has played any of it by hand.
+* **Not built.** The builder does not raise ground itself: a level is given height by a user
+  on the dock's height layers, and the sides of raised ground are the packs' blocks of its
+  surface, stacked by the dock's *Give raised ground its sides* (no pack read so far has
+  separate cliff faces). The way over the levels (a villager's, a chasing enemy's) is found over
+  cells and does not see what stands on a hill; the navigation proper is the ground's. Festivals
+  and birthdays are in (T17.25: nobody has played one by hand, and a farm from before them has
+  its calendar in the pause menu only and its eggs round the square). Marriage is in (T17.26:
+  nobody has courted anybody by hand, the smoke run is given the hearts, and a farmhouse from
+  before it keeps its one bed); children since T18.17.
+* **Faults that are known and left.** None of the first list is left: a new farm builds the
+  houses of the animals its packs have (T18.05: a pack of cows has a barn, not an empty coop);
+  the outdoor light follows the player's *Day and night* setting once it is chosen (T18.06); a
+  walking villager steps aside for the player and for other people (T18.07); a crop whose kind
+  was removed withers, keeps its last picture and is cleared with the hoe (T18.09); a long list
+  of choices scrolls (T18.08). Found on the way and mended: the dock's Shops and Items tabs
+  called the methods of resources that were not `@tool` (a script error in the editor); a
+  newborn's naming box, opened while the night's fade held the game paused, left it paused; the
+  workbench, the kitchen and the crib were boxes on diamonds.
 * **Faults of the first list that were mended** (2026-10-13, after the documentation): the
   second choice of a dialogue was cut off at the bottom of the window, in every kind of game
   since 1.0 and not in the isometric one alone (the box grew downward; it grows upward); a
@@ -374,7 +389,7 @@ should know:
   One was no fault: the welcome view's cards are 4 px taller than in the pictures of 1.3
   because their height of 160 px has held since a fix of M16 (`CardButton.set_floor_height`),
   not because of the seven samples; the goldens only showed it when they were next made.
-* The French file has the new wizard texts of M17 unfinished.
+
 
 The gate (T17.20) is open:
 
@@ -386,7 +401,7 @@ The gate (T17.20) is open:
 | Frozen smoke test | `python tools/package.py --smoke` on the three systems: the two samples and the drawn kits must be in the bundle. Not done. |
 | Upgrade test | Over a 1.0, 1.1, 1.2, 1.3 and 1.4 project of each older kind: no prompt, nothing under `game/` changes, byte-identical TileSets and sprite frames. Not done. (One top-down sample was built before and after the last change to shared code and compared: tile sets, maps, scenes, catalog and build state are the same but for the ids Godot gives nodes.) |
 | Corpus | The private corpus (T12.26) unchanged on all four measures. It is not on the development machine. |
-| Manual rows | By the owner: *Green acre* through a season with a gamepad; *Stone isle* as a turn-based game and as an action RPG with both pad settings; *Dirt cup* in the isometric view with the cars of *Tiles Vehicles*; a farm from *Super Retro Ranch* and from a plain RPG pack; an isometric game from *Medieval Town*, *Nature* and *Modular Roads* together and an isometric farm from *Miniature Farm*; a 300-asset farming pack through the audit. None is done. |
+| Manual rows | By the owner: five things dropped into an isometric map with the mouse (T18.18); *Green acre* through a season with a gamepad; *Stone isle* as a turn-based game and as an action RPG with both pad settings; *Dirt cup* in the isometric view with the cars of *Tiles Vehicles*; a farm from *Super Retro Ranch* and from a plain RPG pack; an isometric game from *Medieval Town*, *Nature* and *Modular Roads* together and an isometric farm from *Miniature Farm*; a 300-asset farming pack through the audit. None is done. |
 | The tag | `v1.5.0` is not made, and will not be until this gate and the gates before it are closed (the owner's decision). The versions in `pyproject.toml`, `rpggen/__init__.py` and the runtime's `VERSION` are still 1.2.0. **No tag exists for any release**, here or on GitHub. |
 
 ## What is left before 1.4.0
@@ -403,7 +418,7 @@ should know:
   of zips as a bundle) has run on synthetic files only. The bundle chooser (T16.22) was not run
   on the real *CuteSCKR* archive.
 * Colour variants are one card in the audit and on the Mapping page, not in the editor dock.
-* The French file has the new wizard texts of M16 unfinished.
+
 
 The gate (T16.20) is open:
 
@@ -444,7 +459,7 @@ The gate (T15.25) is open:
 | CI on `m15` | Every suite green on Windows and Ubuntu, on both PySide6 legs. The visual goldens were made on Windows with the bundled font: the first run shows whether the Ubuntu legs (FreeType of the system, PySide6 6.7 and the newest) draw it within the limits. If one does not, look at its `_failed` artifact before widening a limit. Perf within its ceilings, with the two regeneration rows. |
 | Frozen smoke test | `python tools/package.py --smoke` on the three systems: the icons and `style.qss.in` must be in the bundle. |
 | Upgrade test | The upgrade test of M13 with the 1.3 build over a 1.0, a 1.1 and a 1.2 project: no prompt, nothing under `game/` changes, and the second regeneration repeats no check (the first one is full: those projects have no fingerprint). |
-| Manual rows | Both themes at 100 %, 150 % and 200 % on every page and dialog; a 300-asset audit with the filter row; the seven pages with NVDA; keyboard only from the welcome view to Results; reduce motion on and off; the French wizard (the longer texts must fit the rows and the stepper). The new wizard texts of M15 are marked unfinished in the French file. |
+| Manual rows | Both themes at 100 %, 150 % and 200 % on every page and dialog; a 300-asset audit with the filter row; the seven pages with NVDA; keyboard only from the welcome view to Results; reduce motion on and off. |
 
 ## What is left before 1.2.0
 

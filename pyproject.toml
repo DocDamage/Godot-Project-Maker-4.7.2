@@ -45,6 +45,7 @@ markers = [
     "racing: integration tests of the racing game (a CI job of their own)",
     "farm: integration tests of the farm (a CI job of their own)",
     "isometric: integration tests of the isometric view (a CI job of their own)",
+    "windowed: opens Godot's window (a display; xvfb-run on Linux)",
 ]
 testpaths = ["tests"]
 [tool.ruff.lint.per-file-ignores]

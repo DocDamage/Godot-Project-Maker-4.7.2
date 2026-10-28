@@ -212,8 +212,9 @@ def _use_anim_reason(tags: list[str]) -> str:
     owner, tool = said(classifier.USE_ANIM_OF_TAG), said(classifier.USE_ANIM_TAG)
     whose = _named(owner) if owner else "a character of this pack"
     return (
-        f"an animation of {whose} using a tool ({tool}), not a character of its own. rpggen "
-        "does not put it on that character yet. Give it a role to use it alone."
+        f"played as the farmer's {tool}: an animation of {whose} using a tool, added to its "
+        f"frames as {tool}_<direction> (the player's attack in a game of another kind). Give "
+        "it a role to use it alone."
     )
 
 

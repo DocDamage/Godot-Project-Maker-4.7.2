@@ -27,10 +27,16 @@ extends Node
 ##   is picked up; of any other, `interact` with the animal takes it. From LARGE_HEARTS hearts on
 ##   it is the kind's `large` product, an item of its own with a higher price: a stack of the
 ##   inventory carries nothing but its item and its count, so the quality is an item.
+## * **A tool to take it with** (T18.12): a kind whose entry names a `tool` (a cow's or a goat's
+##   milk takes a `pail`, a sheep's wool `shears`) gives its product only to a farmer holding it;
+##   by hand it says what is needed. The shop sells the tool while the farmer has none.
 ## * **Buying**: the farm's shop lists the feed and, while its house has room, one row for each
 ##   kind (`shop_rows`, a stock source of RpgFarmShop). The row is the kind's `ticket` item; it
 ##   never reaches the bag: the row's `deliver` puts the animal into its house (`buy`). It gets
 ##   the next name of the list and the next picture of its kind, both in turn.
+## * **A name** (T18.13): an animal that is bought opens a box to name it (RpgNamingDialog) with
+##   the name of the list; what *OK* keeps is its name (`rename`), saved with it, said when it
+##   is talked to and listed on the People page. An animal of an older save keeps its name.
 
 ## An animal was bought, fed, petted or relieved of its product, or a night passed.
 signal changed
@@ -263,6 +269,10 @@ func shop_rows(_season_name: String = "") -> Array:
 		return rows
 	if data.feed_item != &"":
 		rows.append({"item_id": String(data.feed_item), "price": data.feed_price})
+	var state := RpgUtil.state()
+	for tool in data.tools():  # a pail, shears (T18.12): while the farmer has none
+		if state == null or not state.inventory.has(tool):
+			rows.append({"item_id": String(tool), "price": data.tool_price(tool)})
 	for kind_id in data.order:
 		var ticket := RpgUtil.to_str(data.kind(kind_id).get("ticket", ""))
 		if ticket != "" and can_buy(kind_id):
@@ -278,8 +288,33 @@ func deliver(item_id: StringName, qty: int = 1) -> String:
 	if room_in(data.house_of(kind_id)) < qty:
 		return RpgShopDefinition.NO_ROOM
 	for i in qty:
-		buy(kind_id)
+		var row := buy(kind_id)
+		if not row.is_empty() and ask_names:
+			ask_name(RpgUtil.to_int(row["id"]))
 	return RpgShopDefinition.OK
+
+## False: a bought animal keeps the name of the list without asking (a test, the smoke run).
+var ask_names := true
+
+## Opens the box that names animal `id` (T18.13); *OK* renames it. Returns the box, or null
+## when the animal is not there or the game has no tree to show it in.
+func ask_name(id: int) -> RpgNamingDialog:
+	var row := animal(id)
+	if row.is_empty() or not is_inside_tree():
+		return null
+	var what := RpgUtil.to_str(data.kind(RpgUtil.to_str(row["kind"])).get("name", row["kind"])) if data != null else RpgUtil.to_str(row["kind"])
+	var box := RpgNamingDialog.open(what, RpgUtil.to_str(row["name"]))
+	box.named.connect(func(text: String) -> void: rename(id, text))
+	return box
+
+## Gives animal `id` a name. False when there is no such animal or the name is empty.
+func rename(id: int, text: String) -> bool:
+	var clean := text.strip_edges()
+	if clean == "" or animal(id).is_empty():
+		return false
+	_update(id, {"name": clean})
+	changed.emit()
+	return true
 
 # ------------------------------------------------------------------ care
 
@@ -355,6 +390,11 @@ func touch(id: int) -> Dictionary:
 	var who := RpgUtil.to_str(row["name"])
 	var item := &""
 	if row["ready"] != "" and not (data != null and data.on_the_floor(RpgUtil.to_str(row["kind"]))):
+		var tool := data.tool_of(RpgUtil.to_str(row["kind"])) if data != null else &""
+		if tool != &"" and held() != tool:
+			var key := "FARM_NEED_" + String(tool).to_upper()
+			RpgUtil.notify(RpgFarmStrings.t(key) if RpgFarmStrings.KEYS.has(key) else RpgFarmStrings.t("FARM_NEED_TOOL", [RpgFarmStrings.item_name(tool)]))
+			return {"product": &"", "petted": false, "needs": tool}
 		item = take_product(id)
 		if item != &"":
 			RpgUtil.notify(RpgFarmStrings.t("FARM_ANIMAL_GAVE", [who, RpgFarmStrings.item_name(item)]))
@@ -364,6 +404,13 @@ func touch(id: int) -> Dictionary:
 	elif item == &"":
 		RpgUtil.notify(RpgFarmStrings.t("FARM_ANIMAL_HEARTS", [who, hearts(id), HEARTS]))
 	return {"product": item, "petted": petted}
+
+## The item the farmer holds (the hotbar of the farm's mode), or &"".
+func held() -> StringName:
+	var mode := get_parent() as RpgFarmMode
+	if mode == null:
+		mode = RpgFarmMode.current()
+	return mode.hotbar.held_item() if mode != null and mode.hotbar != null else &""
 
 ## What a product of a kind is sold for by an animal with this much friendship: the `value` of
 ## the item it gives then (0 for an item the game does not know).

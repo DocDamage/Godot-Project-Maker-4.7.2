@@ -57,6 +57,7 @@ const SmokeMap := preload("smoke_map.gd")
 const SmokeRunner := preload("res://addons/rpg_runtime/debug/smoke_runner.gd")
 
 const HOUSE := "FarmHouse"
+const HOUSE_PATH := "res://game/maps/farm_house.tscn"
 const FARM := "Farm"
 const VILLAGE := "StarterMap"
 const PLAN_PATH := "res://rpggen/world_plan.json"
@@ -133,6 +134,12 @@ func steps() -> Array[Dictionary]:
 		_step("propose_with_a_pendant", _propose_with_a_pendant, 60.0),
 		_step("the_wedding", _the_wedding, 120.0),
 		_step("spouse_at_home", _spouse_at_home, 60.0),
+		# children (T18.17): only in a farm with a spouse and the option, else it passes with a note
+		_step("a_child_is_born", _a_child_is_born, 120.0),
+		# crafting on the farm (T18.15): only in a farm with a workbench, else it passes with a note
+		_step("craft_a_sprinkler", _craft_a_sprinkler, 120.0),
+		# cooking (T18.16): only in a farm that cooks, else it passes with a note
+		_step("cook_a_dish", _cook_a_dish, 120.0),
 		# the last (T17.18): by now the field, the bag, the friendships and the herd hold something
 		_step("save_and_load", _save_and_load, 90.0),
 	])
@@ -626,6 +633,10 @@ func _clear_debris() -> String:
 	var mode := RpgFarmMode.current()
 	var plan := _plan()
 	var listed := JsonUtil.to_array(plan.get("debris", []))
+	if plan.has("workbench"):  # a farm that crafts breaks its rocks for stone (T18.15)
+		for raw: Variant in JsonUtil.to_array(plan.get("scenery", [])):
+			if JsonUtil.to_str(JsonUtil.to_dict(raw).get("kind", "")) == "rock":
+				listed.append(raw)
 	var holder := scene.get_node_or_null("YSorted/Entities")
 	var things: Array[Node2D] = []
 	for node in holder.get_children():
@@ -681,9 +692,15 @@ func _use_on(thing: Node2D, kind: String, cell: Vector2i, stand: Vector2i, facin
 		return "the tile ahead is %s, the %s lies at %s" % [_farmer().tile_ahead(), kind, cell]
 	mode.energy.fill()
 	var energy := mode.energy.value
-	await _tap("use")
+	var seen: Array[String] = await _use_watched()
 	if not await _wait_for(func() -> bool: return field.clearable_at(cell, kinds) == null, 60):
-		return "`use` with %s did not clear the %s at %s" % [tool_id, kind, cell]
+		var farmer := _farmer()
+		return "`use` with %s did not clear the %s at %s (held %s, energy %d, input %s, locked %s, a sequence %s, ahead %s)" % [
+			tool_id, kind, cell, mode.hotbar.held_item(), mode.energy.value, farmer.input_enabled,
+			farmer.move_locked, RpgSequenceRunner.running(), farmer.tile_ahead()]
+	var played := _strip_played(tool.animation, seen)
+	if played != "":
+		return played
 	if mode.energy.value != energy - tool.energy_cost:
 		return "clearing cost %d energy, expected %d" % [energy - mode.energy.value, tool.energy_cost]
 	if id == "" or _state().get_flag(id, "collected", false) != true:
@@ -702,9 +719,12 @@ func _till_a_cell() -> String:
 	if failure != "":
 		return failure
 	var before := mode.energy.value
-	await _tap("use")
+	var seen: Array[String] = await _use_watched()
 	if not await _wait_for(func() -> bool: return field.state_of(cell) == RpgField.SOIL, 60):
 		return "`use` with the hoe did not till %s (it is %s)" % [cell, field.state_of(cell)]
+	var played := _strip_played("hoe", seen)
+	if played != "":
+		return played
 	var cost := mode.tool_for(&"hoe").energy_cost
 	if mode.energy.value != before - cost:
 		return "the hoe cost %d energy, expected %d" % [before - mode.energy.value, cost]
@@ -747,14 +767,221 @@ func _water_it() -> String:
 	if failure != "":
 		return failure
 	RpgFarmWateringCan.fill()
-	await _tap("use")
+	var seen: Array[String] = await _use_watched()
 	if not await _wait_for(func() -> bool: return field.is_watered(cell), 60):
 		return "`use` with the can did not water %s" % cell
+	var played := _strip_played("water", seen)
+	if played != "":
+		return played
 	if RpgFarmWateringCan.charges() != RpgFarmWateringCan.SIZE - 1:
 		return "the can holds %d, expected %d" % [RpgFarmWateringCan.charges(), RpgFarmWateringCan.SIZE - 1]
 	if not field.shows_soil(cell, true):
 		return "the Soil layer does not show watered soil at %s" % cell
 	return ""
+
+## Crafting on the farm (T18.15): a stump (or a branch) cleared with the axe gives wood, the
+## workbench makes a sprinkler of stone and wood in its time, the sprinkler is put beside the
+## tilled cell of the earlier steps, and in the morning that cell is watered.
+func _craft_a_sprinkler() -> String:
+	var mode := RpgFarmMode.current()
+	if mode == null or mode.workshop == null or not mode.workshop.enabled:
+		print("[rpggen] INFO craft_a_sprinkler: the farm does not craft, step passes")
+		return ""
+	var failure: String = await _animals_go(FORAGE_FARM)
+	if failure != "":
+		return failure
+	var scene := _tree().current_scene
+	var bench := scene.find_child("Workbench", true, false)
+	var station := bench.get_node_or_null("Station") as RpgStation if bench != null else null
+	if station == null:
+		return "the farm has no workbench with a station"
+	var field := RpgField.current()
+	var state := _state()
+	# a stump or a branch, cleared with the axe, gives wood
+	var plan := _plan()
+	var blocked := _blocked(plan)
+	var size := _cell(plan.get("size"))
+	var cleared := false
+	for node in scene.find_children("*", "Node2D", true, false):
+		var kind := str(node.get_meta(RpgField.CLEAR_META, ""))
+		if not ["stump", "branch"].has(kind) or node.is_queued_for_deletion():
+			continue
+		var cell := field.cell_at((node as Node2D).global_position)
+		for entry: Array in [[Vector2i.UP, "down"], [Vector2i.LEFT, "right"], [Vector2i.RIGHT, "left"], [Vector2i.DOWN, "up"]]:
+			var step: Vector2i = entry[0]
+			var stand := cell + step
+			if blocked.has(stand) or stand.x < 1 or stand.y < 1 or stand.x > size.x - 2 or stand.y > size.y - 2:
+				continue
+			var wood := state.inventory.count(&"wood")
+			failure = await _clear(node as Node2D, kind, cell, stand, str(entry[1]), field, mode)
+			if failure != "":
+				return failure
+			if state.inventory.count(&"wood") <= wood:
+				return "clearing a %s gave no wood" % kind
+			cleared = true
+			break
+		if cleared:
+			break
+	if not cleared:
+		print("[rpggen] INFO craft_a_sprinkler: no stump or branch left to clear")
+	# the sprinkler, made at the workbench in its time
+	var sprinkler := RpgCrafting.recipe(&"sprinkler")
+	if sprinkler == null:
+		return "the workbench has no recipe of a sprinkler"
+	for item_id: Variant in sprinkler.ingredients:
+		var short := RpgUtil.to_int(sprinkler.ingredients[item_id]) - state.inventory.count(StringName(str(item_id)))
+		if short > 0:
+			state.inventory.add(StringName(str(item_id)), short)
+	var why := RpgCrafting.queue(state, station.key(), &"workbench", sprinkler)
+	if why != RpgCrafting.OK:
+		return "the workbench did not take the sprinkler: %s" % why
+	RpgCalendar.current().pass_minutes(sprinkler.minutes)
+	RpgCrafting.update(state, station.key())
+	if not state.inventory.has(&"sprinkler"):
+		return "after %d minutes the workbench gave no sprinkler" % sprinkler.minutes
+	# put beside the tilled cell, which then is watered in the morning
+	var tilled: Vector2i = _box.get("cell", Vector2i(-1, -1))
+	if not field.cells.has(tilled):
+		return "the tilled cell of the earlier steps is gone"
+	var spot := Vector2i(-1, -1)
+	for step: Vector2i in [Vector2i.LEFT, Vector2i.RIGHT, Vector2i.UP, Vector2i.DOWN]:
+		if mode.workshop.refusal(field, scene, tilled + step) == "" and not blocked.has(tilled + step):
+			spot = tilled + step
+			break
+	if spot == Vector2i(-1, -1):
+		return "no free cell beside %s for the sprinkler" % tilled
+	if not mode.workshop.place(&"sprinkler", spot, field, scene):
+		return "the sprinkler could not be put at %s" % spot
+	var field_key := field.resolved_id()
+	await _weather_end_day()
+	mode.weather.force(RpgFarmWeather.SUN)
+	await _animals_frames(3)
+	var saved := RpgUtil.to_dict(state.get_flag(RpgField.FLAG_ENTITY, field_key, {}))
+	if not RpgUtil.to_bool(RpgUtil.to_dict(saved.get(RpgField.cell_name(tilled), {})).get("w", false)):
+		return "the sprinkler at %s did not water %s in the morning" % [spot, tilled]
+	return ""
+
+## Cooking (T18.16): the dish known from the start is cooked in the farmhouse's kitchen (or at
+## a stove), eaten, and gives back its energy.
+func _cook_a_dish() -> String:
+	var mode := RpgFarmMode.current()
+	if mode == null or mode.workshop == null or not mode.workshop.cooking:
+		print("[rpggen] INFO cook_a_dish: the farm does not cook, step passes")
+		return ""
+	var state := _state()
+	var dish: RpgRecipe = null
+	for made in RpgCrafting.recipes(&"kitchen"):
+		if RpgCrafting.known(state, made):
+			dish = made
+			break
+	if dish == null:
+		return "the kitchen knows no dish"
+	var failure: String = await _animals_go(HOUSE_PATH)
+	if failure != "":
+		return failure
+	var kitchen := _tree().current_scene.find_child("Kitchen", true, false)
+	var station := kitchen.get_node_or_null("Station") as RpgStation if kitchen != null else null
+	if station == null:
+		return "the farmhouse has no kitchen"
+	for item_id: Variant in dish.ingredients:
+		var short := RpgUtil.to_int(dish.ingredients[item_id]) - state.inventory.count(StringName(str(item_id)))
+		if short > 0:
+			state.inventory.add(StringName(str(item_id)), short)
+	var why := RpgCrafting.queue(state, station.key(), &"kitchen", dish)
+	if why != RpgCrafting.OK:
+		return "the kitchen did not take %s: %s" % [dish.id, why]
+	RpgCalendar.current().pass_minutes(maxi(1, dish.minutes))
+	RpgCrafting.update(state, station.key())
+	var food := StringName(str(dish.results.keys()[0]))
+	if not state.inventory.has(food):
+		return "after %d minutes the kitchen gave no %s" % [dish.minutes, food]
+	var gives := mode.food_energy(food)
+	mode.energy.value = 0
+	if not mode.eat(food):
+		return "the %s could not be eaten" % food
+	if mode.energy.value != mini(gives, mode.energy.max_energy) or gives <= 0:
+		return "eating the %s gave %d energy, it says %d" % [food, mode.energy.value, gives]
+	mode.energy.fill()
+	return ""
+
+## Children (T18.17): given the week after the wedding (as the marriage steps are given the
+## hearts), the spouse's yes, and the days, a child is born, lies in the crib of the farmhouse,
+## and once it is no baby walks about it.
+func _a_child_is_born() -> String:
+	var mode := RpgFarmMode.current()
+	var marriage := RpgMarriage.current()
+	if mode == null or mode.family == null or not mode.family.enabled or marriage == null or marriage.spouse() == "":
+		print("[rpggen] INFO a_child_is_born: the farm has no children or no spouse, step passes")
+		return ""
+	var state := _state()
+	var calendar := RpgCalendar.current()
+	state.set_flag(RpgMarriage.FLAG_ENTITY, RpgMarriage.WED_KEY, calendar.today() - RpgFarmChildren.ASK_AFTER_DAYS)
+	RpgFriendship.current().add_points(marriage.spouse(), 10 * RpgFriendship.HEART_POINTS)
+	if not mode.family.should_ask():
+		return "a week after the wedding with ten hearts the spouse does not ask"
+	mode.family.agree()
+	if RpgFarmChildren.due() < 0:
+		return "the yes made no child due"
+	state.set_flag(RpgFarmChildren.FLAG_ENTITY, "due", calendar.today() + 1)  # the days, given
+	await _weather_end_day()
+	await _animals_frames(3)
+	# the naming box opens once the morning's fade is over
+	var asked := func() -> bool: return not _tree().root.find_children("NamingDialog", "", true, false).is_empty()
+	if not await _wait_for(asked, 300):
+		return "no naming box asked for the newborn's name"
+	for box in _tree().root.find_children("NamingDialog", "", true, false):
+		(box as RpgNamingDialog).confirm()
+	await _animals_frames(2)
+	if _tree().paused:
+		return "the game stays paused after the newborn was named"
+	var kids := RpgFarmChildren.kids()
+	if kids.size() != 1:
+		return "the morning after it was due %d children were born" % kids.size()
+	var failure: String = await _animals_go(HOUSE_PATH)
+	if failure != "":
+		return failure
+	var shown := mode.family.show_on(_tree().current_scene)
+	if shown.is_empty() or RpgFarmChildren.walks(shown[0]):
+		return "the baby is not in the farmhouse's crib"
+	var crib := _tree().current_scene.find_child("Crib", true, false) as Node2D
+	if crib != null and (shown[0] as Node2D).global_position.distance_to(crib.global_position) > RpgUtil.map_tile_px(_tree().current_scene):
+		return "the baby lies at %s, the crib stands at %s" % [(shown[0] as Node2D).global_position, crib.global_position]
+	var grown: Array = RpgUtil.to_array(state.get_flag(RpgFarmChildren.FLAG_ENTITY, "kids", [])).duplicate(true)
+	var first: Dictionary = grown[0]
+	first["born"] = calendar.today() - RpgFarmChildren.TODDLER_DAYS
+	state.set_flag(RpgFarmChildren.FLAG_ENTITY, "kids", grown)
+	shown = mode.family.show_on(_tree().current_scene)
+	if shown.is_empty() or not RpgFarmChildren.walks(shown[0]):
+		return "the child of %d days does not walk the farmhouse" % RpgFarmChildren.TODDLER_DAYS
+	return ""
+
+## Taps `use` and gives the animations the farmer's picture played meanwhile (T18.10).
+func _use_watched() -> Array[String]:
+	var seen: Array[String] = []
+	var sprite := _farmer().get_node_or_null("Visual") as AnimatedSprite2D
+	var watch := func() -> void: seen.append(String(sprite.animation))
+	if sprite != null:
+		sprite.animation_changed.connect(watch)
+	await _tap("use")
+	await _frames(1)
+	if sprite != null and sprite.animation_changed.is_connected(watch):
+		sprite.animation_changed.disconnect(watch)
+	return seen
+
+## "" when the farmer's strip of `tool_anim` (`hoe_down`, ...) was played while it was used, or
+## when its sheet has none (a note: the tool's icon is shown over its hands); else what was.
+func _strip_played(tool_anim: String, seen: Array[String]) -> String:
+	var sprite := _farmer().get_node_or_null("Visual") as AnimatedSprite2D
+	if sprite == null or sprite.sprite_frames == null or tool_anim == "":
+		return ""
+	var strips := Array(sprite.sprite_frames.get_animation_names()).filter(func(n: String) -> bool: return n.begins_with(tool_anim + "_"))
+	if strips.is_empty():
+		print("[rpggen] INFO the farmer's sheet has no strip of the %s: its icon is shown" % tool_anim)
+		return ""
+	for name in seen:
+		if strips.has(name):
+			return ""
+	return "the farmer's strip of the %s (%s) was not played: it played %s" % [tool_anim, ", ".join(PackedStringArray(strips)), seen]
 
 func _a_night_grows_it() -> String:
 	var field := RpgField.current()
@@ -2011,11 +2238,23 @@ func _egg_in_the_morning() -> String:
 			failure = await _animals_face(node, RpgUtil.map_tile_px(_tree().current_scene) * 0.6)
 		if failure != "":
 			return failure
-		failure = await _animals_hold(&"hoe")
+		# milk and wool are taken with a pail or shears (T18.12): by hand, nothing
+		var tool := herd.data.tool_of(kind_id)
+		if tool != &"":
+			if not _state().inventory.has(tool):
+				return "a new game of a farm with a %s has no %s" % [kind_id, tool]
+			failure = await _animals_hold(&"hoe")
+			if failure != "":
+				return failure
+			await _tap("interact")
+			await _animals_frames(5)
+			if _state().inventory.count(product) != had or RpgAnimalHouse.animal(id)["ready"] == "":
+				return "the %s of the %s was taken by hand, without a %s" % [product, kind_id, tool]
+		failure = await _animals_hold(tool if tool != &"" else &"hoe")
 		if failure != "":
 			return failure
 		if not await _interact_until(func() -> bool: return _state().inventory.count(product) == had + 1):
-			return "`interact` did not take the %s of the %s" % [product, kind_id]
+			return "`interact` did not take the %s of the %s (holding %s)" % [product, kind_id, tool if tool != &"" else &"hoe"]
 		if RpgAnimalHouse.animal(id)["ready"] != "":
 			return "the %s still has its %s after it was taken" % [kind_id, product]
 		await _animals_frames(3)

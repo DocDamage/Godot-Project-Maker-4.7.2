@@ -70,7 +70,7 @@ class AppSettings:
     cache_limit_gb: float = 10.0  # extracted archives: least recently used go beyond this
     keep_full_failed_runs: bool = False  # a failed run keeps its pack art and import cache
     confirm_regeneration: bool = True  # show the changes before a regeneration writes them
-    language: str = ""  # the wizard's language ("fr"); "" follows the system (T12.56)
+
     group_by_folder: bool = False  # the audit grid shows a header per folder (T13.02)
     tours_seen: list[str] = field(default_factory=list)  # tours finished or skipped (T13.09)
     reduce_motion: str = "system"  # "system", "on" or "off": View > Reduce motion (T13.10)
@@ -102,7 +102,6 @@ class AppSettings:
             "cache_limit_gb": self.cache_limit_gb,
             "keep_full_failed_runs": self.keep_full_failed_runs,
             "confirm_regeneration": self.confirm_regeneration,
-            "language": self.language,
             "group_by_folder": self.group_by_folder,
             "tours_seen": list(self.tours_seen),
             "reduce_motion": self.reduce_motion,
@@ -241,9 +240,8 @@ def from_json(data: Any) -> AppSettings:
         }
     theme = data.get("theme")
     s.theme = theme if theme in THEMES else s.theme
-    language = data.get("language")
-    if isinstance(language, str) and language.replace("_", "").isalpha() and len(language) <= 8:
-        s.language = language
+    # "language" (the wizard's translation, T12.56) was dropped in 1.5.0 (T18.01): an older
+    # file that has it loads, and the key is ignored
     size = data.get("thumb_size")
     s.thumb_size = size if size in THUMB_SIZES else s.thumb_size
     presets = data.get("option_presets")

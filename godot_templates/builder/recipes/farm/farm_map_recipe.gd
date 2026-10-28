@@ -537,6 +537,7 @@ func farm_root(ctx: BuildContext, farm: Dictionary, issues: Array) -> Node2D:
 		_add_yard(building, root, entities, geo, entries)
 	_add_water(water, water_cells, root, entities, markers, geo, entries)
 	_add_bin(ctx, farm, root, entities, markers, geo)
+	_add_workbench(ctx, farm, root, entities, markers, geo)
 	_add_sign(ctx, farm, root, entities, geo)
 	add_things(farm, root, entities, geo, entries)
 	ForageRecipe.add_places(root, geo)
@@ -941,6 +942,59 @@ func _add_bin(ctx: BuildContext, farm: Dictionary, root: Node2D, entities: Node2
 		SceneUtil.add(entities, bin, root, HomeRecipe.BIN_NAME)
 	MapUtil.add_marker(markers, root, "BinFront", geo.center(cell_of(bin_plan.get("front"))))
 
+## The workbench of a farm that crafts (T18.15, `farm.workbench` of the plan): a body of the world
+## with the pack's picture (FarmBuild.workbench_asset) or a drawn bench, and an RpgStation
+## (`station_id` workbench) the farmer interacts with. A farm planned before the card has none.
+const STATION := "res://addons/rpg_runtime/world/station.gd"
+const BENCH_COLOR := Color(0.6, 0.42, 0.25)
+
+func _add_workbench(ctx: BuildContext, farm: Dictionary, root: Node2D, entities: Node2D, markers: Node2D, geo: MapGeo) -> void:
+	var bench_plan := JsonUtil.to_dict(farm.get("workbench", {}))
+	if bench_plan.is_empty():
+		return
+	var tile := float(geo.tile_px)
+	var texture := FarmBuild.first_frame(ctx, FarmBuild.workbench_asset(ctx))
+	var size := Vector2(texture.get_size()) if texture != null else Vector2(tile, tile * 0.75)
+	var body := StaticBody2D.new()
+	body.name = "Workbench"
+	body.collision_layer = 0
+	body.collision_mask = 0
+	body.set_collision_layer_value(1, true)
+	var diamond := geo.footprint if geo.isometric else Vector2i.ZERO  # its cell's diamond
+	if diamond != Vector2i.ZERO:
+		body.add_child(RpgPlacedThing.cell_shape("Shape", geo.tile_px, 0.9, diamond))
+	else:
+		var shape := CollisionShape2D.new()
+		shape.name = "Shape"
+		var rect := RectangleShape2D.new()
+		rect.size = Vector2(minf(size.x, tile) * 0.9, minf(size.y, tile) * 0.8)
+		shape.shape = rect
+		shape.position = Vector2(0.0, -rect.size.y * 0.5)
+		body.add_child(shape)
+	if texture != null:
+		var sprite := Sprite2D.new()
+		sprite.name = "Sprite"
+		sprite.texture = texture
+		sprite.centered = false
+		sprite.position = Vector2(-size.x * 0.5, -size.y)
+		body.add_child(sprite)
+	else:
+		body.add_child(FarmBuild.stand_in("Sprite", size * 0.9, BENCH_COLOR))
+	var station := Area2D.new()
+	station.name = "Station"
+	SceneUtil.attach_script(station, STATION)
+	station.set("station_id", &"workbench")
+	station.set("entity_id", "farm_workbench")
+	station.set("title", "FARM_WORKBENCH")
+	station.collision_layer = 0
+	station.collision_mask = 0
+	station.set_collision_layer_value(5, true)  # interactables
+	station.add_child(RpgPlacedThing.cell_shape("Reach", geo.tile_px, 1.0, diamond))
+	body.add_child(station)
+	body.position = _spot(cell_of(bench_plan.get("cell")), geo)
+	SceneUtil.add(entities, body, root, "Workbench")
+	MapUtil.add_marker(markers, root, "WorkbenchFront", geo.center(cell_of(bench_plan.get("front"))))
+
 ## The cell of the sign that tells tomorrow's weather: beside the cell before the door of the
 ## house (east first), where no path runs and the bin does not stand. (-1, -1) when both
 ## sides are taken.
@@ -1015,10 +1069,19 @@ func add_things(farm: Dictionary, root: Node2D, entities: Node2D, geo: MapGeo, e
 		var tree := _thing("tree", pictures, counts, geo)
 		tree.position = _spot(cell, geo) - lift
 		SceneUtil.add(entities, tree, root, "Tree%d" % JsonUtil.to_int(counts["tree"]))
+	var crafts := farm.has("workbench")  # T18.15: a farm that crafts breaks its rocks for stone
 	for raw: Variant in JsonUtil.to_array(farm.get("scenery", [])):
 		var thing := JsonUtil.to_dict(raw)
 		var kind := JsonUtil.to_str(thing.get("kind", ""))
 		var node := _thing(kind, pictures, counts, geo)
+		if crafts and kind == "rock":
+			var cell := cell_of(thing.get("cell"))
+			node.set_meta(CLEAR_META, kind)
+			node.set("entity_id", "%s_rock_%d_%d" % [prefix, cell.x, cell.y])
+			var persistent := Node.new()
+			persistent.name = "Persistent"
+			SceneUtil.attach_script(persistent, PERSISTENT)
+			node.add_child(persistent)
 		node.position = _spot(cell_of(thing.get("cell")), geo) - lift
 		SceneUtil.add(entities, node, root, "%s%d" % [kind.capitalize(), JsonUtil.to_int(counts[kind])])
 
@@ -1277,7 +1340,13 @@ func room_root(ctx: BuildContext, building: Dictionary, issues: Array) -> Node2D
 	if not bed_plan.is_empty():
 		player_cell = _add_bed(ctx, room, bed_plan, root, nodes, geo)
 		# the calendar on the wall of the farmhouse (T17.25): only in a farm with festivals
-		EventsRecipe.add_wall_calendar(root, entities, size, cell_of(bed_plan.get("cell")), geo)
+		var hung := EventsRecipe.add_wall_calendar(root, entities, size, cell_of(bed_plan.get("cell")), geo)
+		# the kitchen (T18.16): only in a farm that cooks, in a farmhouse that is being built
+		if FarmBuild.cooking(ctx):
+			_add_kitchen(ctx, root, entities, size, cell_of(bed_plan.get("cell")), hung, geo)
+		# the crib (T18.17): only in a farm with children, in a farmhouse that is being built
+		if FarmBuild.children(ctx):
+			_add_crib(root, entities, size, cell_of(bed_plan.get("cell")), arrive, geo)
 	if JsonUtil.to_array(room.get("trough")).size() == 2:
 		MapUtil.add_marker(markers, root, "Trough", geo.center(cell_of(room.get("trough"))))
 	var stalls := cells_of(room.get("stalls"))
@@ -1288,6 +1357,68 @@ func room_root(ctx: BuildContext, building: Dictionary, issues: Array) -> Node2D
 		root.free()
 		return null
 	return root
+
+## The kitchen of a farmhouse that is being built (T18.16): the pack's stove or oven
+## (FarmBuild.kitchen_asset) or a drawn one, against the top wall in the corner away from the
+## bed (not where the calendar hangs), with an RpgStation `kitchen` the farmer interacts with.
+func _add_kitchen(ctx: BuildContext, root: Node2D, entities: Node2D, size: Vector2i, bed_head: Vector2i, calendar: Vector2i, geo: MapGeo) -> void:
+	var cell := Vector2i(size.x - 2, 1) if bed_head.x <= size.x / 2 else Vector2i(1, 1)
+	if cell == calendar:
+		cell.x += -1 if cell.x > size.x / 2 else 1
+	var tile := float(geo.tile_px)
+	var texture := FarmBuild.first_frame(ctx, FarmBuild.kitchen_asset(ctx))
+	var diamond := geo.footprint if geo.isometric else Vector2i.ZERO  # its cell's diamond
+	var body: StaticBody2D = RpgPlacedThing.make(0, "stove", geo.tile_px, true, diamond) if texture == null else StaticBody2D.new()
+	body.name = "Kitchen"
+	if texture != null:
+		body.collision_layer = 0
+		body.collision_mask = 0
+		body.set_collision_layer_value(1, true)
+		body.add_child(RpgPlacedThing.cell_shape("Shape", geo.tile_px, 0.8, diamond))
+		var sprite := Sprite2D.new()
+		sprite.name = "Sprite"
+		sprite.texture = texture
+		sprite.centered = false
+		sprite.position = Vector2(-texture.get_width() * 0.5, -texture.get_height())
+		body.add_child(sprite)
+		body.add_child(RpgPlacedThing.kitchen_station(geo.tile_px, "farm_kitchen", diamond))
+	else:
+		(body.get_node("Station") as Node).set("entity_id", "farm_kitchen")  # its station does the work
+	body.position = geo.center(cell) + (Vector2.ZERO if geo.isometric else Vector2(0.0, tile * 0.5))
+	SceneUtil.add(entities, body, root, "Kitchen")
+	SceneUtil.set_owner_recursive(body, root)
+
+## The crib of a farmhouse that is being built (T18.17): a small drawn bed against the bottom
+## wall below the bed's head, where a baby of the farm lies (RpgFarmChildren), kept two cells
+## from `arrive` (where the farmer comes in by the door). A farmhouse built before has none: the
+## baby lies on the spouse's side of the bed.
+const CRIB_COLOR := Color(0.85, 0.75, 0.55)
+
+func _add_crib(root: Node2D, entities: Node2D, size: Vector2i, bed_head: Vector2i, arrive: Vector2i, geo: MapGeo) -> void:
+	var cell := Vector2i(clampi(bed_head.x, 1, size.x - 2), size.y - 2)
+	if absi(cell.x - arrive.x) < 2 and absi(cell.y - arrive.y) < 2:
+		var away := arrive.x + 2 if arrive.x + 2 <= size.x - 2 else arrive.x - 2
+		cell.x = clampi(away, 1, size.x - 2)
+	var tile := float(geo.tile_px)
+	var crib := StaticBody2D.new()
+	crib.name = "Crib"
+	crib.collision_layer = 0
+	crib.collision_mask = 0
+	crib.set_collision_layer_value(1, true)
+	if geo.isometric:  # its cell's diamond
+		crib.add_child(RpgPlacedThing.cell_shape("Shape", geo.tile_px, 0.8, geo.footprint))
+	else:
+		var shape := CollisionShape2D.new()
+		shape.name = "Shape"
+		var rect := RectangleShape2D.new()
+		rect.size = Vector2(tile * 0.8, tile * 0.6)
+		shape.shape = rect
+		shape.position = Vector2(0.0, -tile * 0.3)
+		crib.add_child(shape)
+	crib.add_child(FarmBuild.stand_in("Sprite", Vector2(tile * 0.8, tile * 0.6), CRIB_COLOR))
+	crib.position = geo.center(cell) + (Vector2.ZERO if geo.isometric else Vector2(0.0, tile * 0.5))
+	SceneUtil.add(entities, crib, root, "Crib")
+	SceneUtil.set_owner_recursive(crib, root)
 
 ## The bed at its cells (its head at the plan's cell) and the spawn `start` beside it, where a
 ## new game begins and the farmer wakes. Returns the cell of that spawn.

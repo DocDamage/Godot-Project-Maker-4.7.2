@@ -103,10 +103,10 @@ def test_a_pack_without_a_car_races_the_drawn_one_on_diamonds(tmp_path: Path) ->
     orchestrator.add_run_made_assets(cat, cfg, [], tmp_path)
     drawn = cat.asset("rpggen_arcade_kit.car")
     assert drawn is not None and cat.asset("rpggen_arcade_kit.road") is None
-    # the one rule (catalog.fits_projection): a sprite drawn from above is used by both views,
-    # so the sheet of sixteen headings is the car of an isometric race too; a car drawn for
-    # the isometric view is not used from above (tests/unit/test_iso_tileset.py)
-    assert catalog.fits_projection(drawn, "isometric") and catalog.fits_projection(drawn)
+    # the car is drawn at the view's angle since T18.19, and as a picture of the isometric view
+    # it is not used from above (catalog.fits_projection)
+    assert catalog.fits_projection(drawn, "isometric") and not catalog.fits_projection(drawn)
+    assert catalog.effective(drawn)["projection"] == "isometric"
     assert catalog.effective(drawn)["headings"] == 16
 
 

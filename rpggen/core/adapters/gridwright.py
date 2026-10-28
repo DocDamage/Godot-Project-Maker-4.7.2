@@ -17,13 +17,15 @@ the tiles, the 1x ones as copies of the sheets), so this reader takes the pack a
   nearest the camera (``iso_tileset.stand``), the ``rise`` the height of the anchor.
 * **What is stacked** (2026-10-26) is a tile with the facet ``stack``, painted on a height
   layer of the level (a TileMapLayer drawn higher by its height, ``rpg_project_tools``): a
-  block (``block``) and a ramp or a stair (``ramp``, its tag ``up:<side>``) of the ground, a
+  block (``block``) and a ramp or a stair (``ramp``, its tag ``up:<side>`` and its facet
+  ``ramp``: [low, high, side], T18.20) of the ground, a
   storey of a building (``storey``, its tags ``facade:``, ``level:`` and ``storey:``), a roof
   (``roof``), what stands on a roof (``on_roof``), an awning or a sign on a storey's face
   (``on_storey``, ``face:``), a lantern or a picture on a wall (``on_wall``, ``wall:<side>``),
   and what lies over another tile (``overlay``: shore foam, waterfalls, mist, mine rails, road
   markings). ``lift`` is how high a piece raises what stands on it (a block 16 px, a storey
-  20), what a height layer above it is drawn at.
+  20), what a height layer above it is drawn at. A block's ``side_terrain`` is what it is made
+  of (``surface_word``): its sides are the faces of raised ground of that surface (T18.20).
 * **What moves**: the frames of a piece (``_f1`` to ``_f4``) are one tile that Godot animates
   (``tile_frames``, ``tile_fps``) or one thing whose strip is put together from them
   (``idle_down``). A door, a gate or a siege engine whose frames are poses (``open_degrees``,
@@ -242,6 +244,13 @@ def _pair(value: Any, default: tuple[int, int]) -> tuple[int, int]:
     return default
 
 
+def _low(height: Any) -> int:
+    """The lowest point of a piece's ``height``: the low end of a ramp's [low, high], else 0."""
+    if isinstance(height, list):
+        return min([int(v) for v in height if isinstance(v, int | float)] or [0])
+    return 0
+
+
 def _top(height: Any) -> int:
     """The highest point of a piece's ``height``: a number, or [low, high] of a ramp."""
     if isinstance(height, list):
@@ -258,6 +267,19 @@ def origin_of(
     half_w, half_h = diamond[0] // 2, diamond[1] // 2
     cols, rows = max(1, footprint[0]) - 1, max(1, footprint[1]) - 1
     return [anchor[0] + half_w * (cols - rows), anchor[1] + half_h * (cols + rows) + half_h]
+
+
+# the words of a piece's name that say what kind of piece it is, not what it is made of
+PIECE_WORDS = frozenset({"block", "blocks", "floor", "floors", "half", "tile", "tiles", "top"})
+
+
+def surface_word(name: str) -> str:
+    """What a piece is made of, by its name: ``block_grass_01`` and ``floor_grass_02`` are
+    grass, ``block_sidewalk_03`` sidewalk; "" when the name says nothing more."""
+    for word in classifier.name_words(name):
+        if word not in PIECE_WORDS and not word.isdigit():
+            return word
+    return ""
 
 
 def joins_of(mask: int) -> list[str]:
@@ -316,7 +338,10 @@ def tile_facets(
     wall = str(sprite.get("wall") or "")
     if sprite.get("up") or category in RAMP_CATEGORIES:
         up = SCREEN_SIDES.get(str(sprite.get("up") or ""), "n")
-        return stacked("GROUND", "ramp", f"up:{up}"), ""
+        ramp = stacked("GROUND", "ramp", f"up:{up}")
+        # its two ends and the side it rises to (T18.20): an actor walks up it
+        ramp["ramp"] = [_low(height), lift, up]
+        return ramp, ""
     if category in STOREY_CATEGORIES or "storey" in sprite:
         said = [f"{k}:{sprite[k]}" for k in ("facade", "level", "storey") if sprite.get(k)]
         return stacked("BUILDING", "storey", *said), ""
@@ -370,8 +395,13 @@ def tile_facets(
             return {**tile, "role": "DECORATION", "tags": [*tags, "liquid"]}, ""  # lava
         return {**tile, "role": "GROUND"}, ""
     if category in BLOCK_CATEGORIES | LIQUID_CATEGORIES:
-        # it stands up from the ground and what stands on it stands higher (``lift``)
-        return stacked("DECORATION", "block", "block"), ""
+        # it stands up from the ground and what stands on it stands higher (``lift``); its sides
+        # are the faces of raised ground of its surface (T18.20: a terrain of sides)
+        block = stacked("DECORATION", "block", "block")
+        surface = surface_word(name)
+        if surface and category in BLOCK_CATEGORIES:
+            block["side_terrain"] = surface
+        return block, ""
     # a thing of the kit's scenery (a car parked in a street, a tombstone, a chest): only its
     # buildings are houses, and nothing is an item to pick up because it is small
     role = "BUILDING" if category == "buildings" else "DECORATION"

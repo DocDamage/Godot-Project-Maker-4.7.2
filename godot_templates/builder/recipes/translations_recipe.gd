@@ -12,6 +12,7 @@ const RECIPE_VERSION := 2
 const SeedUtil := preload("../lib/seed_util.gd")
 const DataRecipe := preload("data_recipe.gd")
 const ProgressionRecipe := preload("progression_recipe.gd")
+const CraftingRecipe := preload("crafting_recipe.gd")
 const JsonUtil := preload("../lib/json_util.gd")
 const BuildContext := preload("../lib/build_context.gd")
 
@@ -98,6 +99,8 @@ func _seed_rows(ctx: BuildContext) -> Dictionary:
 		rows[key] = DataRecipe.SEED_STRINGS[key]
 	for key: Variant in ProgressionRecipe.SEED_STRINGS.keys():
 		rows[key] = ProgressionRecipe.SEED_STRINGS[key]
+	for key: Variant in CraftingRecipe.SEED_STRINGS.keys():  # T18.14
+		rows[key] = CraftingRecipe.SEED_STRINGS[key]
 	var dir := DirAccess.open(ITEMS_DIR)
 	if dir != null:
 		var files := dir.get_files()
@@ -161,6 +164,34 @@ func _write_csv(rows: Dictionary) -> int:
 	f.close()
 	return OK
 
+## Writes the messages of a saved translation in the order of their keys. A Translation keeps
+## them in a hash table and saves them in its order, which is not always the same from one run
+## to the next: the same strings would make a different file. An entry starts a line with `[&"`
+## (its key); a text of several lines goes with the entry it belongs to.
+static func _sort_messages(path: String) -> Error:
+	var text := FileAccess.get_file_as_string(path)
+	const OPEN := "messages = {\n"
+	var start := text.find(OPEN)
+	var end := text.rfind("\n}")
+	if start < 0 or end < start + OPEN.length():
+		return OK  # no messages: nothing to sort
+	var head := start + OPEN.length()
+	var entries: Array[String] = []
+	for line in text.substr(head, end - head).split("\n"):
+		if line.begins_with("[&\"") or entries.is_empty():
+			entries.append(line)
+		else:
+			entries[-1] += "\n" + line
+	for i in entries.size():
+		entries[i] = entries[i].trim_suffix(",")
+	entries.sort()
+	var f := FileAccess.open(path, FileAccess.WRITE)
+	if f == null:
+		return FileAccess.get_open_error()
+	f.store_string(text.substr(0, head) + ",\n".join(entries) + text.substr(end))
+	f.close()
+	return OK
+
 func build(ctx: BuildContext) -> Array:
 	var issues: Array = []
 	if not FileAccess.file_exists(CSV_PATH):
@@ -182,6 +213,8 @@ func build(ctx: BuildContext) -> Array:
 				trans.add_message(JsonUtil.to_name(key), text)
 		var path: String = OUT_DIR + "strings_%s.tres" % JsonUtil.to_str(loc).replace("-", "_")
 		var err := ResourceSaver.save(trans, path)
+		if err == OK:
+			err = _sort_messages(path)
 		if err != OK:
 			issues.append(ctx.make_issue("BUILD-004", {"file": path, "err": err}, path))
 	# Not registered in the project settings: a .tres translation fails to load that early (probe,

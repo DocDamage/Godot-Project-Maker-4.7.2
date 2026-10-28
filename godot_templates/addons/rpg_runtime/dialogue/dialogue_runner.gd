@@ -130,7 +130,7 @@ func fast_forward() -> void:
 const EVENTS: Array[String] = [
 	"set_flag", "give_item", "take_item", "give_gold", "set_quest", "quest_start", "quest_stage",
 	"quest_complete", "join_party", "leave_party", "heal_full", "open_shop", "set_var", "add_var",
-	"run_sequence", "emit", "play_sound", "quest_turn_in", "quest_fail", "track_quest", "count", "unlock_achievement", "give_skill_points",
+	"run_sequence", "emit", "play_sound", "quest_turn_in", "quest_fail", "track_quest", "count", "unlock_achievement", "give_skill_points", "learn_recipe",
 ]
 
 ## What an event names that must exist in game/data: [[kind, id]] with the kind "shop", "quest"
@@ -268,6 +268,10 @@ static func execute_event_on(event: String, state: RpgGameState) -> bool:
 			if arg == "":
 				return _bad(event)
 			state.unlock_achievement(StringName(arg))
+		"learn_recipe":  # T18.14: a recipe somebody teaches
+			if arg == "":
+				return _bad(event)
+			RpgCrafting.learn(state, StringName(arg))
 		"give_skill_points":
 			if _syntax_problem(event) != "":
 				return _bad(event)

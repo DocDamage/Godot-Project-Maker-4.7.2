@@ -442,7 +442,15 @@ def test_the_ranchs_ground_comes_once_a_season_and_its_sheets_are_terrains(
 )
 def test_whose_strip_it_is_and_which_tool_it_shows(path: str, who: list[str], tool: str) -> None:
     assert classifier.character_words(path) == (who, tool)
-    assert set(classifier.USE_ANIM_WORDS.values()) == {"hoe", "water", "sickle", "axe", "rod"}
+    # the farm's five tools, and a pickaxe under its own name (T18.10)
+    assert set(classifier.USE_ANIM_WORDS.values()) == {
+        "hoe",
+        "water",
+        "sickle",
+        "axe",
+        "rod",
+        "pickaxe",
+    }
 
 
 def test_the_farmer_using_a_tool_is_an_animation_of_the_farmer_not_a_villager(
@@ -461,8 +469,10 @@ def test_the_farmer_using_a_tool_is_an_animation_of_the_farmer_not_a_villager(
         )
         assert len(eff["animations"]["idle_down"]["frames"]) == 3, "its frames stay read"
         why = explain.why(strip)
-        assert why.startswith("unused: an animation of characters/farmer/farmer_walk_down")
-        assert f"using a tool ({tool})" in why and "Give it a role" in why
+        assert why.startswith(
+            f"unused: played as the farmer's {tool}: an animation of characters/farmer/farmer_walk_down"
+        )
+        assert f"as {tool}_<direction>" in why and "Give it a role" in why
     assert catalog.effective(farmer)["role"] == "PLAYER"
     people = [a.id for a in cat.assets if catalog.effective(a).get("role") == "NPC"]
     assert people == [], "nobody of the ranch is a villager: its people are drawn or lent"

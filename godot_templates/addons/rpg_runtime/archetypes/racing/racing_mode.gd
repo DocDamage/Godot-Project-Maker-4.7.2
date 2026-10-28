@@ -11,6 +11,10 @@ extends RpgArcadeMode
 ## last race it names the champion before the credits. With `elimination` a player who came in
 ## last twice is out: the continue screen asks, and *Continue* drives that race again as if it
 ## had not been driven. The table is saved with the run, between the races.
+##
+## With `racers` (T18.19) the drivers are people (RpgRacePeople, the child `People` of a track):
+## they stand at their cars before the start, the screens name them with their faces, people
+## stand along the track, and after the last race its first three stand on the podium.
 
 ## The player is out of the championship (the continue screen follows).
 signal eliminated
@@ -20,6 +24,8 @@ const PLACE_POINTS: Array[int] = [3000, 1800, 1000, 500, 250, 100]
 
 ## A player who came in last twice is out (set by the recipe from the options).
 @export var elimination: bool = false
+## The drivers are people, and people stand along the tracks (set by the recipe, T18.19).
+@export var racers: bool = false
 
 ## The player's car on the track that is driven, or null.
 var car: RpgCar = null
@@ -32,6 +38,9 @@ var championship := RpgChampionship.new()
 ## The rows of the race that has just ended (RpgChampionship.record), and the parts won in it.
 var last_results: Array[Dictionary] = []
 var parts_won: Array[String] = []
+
+## The people of the track that is driven (with `racers`), or null.
+var people: RpgRacePeople = null
 
 ## The championship as it was before the race that is driven now.
 var _before := {}
@@ -65,6 +74,12 @@ func bind_stage(next: RpgArcadeStage) -> void:
 		race.finished.connect(_on_race_finished)
 		race.part_taken.connect(_on_part_taken)
 	race.begin()
+	people = null
+	if racers:
+		people = RpgRacePeople.new()
+		people.name = RpgRacePeople.NODE_NAME
+		next.add_child(people)
+		people.setup(race, stages().current())
 
 ## The race that is run now: null between two tracks, when the one of the last is gone.
 func current_race() -> RpgRace:
@@ -116,6 +131,11 @@ func _on_race_finished(standings: Array) -> void:
 		if RpgUtil.to_bool(entry.get("player", false)):
 			last_place = RpgUtil.to_int(entry.get("place", 0))
 	last_results = championship.record(standings)
+	if people != null and is_instance_valid(people) and stages().is_last():
+		var top: Array[String] = []
+		for row in last_results:
+			top.append(RpgUtil.to_str(row.get("driver", "")))
+		people.show_podium(top)
 	if last_place >= 1:
 		pickup(PLACE_POINTS[mini(last_place, PLACE_POINTS.size()) - 1])
 	if stage != null and is_instance_valid(stage):

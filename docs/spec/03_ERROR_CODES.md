@@ -123,7 +123,7 @@ Severity: **E** = error (blocks delivery), **W** = warning, **I** = info.
 | VAL-031 | W | The farm cannot be worked as it is planned: {problem}. | Change the farm's map in rpggen/world_plan.json (the section farm.map: a cell of its plot, its water, its fences or what lies in the way), or delete that section and game/maps/farm.tscn and regenerate to plan the farm again. |
 | VAL-032 | I | An assets-only project has no game: it was not played and not test-exported. | — |
 | VAL-033 | W | {node} in {file}: {problem}. | Paint the room so the player gets through: clear the rock from the opening, give the platform room above it, stand the thing on the floor, or put a ladder up to the exit. The dock's validator shows where. |
-| VAL-034 | W | Game data problem in {file}: {problem}. | Fix the quest, skill tree, achievement or item set resource (the runtime's README explains quests, shops and the bag; RpgSkillTree and RpgAchievement say what each key means). |
+| VAL-034 | W | Game data problem in {file}: {problem}. | Fix the quest, skill tree, achievement, item set or shop resource (the runtime's README explains quests, shops and the bag; RpgSkillTree and RpgAchievement say what each key means). |
 | SMOKE-001 | E | Smoke step {step} "{name}" failed: {detail}. | See smoke log and smoke_results.json. |
 | SMOKE-002 | E | Smoke test timed out at step {step}. | See smoke log. |
 | SMOKE-010 | E | The shoot 'em up could not be played to its credits: smoke step {step} "{name}" failed: {detail}. | See smoke log and smoke_results.json. A wave or a boss of game/data/stages.json that cannot be beaten, or a scene of generated/scenes/shmup/ that was changed, stops the run at this step. |

@@ -37,6 +37,8 @@ M6_STEPS = [
     "save_overwrite_confirm",
     "equip_raises_attack",
     "shop_buy_sell",
+    "shop_stock_and_repair",
+    "craft_by_hand",
     "quest_journal",
     "party_members",
     "followers_trail",
@@ -199,7 +201,9 @@ def test_runtime_scripts_do_not_depend_on_game_content_paths() -> None:
         "debug_overlay.gd",
         "battle_controller.gd",
         "credits.gd",
-    }  # registries, new-game data, test enemy, the user's battle commands and hero, own credits
+        "crafting.gd",
+    }  # registries, new-game data, test enemy, the user's battle commands and hero, own credits,
+    # the book of recipes (T18.14)
     offenders = []
     for path in sorted((REPO / "godot_templates/addons/rpg_runtime").rglob("*.gd")):
         if path.name in allowed:

@@ -108,6 +108,9 @@
         },
         "progression": {
           "type": "boolean"
+        },
+        "crafting": {
+          "type": "boolean"
         }
       },
       "additionalProperties": false
@@ -176,9 +179,13 @@
         "tracks": {"type": "integer", "minimum": 1, "maximum": 8},
         "rivals": {"type": "integer", "minimum": 0, "maximum": 5},
         "rubber_band": {"type": "boolean"},
+        "racers": {"type": "boolean"},
         "elimination": {"type": "boolean"},
         "starting_money": {"type": "integer", "minimum": 0, "maximum": 99999},
         "pass_out_loss": {"type": "boolean"},
+        "exhaustion": {"type": "boolean"},
+        "cooking": {"type": "boolean"},
+        "children": {"type": "boolean"},
         "fishing": {"type": "boolean"},
         "days_per_season": {"enum": [7, 14, 28]},
         "day_length": {"enum": ["short", "normal", "long"]},
@@ -186,7 +193,7 @@
         "courtable": {"type": "integer", "minimum": 0, "maximum": 6},
         "farm_size": {"enum": ["small", "medium", "large"]},
         "plot": {"enum": ["small", "medium", "large"]},
-        "animals": {"enum": ["none", "coop", "coop_and_barn"]},
+        "animals": {"enum": ["none", "auto", "coop", "barn", "coop_and_barn"]},
         "added_maps": {
           "type": "array",
           "maxItems": 8,

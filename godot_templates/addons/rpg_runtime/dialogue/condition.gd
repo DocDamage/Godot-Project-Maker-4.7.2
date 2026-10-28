@@ -12,6 +12,8 @@ extends RefCounted
 ##   count:<name>>=N      (a counter of GameState.counters is at least N: count:defeated:wolf>=5,
 ##                         count:items:log>=30; a counter never counted is 0)
 ##   achievement:<id>     (the achievement is unlocked)
+##   crafted:<item>[>=N]  (at least N of the item were crafted, 1 without N; T18.14: the counter
+##                         `crafted:<item>` RpgCrafting keeps)
 ##   var:<name><op><N>    (op is one of >= <= == != > <; a variable never set is 0)
 ##   ability:<id>         (the player has the ability; the metroidvania, T14.05)
 ##   friendship:<id>>=N   (the person has at least N hearts; the farm, T17.09. False in a game
@@ -83,7 +85,7 @@ static func _tokens(expr: String) -> PackedStringArray:
 ## The atom prefixes the language knows (for the editor's checks and completion).
 const ATOMS: Array[String] = [
 	"flag:", "item:", "gold>=", "level>=", "party:", "var:", "quest_active:", "quest_done:",
-	"quest_stage:", "quest_failed:", "quest_available:", "quest_ready:", "quest:", "ability:", "count:", "achievement:", "friendship:", "birthday:", "festival",
+	"quest_stage:", "quest_failed:", "quest_available:", "quest_ready:", "quest:", "ability:", "count:", "achievement:", "crafted:", "friendship:", "birthday:", "festival",
 	"festival_tomorrow", "event:", "courting:", "engaged:", "spouse:",
 ]
 ## The atoms of a farm's marriage (T17.26), each with the id of a person.
@@ -138,6 +140,12 @@ static func atom_problem(atom: String) -> String:
 		var body := atom.trim_prefix("count:")
 		var at := body.rfind(">=")
 		return "" if at > 0 and body.substr(at + 2).is_valid_int() else "count needs <name>>=N: '%s'" % atom
+	if atom.begins_with("crafted:"):
+		var made := atom.trim_prefix("crafted:")
+		var at := made.rfind(">=")
+		if at < 0:
+			return "" if made != "" else "'%s' needs an item" % atom
+		return "" if at > 0 and made.substr(at + 2).is_valid_int() else "crafted needs <item>[>=N]: '%s'" % atom
 	if EVENT_WORDS.has(atom):
 		return ""
 	if atom.begins_with("birthday:") or atom.begins_with("event:") or _is_marriage(atom):
@@ -210,6 +218,13 @@ static func _atom(atom: String, state: RpgGameState) -> bool:
 		if at <= 0 or not body.substr(at + 2).is_valid_int():
 			return _unknown(atom)
 		return state.counter(body.substr(0, at)) >= body.substr(at + 2).to_int()
+	if atom.begins_with("crafted:"):
+		var made := atom.trim_prefix("crafted:")
+		var at := made.rfind(">=")
+		if at == 0 or made == "" or (at > 0 and not made.substr(at + 2).is_valid_int()):
+			return _unknown(atom)
+		var item_id := made if at < 0 else made.substr(0, at)
+		return state.counter("crafted:" + item_id) >= (1 if at < 0 else made.substr(at + 2).to_int())
 	if atom.begins_with("quest_stage:"):
 		var parts := atom.trim_prefix("quest_stage:").split(":")
 		if parts.size() != 2:

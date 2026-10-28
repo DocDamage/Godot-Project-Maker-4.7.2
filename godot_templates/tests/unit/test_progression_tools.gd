@@ -187,6 +187,21 @@ func test_the_starter_gear_names_its_set_only_with_the_feature(t) -> void:
 	t.ok(not recipe._gear_set(_ctx("turn_based", {}), both), "a config from before 1.5.0")
 	t.ok(not recipe._gear_set(_ctx("turn_based", {"progression": true}), {"sword": {}}), "a weapon alone is no set")
 
+func test_the_starter_shop_of_1_5_only_with_the_feature(t) -> void:
+	var recipe := DataRecipe.new()
+	t.ok(recipe._starter_shop(_ctx("turn_based", {"progression": true})))
+	t.ok(recipe._starter_shop(_ctx("farm", {"progression": true})))
+	t.ok(not recipe._starter_shop(_ctx("turn_based", {})), "a config from before 1.5.0")
+	t.ok(not recipe._starter_shop(_ctx("metroidvania", {"progression": true})), "no village, no shop")
+	var shop := recipe._starter_stock(_ctx("arpg", {"progression": true}), recipe._shop(["sword"], false)) as RpgShopDefinition
+	t.eq(shop.stock[0], {"item_id": "potion", "price": -1, "qty": DataRecipe.STARTER_POTIONS})
+	t.ok(not shop.stock[1].has("qty"), "the sword: no limit")
+	t.eq([shop.restock_minutes, shop.restock_each_day, shop.funds, shop.buyback, shop.repairs], [DataRecipe.STARTER_RESTOCK_MINUTES, false, DataRecipe.STARTER_FUNDS, true, true])
+	var farm := recipe._starter_stock(_ctx("farm", {"progression": true}), recipe._shop([], false)) as RpgShopDefinition
+	t.eq([farm.restock_minutes, farm.restock_each_day], [0, true], "a farm restocks each morning")
+	var plain := recipe._shop(["sword"], false) as RpgShopDefinition
+	t.eq([plain.funds, plain.restock_minutes, plain.repairs, plain.stock[0].has("qty")], [-1, 0, false, false], "without it: the shop of 1.4")
+
 # ---------------------------------------------------------------- the TileSet's patterns (found with the 1.1 regeneration test)
 
 func test_a_rebuild_keeps_the_patterns_it_would_make_again(t) -> void:

@@ -73,6 +73,9 @@ func try_hit(area: Area2D) -> bool:
 	var hurtbox := area as RpgHurtbox
 	if not active or hurtbox == null or hurtbox.team == team:
 		return false
+	# height on diamonds (T18.20): a swing reaches its own level and below, not up a hill
+	if not RpgLevels.reaches(RpgLevels.level_of(owner_actor()), RpgLevels.level_of(RpgRealtimeMath.actor_of(hurtbox))):
+		return false
 	var id := hurtbox.get_instance_id()
 	if _hit_this_swing.has(id):
 		return false

@@ -44,6 +44,8 @@
         "large": {"type": "string", "minLength": 1},
         "large_price": {"type": "integer", "minimum": 1},
         "collect": {"enum": ["floor", "hand"]},
+        "tool": {"enum": ["pail", "shears"]},
+        "tool_price": {"type": "integer", "minimum": 0},
         "variants": {"type": "array", "items": {"$ref": "#/$defs/AnimalVariant"}, "minItems": 1}
       },
       "required": [

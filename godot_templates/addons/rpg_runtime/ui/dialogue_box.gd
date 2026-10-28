@@ -5,6 +5,14 @@ extends CanvasLayer
 ##
 ## The panel stands on the bottom edge of the screen and grows upward: a line with choices needs
 ## more room than the panel's own height, and that room is above it, not under the screen.
+##
+## 1.5.0 (T18.08): it grows to at most MAX_SHARE of the screen's height; when the choices need
+## more, they scroll. The script puts %Choices into a ScrollContainer (`ChoicesScroll`, with
+## `follow_focus`) when the box is made, so the scene of an older game scrolls too: the keyboard
+## and the gamepad bring the focused choice into view, and the mouse wheel scrolls.
+
+## The most of the screen's height the box may take.
+const MAX_SHARE := 0.7
 
 var runner := RpgDialogueRunner.new()
 var _actor: Node = null
@@ -19,6 +27,47 @@ func _ready() -> void:
 	var panel := get_node_or_null("%Panel") as Control
 	if panel != null:
 		panel.grow_vertical = Control.GROW_DIRECTION_BEGIN
+	_wrap_choices()
+
+## Puts %Choices into a ScrollContainer in its place (once; the scene has none).
+func _wrap_choices() -> void:
+	var choices := get_node_or_null("%Choices") as Control
+	if choices == null or choices.get_parent() is ScrollContainer:
+		return
+	var holder := choices.get_parent()
+	var scroll := ScrollContainer.new()
+	scroll.name = "ChoicesScroll"
+	scroll.follow_focus = true
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	var at := choices.get_index()
+	holder.remove_child(choices)
+	holder.add_child(scroll)
+	holder.move_child(scroll, at)
+	choices.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	scroll.add_child(choices)
+	choices.owner = owner if owner != null else self
+
+## The scroll the choices are in (null in a box that was never ready).
+func choices_scroll() -> ScrollContainer:
+	return _choices().get_parent() as ScrollContainer
+
+## Gives the scroll the height of the choices, but no more than leaves the box within MAX_SHARE
+## of the screen.
+func _fit_choices() -> void:
+	var scroll := choices_scroll()
+	var panel := get_node_or_null("%Panel") as Control
+	if scroll == null or panel == null:
+		return
+	scroll.custom_minimum_size.y = 0.0
+	var screen := get_viewport().get_visible_rect().size.y if get_viewport() != null else 360.0
+	var rest := panel.get_combined_minimum_size().y  # the box without its choices
+	var want := _choices().get_combined_minimum_size().y
+	var room := maxf(MAX_SHARE * screen - rest, 0.0)
+	var one := 0.0
+	if _choices().get_child_count() > 0:
+		one = (_choices().get_child(0) as Control).get_combined_minimum_size().y
+	scroll.custom_minimum_size.y = minf(want, maxf(room, one))
 
 func is_open() -> bool:
 	return _open
@@ -85,6 +134,9 @@ func _clear_choices() -> void:
 	for child in _choices().get_children():
 		_choices().remove_child(child)
 		child.queue_free()
+	var scroll := choices_scroll()
+	if scroll != null:
+		scroll.custom_minimum_size.y = 0.0
 
 func _show_choices() -> void:
 	if not _open or not _choices().get_children().is_empty():
@@ -103,6 +155,7 @@ func _show_choices() -> void:
 		var nxt := buttons[(i + 1) % buttons.size()] as Button
 		b.focus_neighbor_top = b.get_path_to(prev)
 		b.focus_neighbor_bottom = b.get_path_to(nxt)
+	_fit_choices()
 	if not buttons.is_empty():
 		(buttons[0] as Button).grab_focus()
 

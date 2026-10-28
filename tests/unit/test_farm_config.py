@@ -29,6 +29,7 @@ FISHING = ("fishing",)  # T17.10
 CALENDAR = ("days_per_season", "day_length")  # T17.16
 FESTIVALS = ("festivals",)  # T17.25
 MARRIAGE = ("courtable",)  # T17.26
+EXHAUSTION = ("exhaustion", "cooking", "children")  # T18.11, T18.16, T18.17
 FARM_RECIPES = paths.templates_root() / "builder" / "recipes" / "farm"
 FARM_RUNTIME = paths.templates_root() / "addons" / "rpg_runtime" / "archetypes" / "farm"
 
@@ -45,14 +46,19 @@ def test_the_config_of_a_farm_is_valid_and_its_map_is_the_top_down_one() -> None
     cfg = _cfg()
     data = cfg.to_json()
     schema.validate("config", data)
-    assert data["archetype"] == "farm" and "starter_map" not in data
+    assert data["archetype"] == "farm"
+    # a new farm writes what it chose that an older one lacks (M18); the rest is the default
+    assert data["starter_map"] == {
+        **config.starter_map_defaults("farm"),
+        **config.NEW_FARM_OPTIONS,
+    }
     # the village of a farm is the starter map of every top-down game; its money (T17.08) and
     # its own map (T17.06) are keys of their own in the same section
     defaults = config.starter_map_defaults("farm")
     assert {
         k: v
         for k, v in defaults.items()
-        if k not in (*MONEY, *FIELD, *FISHING, *CALENDAR, *FESTIVALS, *MARRIAGE)
+        if k not in (*MONEY, *FIELD, *FISHING, *CALENDAR, *FESTIVALS, *MARRIAGE, *EXHAUSTION)
     } == config.starter_map_defaults("turn_based")
     assert {k: defaults[k] for k in MONEY} == {"starting_money": 100, "pass_out_loss": True}
     assert {k: defaults[k] for k in FIELD} == farm_plan.defaults()
@@ -97,13 +103,16 @@ def test_combat_is_off_for_a_farm_and_the_older_kinds_are_as_they_were() -> None
     assert [k for k, on in feats.items() if not on] == ["combat", "navigation"]
     assert feats["dialogue"] and feats["save"] and feats["demo"]
     older = {k: k != "navigation" for k in config.FEATURE_KEYS}
-    for kind in ("turn_based", "arpg", "metroidvania"):
+    for kind in ("turn_based", "arpg"):
         assert config.default_features(kind) == older, kind
+    # crafting (T18.14) is for the kinds with a bag to craft into
+    assert config.default_features("metroidvania") == {**older, "crafting": False}
     for kind in config.ARCADE_KINDS:
         assert [k for k, on in config.default_features(kind).items() if not on] == [
             "dialogue",
             "navigation",
             "progression",
+            "crafting",
         ], kind
     # what a farm needs of the packs is what a top-down game needs
     assert requirements.REQUIRED.get("farm", requirements.REQUIRED["turn_based"]) == [
@@ -270,8 +279,8 @@ def test_the_orchestrator_plans_the_crops_then_the_map_then_the_people(tmp_path:
     ]
     assert order == sorted(order), said
     facts = orchestrator.farm_facts(cfg, catalog_mod.Catalog())
-    assert facts == {"water": False}, (
-        "no building and no water tile: the planner's own house, a well"
+    assert facts == {"water": False, "animal_houses": [], "workbench": True}, (
+        "no building, no water tile, no animal: the planner's own house, a well"
     )
     assert farm["map"] == farm_plan.plan(cfg.starter_map_options(), cfg.seed, facts)
     assert farm["map"]["water"]["kind"] == "well"

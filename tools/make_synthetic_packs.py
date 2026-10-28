@@ -1920,6 +1920,8 @@ def make_ranch(out: Path) -> None:
         _save_png(_strip(4, 20 + n), farmer / f"farmer_walk_{direction}_16x16_4frames.png")
     for n, tool in enumerate(("hoe", "water")):  # the farmer using a tool: no action word
         _save_png(_strip(3, 26 + n), farmer / f"farmer_{tool}_down_16x16_3frames.png")
+    # the axe, chopping (T18.10: hoeing, watering and chopping are played with the strips)
+    _save_png(_strip(3, 28), farmer / "farmer_axe_down_16x16_3frames.png")
     animals = (("cows", "cow_01", 32), ("chickens", "hen_01", 16))
     colours = ("brown", "black", "white")
     for folder, name, size in animals:
@@ -1960,6 +1962,7 @@ def make_ranch(out: Path) -> None:
             "usage": "sprite",
             "role": "NONE",
         },
+        "characters/farmer/farmer_axe_down_16x16_3frames.png": {"usage": "sprite", "role": "NONE"},
         "crops/pumpkin_16x16.png": {"usage": "sprite", "role": "CROP"},  # one picture
         "autotiles/01_soil_tilled.png": {"usage": "tiles", "role": "GROUND"},
         "autotiles/02_soil_watered.png": {"usage": "tiles", "role": "GROUND"},

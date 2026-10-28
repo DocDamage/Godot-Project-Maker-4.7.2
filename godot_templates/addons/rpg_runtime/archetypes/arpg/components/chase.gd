@@ -37,9 +37,18 @@ func distance() -> float:
 func in_attack_range() -> bool:
 	return distance() <= attack_range_px
 
-## The direction the next step goes in.
+## The direction the next step goes in. On a map with height (T18.20) a player on another level
+## is chased by the way up or down (a ramp), and given up when there is none.
 func direction() -> Vector2:
 	var to_player := detection.player_position() - detection.actor_position()
+	var levels := RpgLevels.near(actor)
+	var player := detection.player()
+	if levels != null and player != null and not RpgLevels.same_level(actor, player):
+		var way := levels.path(detection.actor_position(), detection.player_position())
+		if way.is_empty():
+			_lost = lose_time_s
+			return Vector2.ZERO
+		return (way[0] - detection.actor_position()).normalized()
 	if nav_mode == "agent" and agent != null and agent.process_mode != Node.PROCESS_MODE_DISABLED:
 		agent.target_position = detection.player_position()
 		if not agent.is_navigation_finished():

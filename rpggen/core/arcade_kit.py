@@ -162,6 +162,92 @@ def car(tile: int) -> Image.Image:
     return img
 
 
+def _shade(colour: Color, by: float) -> Color:
+    """``colour`` lighter (``by`` above 1) or darker (below 1), whole numbers."""
+    r, g, b, a = colour
+    return (min(255, round(r * by)), min(255, round(g * by)), min(255, round(b * by)), a)
+
+
+def _iso_point(gx: float, gy: float, half_w: float, half_h: float) -> tuple[float, float]:
+    """A place of the ground (cells) on the screen of a view of diamonds ``2 half_w`` by
+    ``2 half_h`` px: what RpgIso does with the grid."""
+    return (gx - gy) * half_w, (gx + gy) * half_h
+
+
+def iso_car(footprint: tuple[int, int], colour: Color = RED) -> Image.Image:
+    """A car seen at the angle of an isometric view (T18.19), in sixteen headings in a row: the
+    first points up on the screen, each next one is turned clockwise on the screen by a sixteenth
+    (the order RpgHeadingSprite reads, ``up_cw``). For each heading the screen's direction is
+    taken back to the ground, where the car is a box (a body, a cabin on it, four wheels) 0.8 of
+    a cell long and 0.42 wide, which is then seen from the view's angle: the faces that look at
+    the viewer are drawn, the sides darker than the top. A cell of the sheet is a diamond and a
+    half wide."""
+    fw, fh = max(8, int(footprint[0])), max(4, int(footprint[1]))
+    cell_w, cell_h = fw * 3 // 2, fh * 2 + fh // 2
+    img, d = _new(cell_w * CAR_HEADINGS, cell_h)
+    body_h, cabin_h = fh * 0.45, fh * 0.35
+    length, width = 0.8, 0.21
+    for k in range(CAR_HEADINGS):
+        angle = k * 2 * math.pi / CAR_HEADINGS
+        sx, sy = math.sin(angle), -math.cos(angle)  # the screen's direction
+        gx, gy = sy + sx / 2.0, sy - sx / 2.0  # ... taken back to the ground
+        norm = math.hypot(gx, gy) or 1.0
+        centre = (k * cell_w + cell_w / 2.0, cell_h * 0.62)
+        view = _IsoCar(d, centre, (gx / norm, gy / norm), fw, fh)
+        for along in (-length * 0.3, length * 0.3):
+            for across in (-width * 1.05, width * 1.05):
+                wx, wy = view.ground(along, across, 1)
+                d.ellipse([wx - 2, wy - 2, wx + 2, wy + 1], fill=BLACK)
+        view.box((length, width, -length / 2), (1.0, body_h), colour)
+        roof = (length * 0.42, width * 0.8, -length * 0.25)
+        view.box(roof, (body_h, body_h + cabin_h), _shade(WHITE, 0.92))
+    return img
+
+
+class _IsoCar:
+    """One heading of ``iso_car``: the ground of the car (along it and across it) on the screen."""
+
+    def __init__(
+        self,
+        d: ImageDraw.ImageDraw,
+        centre: tuple[float, float],
+        along: tuple[float, float],
+        fw: int,
+        fh: int,
+    ) -> None:
+        self.d = d
+        self.cx, self.cy = centre
+        self.ax, self.ay = along
+        self.px, self.py = -along[1], along[0]
+        self.half_w, self.half_h = fw / 2.0, fh / 2.0
+
+    def ground(self, along: float, across: float, up: float = 0.0) -> tuple[int, int]:
+        gx = self.ax * along + self.px * across
+        gy = self.ay * along + self.py * across
+        x, y = _iso_point(gx, gy, self.half_w, self.half_h)
+        return round(self.cx + x), round(self.cy + y - up)
+
+    def box(
+        self, size: tuple[float, float, float], heights: tuple[float, float], top: Color
+    ) -> None:
+        """A box ``size`` (length, half its width, where its back is along the car) from height
+        ``low`` to ``high`` px: the sides that face the viewer (down on the screen), then the
+        top."""
+        length, width, back = size
+        low, high = heights
+        corners = [(back + length, -width), (back + length, width), (back, width), (back, -width)]
+        for i in range(4):
+            a, b = corners[i], corners[(i + 1) % 4]
+            nx = (b[1] - a[1]) * self.ax + (a[0] - b[0]) * self.px
+            ny = (b[1] - a[1]) * self.ay + (a[0] - b[0]) * self.py
+            if nx + ny > 0:
+                side = [self.ground(*a, low), self.ground(*b, low)]
+                side += [self.ground(*b, high), self.ground(*a, high)]
+                shade = 0.62 if abs(nx) > abs(ny) else 0.78
+                self.d.polygon(side, fill=_shade(top, shade), outline=BLACK)
+        self.d.polygon([self.ground(x, y, high) for x, y in corners], fill=top, outline=BLACK)
+
+
 def _road_cell(name: str, t: int) -> Image.Image:
     """One tile of the road sheet, drawn on a canvas of its own."""
     cell, d = _new(t, t)
@@ -340,6 +426,22 @@ def drawn_roles(archetype: str) -> frozenset[str]:
 
 
 def _has(catalog: catalog_mod.Catalog, stand_in: StandIn, projection: str = "top_down") -> bool:
+    """See ``_has_role``; on an isometric track a car is one of eight headings or more (T18.19):
+    a single picture of a car is rotated flat, which looks wrong at the view's angle."""
+    if stand_in.name == "car" and projection == catalog_mod.PROJECTION_ISOMETRIC:
+        return any(
+            asset.status not in _INACTIVE
+            and asset.pack_id != KIT_PACK
+            and catalog_mod.effective(asset).get("role") == stand_in.role
+            and int(catalog_mod.effective(asset).get("headings", 1) or 1) >= 8
+            for asset in catalog.assets
+        )
+    return _has_role(catalog, stand_in, projection)
+
+
+def _has_role(
+    catalog: catalog_mod.Catalog, stand_in: StandIn, projection: str = "top_down"
+) -> bool:
     """True when the packs have what ``stand_in`` would stand in for: an asset in use with its
     role. A tag alone does not count: the recipes of the kinds look for the role, so a pickup
     that is only tagged ``bullet`` would leave the game without a bullet (T16.09)."""
@@ -372,6 +474,7 @@ def add(
     tile: int,
     staging_root: Path,
     projection: str = "top_down",
+    footprint: tuple[int, int] | None = None,
 ) -> tuple[list[str], IssueList]:
     """Draw what ``archetype`` needs and the packs lack into the staging copy, add it to the
     catalog and return the names with one ``ASSET-031`` note each. The stand-ins of the last
@@ -381,7 +484,8 @@ def add(
     catalog.assets[:] = [a for a in catalog.assets if a.id not in own]
     added: list[str] = []
     for stand_in in lacking(catalog, archetype, projection):
-        image = stand_in.draw(tile)
+        iso = stand_in.name == "car" and projection == catalog_mod.PROJECTION_ISOMETRIC
+        image = iso_car(footprint or (tile * 2, tile)) if iso else stand_in.draw(tile)
         rel = f"{KIT_DIR}/{stand_in.name}.png"
         target = Path(staging_root) / rel
         target.parent.mkdir(parents=True, exist_ok=True)
@@ -394,7 +498,10 @@ def add(
                 sha256=hashlib.sha256(target.read_bytes()).hexdigest(),
                 kind="image",
                 status="CONFIRMED",
-                detected=_facets(stand_in, image, tile),
+                detected={
+                    **_facets(stand_in, image, tile),
+                    **({"projection": projection} if iso else {}),
+                },
                 detected_by="placeholder",
                 confidence=1.0,
             )

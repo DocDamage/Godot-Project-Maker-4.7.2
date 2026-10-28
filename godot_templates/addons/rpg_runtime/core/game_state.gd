@@ -532,6 +532,8 @@ var _moving_gear := false
 ## An item gained counts `items:<id>` ("Gather 30 logs": count:items:log>=30), in a game that has
 ## achievements.
 func _on_item_counted(item_id: StringName, qty: int) -> void:
+	if not _moving_gear and not _delivering_counted:
+		RpgCrafting.note_held(self, item_id)  # a recipe found by itself (T18.14)
 	if not _moving_gear and not _delivering_counted and not achievement_defs.is_empty():
 		count("items:%s" % item_id, qty)
 
@@ -1083,6 +1085,15 @@ func wear(actor_id: StringName, slot: StringName, amount: int = 1) -> bool:
 		return false
 	_set_worn(actor_id, slot, &"")
 	RpgUtil.notify(RpgStrings.format("UI_ITEM_BROKE", _item_label(item_id, 1)))
+	return true
+
+## Takes away the wear of the piece in `slot` (a shop's repair, 1.5.0). False when it has none.
+func mend(actor_id: StringName, slot: StringName) -> bool:
+	var data := worn_data_of(actor_id, slot).duplicate(true)
+	if RpgUtil.to_int(data.get("wear", 0)) <= 0:
+		return false
+	data.erase("wear")
+	_set_worn_data(actor_id, slot, data)
 	return true
 
 ## What a hit taken wears: the armour and the accessory.

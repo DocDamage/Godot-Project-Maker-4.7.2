@@ -25,6 +25,12 @@ func _ready() -> void:
 		_ambient.name = AMBIENT_NODE
 		add_child(_ambient)
 	update_ambient()
+	# the Day and night setting switched on in the settings menu shows at once (T18.06)
+	var settings := RpgUtil.settings()
+	if settings != null and not settings.changed.is_connected(update_ambient):
+		settings.changed.connect(update_ambient)
+	# height on diamonds (T18.20): a map with height layers has levels; others are as they were
+	RpgLevels.ensure(self)
 
 func _process(delta: float) -> void:
 	_since_update += delta
@@ -36,12 +42,12 @@ func interior() -> bool:
 	return is_interior or str(map_id).begins_with("interior")
 
 ## Sets the CanvasModulate colour; only an outdoor map with the cycle on keeps updating. The cycle
-## is on by its setting, or because the game has a calendar the light follows.
+## is on by its setting, whose default is on in a game with a calendar the light follows (T18.06).
 func update_ambient() -> void:
 	if _ambient == null:
 		return
 	var settings := RpgUtil.settings()
-	var cycle := not interior() and (RpgDayNight.calendar() != null or (settings != null and settings.day_night))
+	var cycle := not interior() and (settings.day_night_on() if settings != null else RpgDayNight.calendar() != null)
 	var state := RpgUtil.state()
 	var playtime := state.playtime_s if state != null else 0.0
 	_ambient.color = ambient_override if ambient_override.a > 0.0 else RpgDayNight.map_ambient(interior(), cycle, playtime)

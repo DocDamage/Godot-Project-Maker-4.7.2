@@ -79,11 +79,17 @@
         "map": {"type": "string", "minLength": 1},
         "farm_size": {"enum": ["small", "medium", "large"]},
         "plot": {"enum": ["small", "medium", "large"]},
-        "animals": {"enum": ["none", "coop", "coop_and_barn"]},
+        "animals": {"enum": ["none", "auto", "coop", "barn", "coop_and_barn"]},
         "difficulty": {"enum": ["easy", "normal", "hard"]},
         "size": {"$ref": "#/$defs/Cell"},
         "house": {"$ref": "#/$defs/FarmBuilding"},
         "bin": {
+          "type": "object",
+          "properties": {"cell": {"$ref": "#/$defs/Cell"}, "front": {"$ref": "#/$defs/Cell"}},
+          "required": ["cell"],
+          "additionalProperties": false
+        },
+        "workbench": {
           "type": "object",
           "properties": {"cell": {"$ref": "#/$defs/Cell"}, "front": {"$ref": "#/$defs/Cell"}},
           "required": ["cell"],
@@ -515,6 +521,8 @@
         "large": {"type": "string", "minLength": 1},
         "large_price": {"type": "integer", "minimum": 1},
         "collect": {"enum": ["floor", "hand"]},
+        "tool": {"enum": ["pail", "shears"]},
+        "tool_price": {"type": "integer", "minimum": 0},
         "variants": {"type": "array", "items": {"$ref": "#/$defs/AnimalVariant"}, "minItems": 1}
       },
       "required": [

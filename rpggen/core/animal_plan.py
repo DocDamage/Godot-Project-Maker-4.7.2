@@ -66,6 +66,10 @@ LARGE_FACTOR = (3, 2)  # the product of an animal that is a friend sells for 3/2
 ON_THE_FLOOR = "floor"
 BY_HAND = "hand"
 FEED = {"item": "hay", "name": "Hay", "price": 10}
+# what an animal's product is taken with by hand (T18.12): kind -> the tool (an item of the
+# shop, in the farmer's bag at the start of a farm that has such a kind); others need nothing
+TOOLS = {"cow": "pail", "goat": "pail", "sheep": "shears"}
+TOOL_PRICES = {"pail": 80, "shears": 100}
 # what an animal is called when it is bought, in an order the seed gives
 NAMES = (
     "Dot", "Bess", "Pip", "Clover", "Daisy", "Nell", "Mabel", "Poppy", "Hazel", "Juno",
@@ -142,6 +146,20 @@ def facts_of(catalog: Any, houses: Any = ()) -> dict[str, Any]:
     return {"houses": [h for h in HOUSES if h in set(houses or ())], "animals": animals}
 
 
+def pack_houses(animals: Any) -> list[str]:
+    """The houses whose animals the packs have (T18.05): ``animals`` is ``facts_of(...)
+    ["animals"]``; the farm kit's drawn hen, which stands in when the packs have none, does not
+    count. The coop first."""
+    from rpggen.core import farm_kit
+
+    kinds = {
+        str(a["kind"])
+        for a in animals or []
+        if not str(a["asset"]).startswith(farm_kit.KIT_PACK + ".")
+    }
+    return [h for h in HOUSES if any(house_of(k) == h for k in kinds)]
+
+
 def houses_of(farm_map: Any) -> list[dict[str, Any]]:
     """The animal houses of a farm's own plan (``farm.map``) as the game needs them: ``kind``,
     the scene of the room (``map``), the scene of the map its yard is on (``yard_map``) and how
@@ -200,6 +218,7 @@ def _entry(kind: str, variants: list[dict[str, Any]]) -> dict[str, Any]:
         "large": f"{product}_large",
         "large_price": price * LARGE_FACTOR[0] // LARGE_FACTOR[1],
         "collect": ON_THE_FLOOR if house == COOP else BY_HAND,
+        **({"tool": TOOLS[kind], "tool_price": TOOL_PRICES[TOOLS[kind]]} if kind in TOOLS else {}),
         "variants": variants,
     }
 

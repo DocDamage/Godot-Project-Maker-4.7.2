@@ -69,6 +69,9 @@ const BIN_ROLES: Array[String] = ["DECORATION", "ITEM", "BUILDING"]
 const BIN_TAG := "bin"
 const BED_ROLES: Array[String] = ["DECORATION", "INTERIOR", "ITEM"]
 const BED_WORDS: Array[String] = ["bed", "beds"]
+## The workbench (T18.15): a pack's own is known by these words of its file name.
+const WORKBENCH_WORDS: Array[String] = ["workbench", "bench", "table", "workshop"]
+const WORKBENCH_ROLES: Array[String] = ["DECORATION", "INTERIOR", "ITEM", "BUILDING"]
 
 const WOOD := Color(0.55, 0.36, 0.2)
 const METAL := Color(0.75, 0.77, 0.8)
@@ -160,6 +163,50 @@ static func option(ctx: BuildContext, key: String, fallback: Variant) -> Variant
 static func starting_money(ctx: BuildContext) -> int:
 	return maxi(0, JsonUtil.to_int(option(ctx, "starting_money", START_MONEY), START_MONEY))
 
+## True when a married farmer can have children (`starter_map.children`, T18.17): with marriage.
+static func children(ctx: BuildContext) -> bool:
+	return JsonUtil.to_bool(option(ctx, "children", false), false) and courting(ctx)
+
+## A child of the packs (T18.17): an NPC whose file name says child, kid, boy, girl or baby, or {}.
+const CHILD_WORDS: Array[String] = ["child", "children", "kid", "kids", "boy", "girl", "baby", "toddler"]
+
+static func child_asset(ctx: BuildContext) -> Dictionary:
+	for asset in ctx.catalog.assets_by_role("NPC"):
+		if not _usable(asset):
+			continue
+		var file := JsonUtil.to_str(asset.get("path", "")).get_file().get_basename().to_lower()
+		for word in CHILD_WORDS:
+			if file.replace("-", "_").split("_", false).has(word):
+				return asset
+	return {}
+
+## True when the farm cooks (`starter_map.cooking`, T18.16): a kitchen in a new farmhouse.
+static func cooking(ctx: BuildContext) -> bool:
+	return JsonUtil.to_bool(option(ctx, "cooking", false), false)
+
+## The kitchen of the farmhouse (T18.16): a pack's stove or oven is known by these words.
+const KITCHEN_WORDS: Array[String] = ["stove", "oven", "kitchen", "cooker", "hearth"]
+
+static func kitchen_asset(ctx: BuildContext) -> Dictionary:
+	for asset in ctx.catalog.assets():
+		var eff: Dictionary = ctx.catalog.effective(asset)
+		if not _own_object(asset, eff, WORKBENCH_ROLES) or not _fits_a_room(ctx, eff):
+			continue
+		var file := JsonUtil.to_str(asset.get("path", "")).get_file().get_basename().to_lower()
+		for word in KITCHEN_WORDS:
+			if file.replace("-", "_").split("_", false).has(word):
+				return asset
+	return {}
+
+## True when the farm crafts (the feature `crafting`, T18.15): its mode's `crafting`.
+static func crafts(ctx: BuildContext) -> bool:
+	return JsonUtil.to_bool(ctx.section("features").get("crafting", false))
+
+## True when working at zero energy ends the day (`starter_map.exhaustion`, T18.11): a new farm
+## has it, a farm made before lacks the key.
+static func exhaustion(ctx: BuildContext) -> bool:
+	return JsonUtil.to_bool(option(ctx, "exhaustion", false), false)
+
 ## False when staying up to 2:00 costs no money (`starter_map.pass_out_loss`).
 static func pass_out_loss(ctx: BuildContext) -> bool:
 	return JsonUtil.to_bool(option(ctx, "pass_out_loss", true), true)
@@ -202,6 +249,14 @@ static func starting_items() -> Array:
 	var planned := crops()
 	if not planned.is_empty():
 		items.append({"item_id": JsonUtil.to_str(planned[0].get("seed", "")), "qty": START_SEEDS})
+	# a pail (or shears) where the farm keeps an animal that needs one (T18.12)
+	var animals := JsonUtil.to_dict(plan().get("animals", {}))
+	var tools: Array[String] = []
+	for raw: Variant in JsonUtil.to_array(animals.get("kinds", [])):
+		var tool := JsonUtil.to_str(JsonUtil.to_dict(raw).get("tool", ""))
+		if tool != "" and not tools.has(tool):
+			tools.append(tool)
+			items.append({"item_id": tool, "qty": 1})
 	return items
 
 # ---------------------------------------------------------------- the packs
@@ -259,6 +314,19 @@ static func _fits_a_room(ctx: BuildContext, eff: Dictionary) -> bool:
 
 ## True for a picture of the packs (not the kit's) that is in use, stands on a map (an object
 ## or a sprite) and has one of `roles`.
+## The picture of the workbench: a pack's own (an object or a sprite with one of WORKBENCH_WORDS in
+## its file name, no larger than a room takes), or {} (it is drawn).
+static func workbench_asset(ctx: BuildContext) -> Dictionary:
+	for asset in ctx.catalog.assets():
+		var eff: Dictionary = ctx.catalog.effective(asset)
+		if not _own_object(asset, eff, WORKBENCH_ROLES) or not _fits_a_room(ctx, eff):
+			continue
+		var file := JsonUtil.to_str(asset.get("path", "")).get_file().get_basename().to_lower()
+		for word in WORKBENCH_WORDS:
+			if file.replace("-", "_").split("_", false).has(word):
+				return asset
+	return {}
+
 static func _own_object(asset: Dictionary, eff: Dictionary, roles: Array[String]) -> bool:
 	if not _usable(asset) or asset.get("pack_id", "") == KIT_PACK:
 		return false

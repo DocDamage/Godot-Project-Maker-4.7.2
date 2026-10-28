@@ -20,6 +20,11 @@ extends Node2D
 ## season that begins withers; soil dries; tilled soil that has had nothing on it and no water
 ## for IDLE_NIGHTS nights is ground again.
 ##
+## **A crop whose kind was removed** (from `crops.json`, T18.09) stays in the data as it was
+## saved, so nothing is lost: it is shown with its last picture (`look` of the cell, kept
+## while its kind was known) greyed, counts as WITHERED, does not grow, and is cleared by hand,
+## the hoe or the sickle, giving nothing (`is_orphan`). The first one the player meets says so.
+##
 ## **Squares or diamonds.** A cell is a cell of the `Soil` layer, whatever its shape: the layer
 ## turns a place into a cell and back (`cell_at`, `cell_center`), so the field of an isometric
 ## farm (T17.14) is the same data on a layer of diamonds. What differs is where a thing of a
@@ -46,6 +51,8 @@ const SOIL := "soil"
 const CROP := "crop"
 const RIPE := "ripe"
 const WITHERED := "withered"
+## The flag (of FLAG_ENTITY) set once the player was told a crop is no longer grown (T18.09).
+const ORPHAN_TOLD := "orphan_told"
 
 ## What the field is called in the saved game; the id of its map when empty.
 @export var field_id: String = ""
@@ -173,12 +180,17 @@ func state_of(cell: Vector2i) -> String:
 	var crop_id := RpgUtil.to_str(entry.get("crop", ""))
 	if crop_id == "":
 		return SOIL
-	if RpgUtil.to_bool(entry.get("dead", false)):
-		return WITHERED
+	if RpgUtil.to_bool(entry.get("dead", false)) or not crops.has(crop_id):
+		return WITHERED  # withered, or of a kind the game no longer has (T18.09)
 	return RIPE if RpgCropData.is_ripe(RpgUtil.to_int(entry.get("grown", 0)), crops.days(crop_id)) else CROP
 
 func is_watered(cell: Vector2i) -> bool:
 	return cells.has(cell) and RpgUtil.to_bool(RpgUtil.to_dict(cells[cell]).get("w", false))
+
+## True when the crop of a cell is of a kind the crop data no longer has (T18.09).
+func is_orphan(cell: Vector2i) -> bool:
+	var crop_id := crop_at(cell)
+	return crop_id != "" and crops != null and not crops.has(crop_id)
 
 ## The crop id of a cell, or "".
 func crop_at(cell: Vector2i) -> String:
@@ -307,6 +319,7 @@ func remove_crop(cell: Vector2i) -> bool:
 	entry["grown"] = 0
 	entry["dead"] = false
 	entry["idle"] = 0
+	entry.erase("look")
 	_touched(cell)
 	return true
 
@@ -382,13 +395,16 @@ func from_dict(saved: Dictionary) -> void:
 	cells.clear()
 	for key: Variant in saved.keys():
 		var entry := RpgUtil.to_dict(saved[key])
-		cells[cell_of(RpgUtil.to_str(key))] = {
+		var cell := {
 			"w": RpgUtil.to_bool(entry.get("w", false)),
 			"crop": RpgUtil.to_str(entry.get("crop", "")),
 			"grown": RpgUtil.to_int(entry.get("grown", 0)),
 			"dead": RpgUtil.to_bool(entry.get("dead", false)),
 			"idle": RpgUtil.to_int(entry.get("idle", 0)),
 		}
+		if entry.get("look") is Array:  # the picture it was last shown with (T18.09)
+			cell["look"] = RpgUtil.to_array(entry["look"]).duplicate()
+		cells[cell_of(RpgUtil.to_str(key))] = cell
 
 ## Writes the state into the game state (every change does).
 func store() -> void:
@@ -432,12 +448,46 @@ func _show(cell: Vector2i) -> void:
 		node = null
 	if crop_id == "":
 		return
+	if is_orphan(cell):
+		_show_orphan(cell, node)
+		return
 	if node == null:
 		node = _make_crop(crop_id, cell)
 	var state := state_of(cell)
 	var days := crops.days(crop_id)
 	var count := crops.stages(crop_id)
 	node.show_stage(RpgCropData.stage_of(grown_at(cell), days, count), count, state == RIPE, state == WITHERED)
+	var look := node.look()
+	var entry: Dictionary = cells[cell]
+	if not look.is_empty() and entry.get("look") != look:
+		entry["look"] = look  # kept for a day its kind is gone (T18.09)
+		store()
+
+## A crop of a kind the game no longer has (T18.09): its last picture, greyed; it can be cleared
+## by hand. The first the player meets says so.
+func _show_orphan(cell: Vector2i, node: RpgCrop) -> void:
+	if node == null:
+		node = RpgCrop.new()
+		node.name = "Crop_%d_%d" % [cell.x, cell.y]
+		node.crop_id = crop_at(cell)
+		node.cell = cell
+		node.picked.connect(harvest)
+		node.cleared.connect(remove_crop)
+		var holder := get_node_or_null(crops_path)
+		if holder == null:
+			holder = self
+		holder.add_child(node)
+		var foot := foot_of(cell)
+		if node.is_inside_tree():
+			node.global_position = foot
+		else:
+			node.position = foot
+		_nodes[cell] = node
+	node.show_gone(RpgUtil.to_array(RpgUtil.to_dict(cells[cell]).get("look", [])))
+	var state := RpgUtil.state()
+	if state != null and not RpgUtil.to_bool(state.get_flag(FLAG_ENTITY, ORPHAN_TOLD, false)):
+		state.set_flag(FLAG_ENTITY, ORPHAN_TOLD, true)
+		RpgUtil.notify(RpgFarmStrings.t("FARM_CROP_GONE"))
 
 func _paint(cell: Vector2i) -> void:
 	if _soil == null:
@@ -497,6 +547,7 @@ func _make_crop(crop_id: String, cell: Vector2i) -> RpgCrop:
 	node.crop_id = crop_id
 	node.cell = cell
 	node.picked.connect(harvest)
+	node.cleared.connect(remove_crop)
 	var holder := get_node_or_null(crops_path)
 	if holder == null:
 		holder = self

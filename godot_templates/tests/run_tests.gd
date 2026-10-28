@@ -66,7 +66,8 @@ func _run() -> void:
 	for path in _list_tests(UNIT_DIR):
 		_log.current = path
 		var script: Variant = load(path)
-		if script == null or not (script is GDScript):
+		# a file that loads but does not compile cannot be made (and new() would stop the run)
+		if script == null or not (script is GDScript) or not (script as GDScript).can_instantiate():
 			failed += 1
 			failures.append("%s: failed to load" % path)
 			print("FAIL %s: failed to load" % path)
@@ -165,5 +166,8 @@ func _list_tests(dir_path: String) -> Array:
 		if e[1]:
 			found.append_array(_list_tests(full))
 		elif String(e[0]).begins_with("test_") and String(e[0]).ends_with(".gd"):
-			found.append(full)
+			# RPGGEN_TEST_ONLY="test_a,test_b" runs only the files whose name holds one of them
+			var only := OS.get_environment("RPGGEN_TEST_ONLY")
+			if only == "" or Array(only.split(",")).any(func(w: String) -> bool: return w in String(e[0])):
+				found.append(full)
 	return found

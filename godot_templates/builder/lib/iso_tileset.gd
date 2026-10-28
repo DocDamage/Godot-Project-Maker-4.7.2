@@ -148,8 +148,17 @@ static func custom_data(asset: Dictionary, eff: Dictionary) -> Dictionary:
 		"tillable": tags.has("tillable"),
 		"water": tags.has("water") or JsonUtil.to_str(eff.get("role", "")) == "WATER",
 		"lift": JsonUtil.to_int(eff.get("lift", 0)),
-		"stack": JsonUtil.to_str(eff.get("stack", "")),
+		"stack": stack_data(eff),
 	}
+
+## The `stack` of a tile's data: the catalog's, and for a ramp with its facet `ramp` (T18.20)
+## "ramp:<low>:<high>:<side>", its two ends (px) and the side of the grid it rises to.
+static func stack_data(eff: Dictionary) -> String:
+	var stack := JsonUtil.to_str(eff.get("stack", ""))
+	var ramp := JsonUtil.to_array(eff.get("ramp", []))
+	if stack == "ramp" and ramp.size() == 3:
+		return "ramp:%d:%d:%s" % [JsonUtil.to_int(ramp[0]), JsonUtil.to_int(ramp[1]), JsonUtil.to_str(ramp[2])]
+	return stack
 
 ## Puts a sprite that shows an object (a tree, a house) on the middle of a cell: its picture's
 ## `origin` (the middle of the diamond it stands on, from the catalog) lies on `at`.
@@ -200,7 +209,7 @@ static func inputs(catalog: CatalogReader) -> Array:
 			var row := [id, asset.get("sha256", ""), eff.get("origin"), eff.get("collision"), eff.get("role"), eff.get("tags", [])]
 			if eff.has("iso_terrain"):  # only a piece of a terrain has it (T17.31)
 				row.append(eff["iso_terrain"])
-			for key: String in ["lift", "stack"]:  # only a piece of a stack has them (2026-10-26)
+			for key: String in ["lift", "stack", "ramp"]:  # only a piece of a stack has them (2026-10-26, T18.20)
 				if eff.has(key):
 					row.append([key, eff[key]])
 			var placed := JsonUtil.to_dict(tiles[id])

@@ -36,6 +36,8 @@ func steps() -> Array[Dictionary]:
 	list.append({"name": "save_overwrite_confirm", "fn": _save_overwrite_confirm, "timeout_s": 15.0})
 	list.append({"name": "equip_raises_attack", "fn": _equip_raises_attack, "timeout_s": 15.0})
 	list.append({"name": "shop_buy_sell", "fn": _shop_buy_sell, "timeout_s": 20.0})
+	list.append({"name": "shop_stock_and_repair", "fn": _shop_stock_and_repair, "timeout_s": 30.0})
+	list.append({"name": "craft_by_hand", "fn": _craft_by_hand, "timeout_s": 20.0})
 	list.append({"name": "quest_journal", "fn": _quest_journal, "timeout_s": 20.0})
 	list.append({"name": "party_members", "fn": _party_members, "timeout_s": 20.0})
 	list.append({"name": "followers_trail", "fn": _followers_trail, "timeout_s": 20.0})
@@ -490,6 +492,198 @@ func _shop_buy_sell() -> String:
 	state.gold = gold
 	if calendar != null:
 		calendar.minute = minute
+	return failure
+
+## The starter shop of 1.5.0 (T18.04): the last potions bought say *Sold out*; a day later (a
+## night's sleep on a farm, minutes of play elsewhere) they are back; the sword, worn, is mended
+## at the Repair tab for gold. A shop from before (no limited row, no repairs) passes with a note.
+## Everything is put back afterwards.
+func _shop_stock_and_repair() -> String:
+	var tree := _tree()
+	var state: RpgGameState = _autoload("GameState") as RpgGameState
+	var router: Node = _autoload("SceneRouter")
+	var controller := router.get_node_or_null("UiController") as RpgUiController if router != null else null
+	if state == null or controller == null:
+		return "GameState or the UiController is missing"
+	var shop := RpgShopDefinition.load_shop(&"village_shop")
+	if shop == null:
+		return "game/data/shops/village_shop.tres was not seeded"
+	if shop.left_of(state, &"potion") < 0 and not shop.repairs:
+		print("[rpggen] INFO shop_stock_and_repair: the shop has no limited row and does not repair (a shop from before 1.5), step passes")
+		return ""
+	var gold: int = state.gold
+	var playtime: float = state.playtime_s
+	var potions: int = state.inventory.count(&"potion")
+	var calendar := RpgCalendar.current()
+	var calendar_was: Dictionary = calendar.to_dict() if calendar != null else {}
+	if calendar != null and shop.closed_reason() != "":
+		calendar.minute = JsonUtil.to_int(shop.get("opens")) * 60
+	state.gold = 10000
+	var failure := ""
+	var menu: RpgShopMenu = await _open_shop(controller)
+	if menu == null:
+		failure = "the shop did not open"
+	var stock := shop.left_of(state, &"potion")
+	var full := -1  # what the row holds at each restock
+	for entry in shop.stock:
+		if str(entry.get("item_id", "")) == "potion" and entry.has("qty"):
+			full = JsonUtil.to_int(entry["qty"])
+	if failure == "" and stock > 0:
+		menu.set_quantity(&"potion", stock)
+		_shop_row(menu, &"potion").pressed.emit()
+		await _frames(2)
+		var row := _shop_row(menu, &"potion")
+		if shop.left_of(state, &"potion") != 0:
+			failure = "buying the last %d potions left %d" % [stock, shop.left_of(state, &"potion")]
+		elif row == null or not row.text.ends_with(menu.tr("UI_SOLD_OUT")):
+			failure = "the potion's row does not say it is sold out: '%s'" % (row.text if row != null else "")
+		if menu != null and is_instance_valid(menu):
+			menu.close()
+		await _frames(2)
+		if failure == "":
+			# a day later: the next morning of a calendar, else the shop's minutes of play
+			if calendar != null and shop.restock_each_day:
+				# the next day the shop is open (not its closed day, not a festival)
+				for i in RpgCalendar.WEEK_DAYS + 1:
+					var next := RpgCalendar.date_after(calendar.day, calendar.season, calendar.year, 1, calendar.days_per_season)
+					calendar.day = next[0]
+					calendar.season = next[1]
+					calendar.year = next[2]
+					if shop.closed_reason() == "":
+						break
+			else:
+				state.playtime_s += float(shop.restock_minutes) * 60.0
+			menu = await _open_shop(controller)
+			var back := shop.left_of(state, &"potion")
+			if menu == null:
+				failure = "the shop did not open the next day"
+			elif back != full:
+				failure = "a day later the shop has %d potions, not %d" % [back, full]
+			elif _shop_row(menu, &"potion") == null or _shop_row(menu, &"potion").text.ends_with(menu.tr("UI_SOLD_OUT")):
+				failure = "a day later the potion's row still says sold out"
+	if failure == "" and shop.repairs:
+		failure = await _repair_the_sword(state, menu)
+	if menu != null and is_instance_valid(menu):
+		menu.close()
+	await _frames(2)
+	tree.paused = false
+	state.gold = gold
+	state.playtime_s = playtime
+	var extra := state.inventory.count(&"potion") - potions
+	if extra > 0:
+		state.inventory.remove(&"potion", extra)
+	if calendar != null:
+		calendar.from_dict(calendar_was)
+	return failure
+
+## The starter weapon that wears, worn and worn down, then mended at the Repair tab of `menu`.
+func _repair_the_sword(state: RpgGameState, menu: RpgShopMenu) -> String:
+	var weapon := &""
+	for item_id: StringName in state.items:
+		var def: RpgItemDefinition = state.items[item_id]
+		if def.durability > 0 and RpgGameState.slot_of(def) == &"weapon":
+			weapon = item_id
+			break
+	if weapon == &"":
+		print("[rpggen] INFO shop_stock_and_repair: no weapon of the game wears, the repair is not tried")
+		return ""
+	if menu == null or menu.repair_tab() == null:
+		return "the shop repairs but its menu has no Repair tab"
+	var actor := state.player_actor_id
+	var was_worn := state.equipped_in(actor, &"weapon")
+	var added := false
+	if was_worn != weapon:
+		state.inventory.add(weapon)
+		added = true
+		if not state.equip(actor, weapon):
+			return "the %s could not be worn" % weapon
+	state.wear(actor, &"weapon", 3)
+	var before: int = state.gold
+	menu.set_mode(RpgShopMenu.REPAIR)
+	await _frames(2)
+	var failure := ""
+	var row: Button = menu.rows()[0] if not menu.rows().is_empty() else null
+	if row == null:
+		failure = "the Repair tab lists nothing for a worn %s" % weapon
+	elif not row.text.contains("3/%d" % state.wear_of(actor, &"weapon")[1]):
+		failure = "the Repair tab's row does not show the wear: '%s'" % row.text
+	else:
+		row.pressed.emit()
+		await _frames(2)
+		if state.wear_of(actor, &"weapon")[0] != 0:
+			failure = "the %s still has wear %d after the repair" % [weapon, state.wear_of(actor, &"weapon")[0]]
+		elif state.gold >= before:
+			failure = "the repair cost nothing"
+	if added:
+		state.unequip(actor, &"weapon")
+		if was_worn != &"":
+			state.equip(actor, was_worn)
+		state.inventory.remove(weapon)
+	return failure
+
+func _open_shop(controller: RpgUiController) -> RpgShopMenu:
+	RpgUtil.emit(&"shop_requested", [&"village_shop"])
+	for i in 30:
+		await _tree().physics_frame
+		var menu := _shop_menu(controller)
+		if menu != null:
+			return menu
+	return null
+
+## Crafting (T18.14): the pause menu has Crafting, and the starter recipe (two herbs make a potion)
+## is made in the crafting window. A game without a recipe by hand passes with a note. The bag is
+## put back afterwards.
+func _craft_by_hand() -> String:
+	var state: RpgGameState = _autoload("GameState") as RpgGameState
+	if state == null:
+		return "GameState is missing"
+	var potion := RpgCrafting.recipe(&"potion")
+	if potion == null:
+		print("[rpggen] INFO craft_by_hand: the game has no starter recipe (no crafting), step passes")
+		return ""
+	if not state.items.has(&"herb"):
+		return "the starter recipe needs herbs, and game/data/items has none"
+	var menu := (load(RpgMenuUtil.scene_path("pause_menu")) as PackedScene).instantiate() as RpgPauseMenu
+	_tree().root.add_child(menu)
+	await _frames(2)
+	var crafting := menu.find_child("Crafting", true, false) as Button
+	var failure := ""
+	if crafting == null or not crafting.visible:
+		failure = "the pause menu has no Crafting"
+	var herbs := state.inventory.count(&"herb")
+	var potions := state.inventory.count(&"potion")
+	state.inventory.add(&"herb", 2)
+	var window: RpgCraftingMenu = null
+	if failure == "":
+		crafting.pressed.emit()
+		await _frames(2)
+		for child in menu.get_children():
+			if child is RpgCraftingMenu:
+				window = child
+		if window == null:
+			failure = "Crafting did not open the crafting window"
+	if failure == "":
+		var cell: Button = null
+		for each in window.cells():
+			if window.recipe_of(each).id == &"potion":
+				cell = each
+		if cell == null:
+			failure = "the window does not list the potion"
+		else:
+			cell.pressed.emit()
+			await _frames(2)
+			if state.inventory.count(&"potion") != potions + 1 or state.inventory.count(&"herb") != herbs:
+				failure = "crafting left %d potions and %d herbs" % [state.inventory.count(&"potion"), state.inventory.count(&"herb")]
+	if window != null and is_instance_valid(window):
+		window.close()
+	menu.close()
+	await _frames(2)
+	_tree().paused = false
+	var extra := state.inventory.count(&"potion") - potions
+	if extra > 0:
+		state.inventory.remove(&"potion", extra)
+	if state.inventory.count(&"herb") > herbs:
+		state.inventory.remove(&"herb", state.inventory.count(&"herb") - herbs)
 	return failure
 
 func _shop_menu(controller: RpgUiController) -> RpgShopMenu:

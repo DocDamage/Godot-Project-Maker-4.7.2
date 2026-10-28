@@ -16,6 +16,11 @@ extends Node
 ## * **Being defeated** (T17.24, `pass_out()`, which RpgFarmFight calls) ends the day as staying
 ##   up to 2:00 does, whatever the hour: the farmer wakes at the bed, with what that costs; the
 ##   toast says it was knocked out.
+## * **Exhaustion** (T18.11, with `exhaustion` on: the mode's `exhaustion_ends_day`, the option
+##   *Exhaustion ends the day*): trying a tool at zero energy a second time says the farmer is
+##   exhausted and offers to go home (to the bed, the day goes on); a third time, or once
+##   EXHAUST_MINUTES of game time have passed at zero, the farmer collapses and the day ends as
+##   at 2:00 (`collapse()`).
 ## * A day that something else ends (`end_day()` called by a test, by a cutscene) is neither: the
 ##   farmer wakes rested where it stands and nothing is saved. The bin is sold all the same.
 ## * **The summary** (RpgDaySummary) is shown once when the day begins, over the paused game,
@@ -32,6 +37,10 @@ const ENDED := "ended"
 ## What is left of the energy, and what is taken of the money, after passing out.
 const PASS_OUT_ENERGY := 0.5
 const PASS_OUT_MONEY := 0.1
+## Game minutes at zero energy before the farmer collapses (T18.11).
+const EXHAUST_MINUTES := 60
+## The event of the choice *Go home* of the offer (a dialogue event `emit:<this>`).
+const GO_HOME_EVENT := "farm_go_home"
 ## Over the HUD, under the menus (60).
 const SUMMARY_LAYER := 55
 ## The flag that keeps the slot the player chose (`farm.save_slot`): in the flags, so that a
@@ -49,6 +58,14 @@ var money_lost := 0
 var saved := false
 ## The farmer, when the map cannot be asked (a test sets it).
 var farmer: Node2D = null
+## True: working at zero energy ends the day (T18.11); the mode sets it.
+var exhaustion := false
+## True when the last night ended with the farmer collapsing from exhaustion.
+var collapsed := false
+## Tries of a tool at zero energy, and game minutes spent at zero, since the energy last ran out.
+var tries := 0
+var minutes_at_zero := 0
+var _collapsing := false
 
 var _sleeping := false
 ## True while a defeat ends the day (`pass_out`), and for the morning after it (`knocked_out`).
@@ -71,12 +88,16 @@ func attach() -> void:
 		calendar.on_night(RpgCalendar.NIGHT_SHOP, _on_night)
 		if not calendar.day_began.is_connected(_on_morning):
 			calendar.day_began.connect(_on_morning)
+		if not calendar.minute_passed.is_connected(_on_minute):
+			calendar.minute_passed.connect(_on_minute)
 	var bus := RpgUtil.events()
 	if bus != null:
 		if not bus.game_saved.is_connected(_on_slot_used):
 			bus.game_saved.connect(_on_slot_used)
 		if not bus.game_loaded.is_connected(_on_loaded):
 			bus.game_loaded.connect(_on_loaded)
+		if not bus.dialogue_event.is_connected(_on_dialogue_event):
+			bus.dialogue_event.connect(_on_dialogue_event)
 
 # ------------------------------------------------------------------ the slot the player chose
 
@@ -123,6 +144,77 @@ func pass_out() -> bool:
 	_fainting = false
 	return true
 
+## Ends the day as staying up to 2:00 does, at any hour (T18.11: the farmer collapsed from
+## exhaustion). False when it cannot.
+func collapse() -> bool:
+	var calendar := RpgCalendar.current()
+	if calendar == null or _sleeping or _fainting or _collapsing or is_summary_open():
+		return false
+	_collapsing = true
+	calendar.end_day()
+	_collapsing = false
+	return true
+
+# ------------------------------------------------------------------ exhaustion (T18.11)
+
+## A tool was tried at zero energy (the farmer calls it). With `exhaustion` on: the second try
+## offers to go home, the third ends the day. Returns true when the day ended.
+func tried_exhausted() -> bool:
+	if not exhaustion:
+		return false
+	tries += 1
+	if tries >= 3:
+		return collapse()
+	if tries == 2:
+		RpgUtil.notify(RpgFarmStrings.t("FARM_EXHAUSTED"))
+		offer_home()
+	return false
+
+## Asks whether to go home (the dialogue box, a choice); *Go home* puts the farmer at the bed.
+func offer_home() -> void:
+	var box := RpgUtil.service(&"rpg_dialogue_box")
+	if box == null or not box.has_method("open") or box.call("is_open"):
+		return
+	var line := RpgDialogueLine.new()
+	line.id = &"exhausted"
+	line.text = RpgFarmStrings.t("FARM_GO_HOME_ASK")
+	var home := RpgDialogueChoice.new()
+	home.text = RpgFarmStrings.t("FARM_GO_HOME")
+	home.next = &"home"
+	var stay := RpgDialogueChoice.new()
+	stay.text = RpgFarmStrings.t("FARM_NOT_YET")
+	stay.next = &"stay"
+	var choices: Array[RpgDialogueChoice] = [home, stay]
+	line.choices = choices
+	var going := RpgDialogueLine.new()
+	going.id = &"home"
+	going.text = RpgFarmStrings.t("FARM_GOING_HOME")
+	going.events = PackedStringArray(["emit:" + GO_HOME_EVENT])
+	var staying := RpgDialogueLine.new()  # never shown: its condition is false, the box closes
+	staying.id = &"stay"
+	staying.condition = "flag:farm.%s" % GO_HOME_EVENT
+	var res := RpgDialogueResource.new()
+	var lines: Array[RpgDialogueLine] = [line, going, staying]
+	res.lines = lines
+	box.call("open", res, _the_farmer())
+
+func _on_dialogue_event(event_name: String, _arg: String) -> void:
+	if event_name == GO_HOME_EVENT:
+		_wake_at_bed()
+
+## Counts the minutes at zero energy; at EXHAUST_MINUTES the farmer collapses.
+func _on_minute(_minute: int) -> void:
+	if not exhaustion:
+		return
+	var energy := _energy()
+	if energy == null or not energy.is_exhausted():
+		tries = 0
+		minutes_at_zero = 0
+		return
+	minutes_at_zero += 1
+	if minutes_at_zero >= EXHAUST_MINUTES:
+		collapse()
+
 func is_summary_open() -> bool:
 	return _summary != null and is_instance_valid(_summary)
 
@@ -135,9 +227,10 @@ func summary() -> RpgDaySummary:
 func _on_night(_day: int) -> void:
 	var calendar := RpgCalendar.current()
 	knocked_out = _fainting
+	collapsed = _collapsing
 	if _sleeping:
 		_how = SLEPT
-	elif _fainting or (calendar != null and calendar.minute >= RpgCalendar.DAY_END):
+	elif _fainting or _collapsing or (calendar != null and calendar.minute >= RpgCalendar.DAY_END):
 		_how = PASSED_OUT
 	else:
 		_how = ENDED
@@ -153,6 +246,8 @@ func _on_morning(_day: int) -> void:
 	last_night = how
 	money_lost = 0
 	saved = false
+	tries = 0
+	minutes_at_zero = 0
 	var energy := _energy()
 	var state := RpgUtil.state()
 	if how == PASSED_OUT:
@@ -176,6 +271,9 @@ func _finish_morning(how: String) -> void:
 	if how == PASSED_OUT and knocked_out:
 		var short := RpgRealtimeText.t("UI_GOLD_SHORT", [], RpgStrings.KEYS)
 		RpgUtil.notify(RpgFarmCaveStrings.t("FARM_KNOCKED_OUT_LOST", [money_lost, short]) if money_lost > 0 else RpgFarmCaveStrings.t("FARM_KNOCKED_OUT"))
+	elif how == PASSED_OUT and collapsed:
+		var short := RpgRealtimeText.t("UI_GOLD_SHORT", [], RpgStrings.KEYS)
+		RpgUtil.notify(RpgFarmStrings.t("FARM_COLLAPSED_LOST", [money_lost, short]) if money_lost > 0 else RpgFarmStrings.t("FARM_COLLAPSED"))
 	elif how == PASSED_OUT:
 		var short := RpgRealtimeText.t("UI_GOLD_SHORT", [], RpgStrings.KEYS)
 		RpgUtil.notify(RpgFarmStrings.t("FARM_PASSED_OUT_LOST", [money_lost, short]) if money_lost > 0 else RpgFarmStrings.t("FARM_PASSED_OUT"))

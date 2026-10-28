@@ -391,3 +391,57 @@ func test_a_crop_the_users_file_removes_does_not_come_back_from_the_planned_list
 	read.add_list(CROPS)
 	t.eq(read.order, ["corn", "bean"] as Array[String])
 	DirAccess.remove_absolute(user)
+
+# ---------------------------------------------------------------- a crop whose kind was removed (T18.09)
+
+func test_a_crop_whose_kind_was_removed_can_be_cleared_and_the_cell_planted_again(t) -> void:
+	var map := _map()
+	var field: RpgField = map["field"]
+	var save := Fixtures.install("SaveManager", Fixtures.SAVE_MANAGER) as RpgSaveManager
+	save.dir = "user://test_field_gone_%d" % Time.get_ticks_usec()
+	var berry := Vector2i(3, 3)
+	field.till(berry)
+	field.plant(berry, "bean")
+	field.water(berry)
+	_night(field)
+	t.ok(save.save(1))
+	# the user takes the bean out of the game's crops, and loads
+	var without := RpgCropData.new()
+	without.add_list(CROPS.filter(func(c: Dictionary) -> bool: return c["id"] != "bean"))
+	field.crops = without
+	t.ok(save.load(1))
+	field.load_state()
+	var toasts: Array = []
+	RpgUtil.events().notify.connect(func(text: String) -> void: toasts.append(text))
+	field.refresh()
+	t.eq(field.crop_at(berry), "bean", "nothing is lost from the save")
+	t.ok(field.is_orphan(berry))
+	t.eq(field.state_of(berry), RpgField.WITHERED)
+	var node := field.crop_node(berry)
+	t.ok(node != null and node.gone and node.modulate == RpgCrop.GONE, "shown greyed")
+	t.eq(toasts.size(), 1, "the first one the player meets says so")
+	field.refresh()
+	t.eq(toasts.size(), 1, "once")
+	# a night skips it
+	_night(field)
+	t.eq(field.grown_at(berry), 1, "it does not grow")
+	t.eq(field.crop_at(berry), "bean")
+	# cleared by hand, it gives nothing
+	var held := RpgUtil.state().inventory.slots.size()
+	field.crop_node(berry).interact()
+	t.eq(field.crop_at(berry), "", "cleared")
+	t.eq(RpgUtil.state().inventory.slots.size(), held, "giving nothing")
+	t.eq(field.state_of(berry), RpgField.SOIL, "the soil stays tilled")
+	t.ok(field.plant(berry, "corn"), "and something else is planted in it")
+	# the hoe and the sickle clear one too
+	field.cells[Vector2i(4, 3)] = {"w": false, "crop": "bean", "grown": 0, "dead": false, "idle": 0}
+	t.ok(RpgFarmHoe.new().can_use(field, Vector2i(4, 3)) and RpgFarmHoe.new().apply(field, Vector2i(4, 3)))
+	t.eq(field.crop_at(Vector2i(4, 3)), "")
+	field.cells[Vector2i(5, 3)] = {"w": false, "crop": "bean", "grown": 0, "dead": false, "idle": 0}
+	t.ok(RpgFarmSickle.new().apply(field, Vector2i(5, 3)))
+	t.eq(field.crop_at(Vector2i(5, 3)), "")
+	for file: String in DirAccess.get_files_at(save.dir):
+		DirAccess.remove_absolute(save.dir.path_join(file))
+	DirAccess.remove_absolute(save.dir)
+	Fixtures.uninstall("SaveManager")
+	_cleanup()

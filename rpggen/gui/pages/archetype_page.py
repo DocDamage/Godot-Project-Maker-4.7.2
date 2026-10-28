@@ -1429,6 +1429,9 @@ class ArchetypePage(WizardPage):
                 if old in TOP_DOWN_KINDS and new in TOP_DOWN_KINDS:
                     fits.add("areas")
                 cfg.starter_map = {k: v for k, v in cfg.starter_map.items() if k in fits}
+            if new != old:  # a new farm's or race's choices (M18)
+                for key, value in config_mod.NEW_KIND_OPTIONS.get(new, {}).items():
+                    cfg.starter_map.setdefault(key, value)
             cfg.archetype = new
         apply_default_view(state)  # the view of the packs, until somebody chooses (T17.16)
         return None

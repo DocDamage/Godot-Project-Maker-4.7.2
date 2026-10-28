@@ -872,6 +872,66 @@ with a reward.
   `UI_NO_SKILL_TREES`, `UI_ACHIEVEMENTS`, `UI_ACHIEVEMENT_UNLOCKED`, `UI_ACHIEVEMENTS_TOTAL`,
   `UI_SECRET`, `UI_NO_ACHIEVEMENTS`.
 
+### Finishing 1.5.0 (M18)
+
+What an older game sees when it is regenerated (the runtime is copied on every regeneration);
+each is inert where the game's data does not ask for it.
+
+* **Repair** (T18.04): `RpgShopDefinition.repairs` (false by default), `REPAIR_SHARE` (0.5),
+  `repair_cost`, `repair_rows(game)` (worn gear first, then the bag's) and `repair(game, i)`
+  (all or nothing; the gold goes to the shop's purse); `RpgGameState.mend(actor, slot)` and
+  `RpgInventory.mend_at(index)` take the wear off. The shop menu makes a **Repair** tab beside
+  the others for a shop that repairs (the scene of an older game has none, so the script makes
+  it); its rows read "Sword · Wear 5/40 — 3 G". New text keys `UI_REPAIR`,
+  `UI_NOTHING_TO_REPAIR`, `UI_REPAIRED`.
+* **The dock's Items and Shops tabs** (T18.02, T18.03): `RpgShopDefinition.to_dict`,
+  `apply_dict`, `from_dict` (`RpgFarmShop` adds its hours), `row_problem` and
+  `stock_problems`; `RpgItemDefinition.to_dict` and `from_dict` (an icon cut from a sheet is
+  written as `{atlas, region}`). The validator's VAL-034 names a shop's row whose item has no
+  file. `addons/rpg_project_tools/tools/strings_tsv.gd` reads `game/i18n/strings.tsv` and adds
+  rows for new keys.
+* **The starter shop** (T18.04), with the feature `progression` (on for a new project; a config
+  without the key is built as before and `data_recipe`'s hash gains `starter_shop: 2` only when
+  it applies): three potions that restock (each morning of a farm, every 10 minutes of play
+  elsewhere), 300 gold of the shop's own, buying back, repairs; the starter weapon has a
+  durability of 40.
+* **`@tool` data** (found with T18.18): `data/shop_definition.gd`, `data/item_definition.gd` and
+  `archetypes/farm/farm_shop.gd` run in the editor, as the item sets, skill trees and
+  achievements already did (the dock's tabs call their methods). Nothing changes in a game.
+* **Day and night** (T18.06): `RpgSettingsStore.day_night` is a choice once set
+  (`day_night_chosen`, saved only then); `day_night_on()` is the choice, else the game's default;
+  `RpgMapRoot` asks it and follows `settings.changed`. An older settings file has no choice: the
+  game's default holds, as before.
+* **Villagers make way** (T18.07): `RpgSchedule` looks `LOOK_AHEAD_PX` ahead and steps aside
+  (`blocker`, `free_side`), slows and waits; only an NPC with a schedule does.
+* **Choices scroll** (T18.08): `ui/dialogue_box.gd` puts `%Choices` in a `ChoicesScroll` of at
+  most `MAX_SHARE` of the screen, in every game with a dialogue.
+* **Crafting** (T18.14, the feature `crafting`): `data/recipe.gd` (RpgRecipe), `core/crafting.gd`
+  (RpgCrafting: the book in `game/data/recipes/`, by hand and at stations, kept in `flags`),
+  `world/station.gd`, `ui/crafting_menu.gd`, the condition atom `crafted:`, the dialogue event
+  `learn_recipe:`, the pause menu's *Crafting* row and the strings `UI_CRAFTING...`. A project
+  without the feature has no recipes and no row.
+* **The farm** (T18.05, T18.09–T18.17, `archetypes/farm/`): the houses of the packs' animals,
+  orphaned crops (`RpgField.is_orphan`, cleared with the hoe), the farmer's tool strips
+  (`RpgActor.hold_animation_any`), exhaustion (`RpgFarmDayEnd`), the pail and the shears, the
+  naming box (`ui/naming_dialog.gd`), the workshop and placed things (`workshop.gd`,
+  `placed_thing.gd`), cooking, and children (`children.gd`). Each is built only when the farm's
+  options ask for it; a farm generated before has none.
+* **The racing people** (T18.19): `archetypes/racing/race_people.gd` (RpgRacePeople) and the
+  mode's `racers`; `RpgChampionship.driver_name` gives a driver's name when the race has
+  drivers (`generated/data/drivers.json`), the results show the faces, and a rival's skill
+  moves a little by its driver. A race without the option is as before.
+* **Height on diamonds** (T18.20). **An older isometric game notices this** when it is
+  regenerated, if its maps have height layers (made with Gridwright's kits): what was walked
+  through now blocks. `world/levels.gd` (RpgLevels) is made by `RpgMapRoot` for such a map: a
+  wall on physics layers 17 to 24 for each level, ramps (the tile data `stack`
+  "ramp:<low>:<high>:<side>"), `follow`, `path`, `reaches` and `same_level`. `RpgActor` keeps its
+  level each physics step (its `Visual` drawn that high, its mask the wall of its level);
+  `RpgSchedule.path_to` and `RpgChase.direction` take the way over the levels when it changes
+  level; `RpgProjectile.level` and `RpgHitbox.try_hit` reach their level and below; an
+  overworld enemy starts a battle only with a body on its level. A map without height layers
+  has no `Levels` node and nothing of this happens.
+
 ## 1.4.0
 
 (There is no 1.3.0 entry: release 1.3.0 changed the wizard only.)

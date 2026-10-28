@@ -1322,6 +1322,13 @@ class RacingBox(ArcadeBox):
         ("spin", "rivals", "Rivals", "Cars you race against", track_plan.RIVALS),
         ("check", "rubber_band", "Rubber-banding", "Rivals far behind catch up a little", None),
         ("check", "elimination", "Elimination", "Who is last twice is out", None),
+        (
+            "check",
+            "racers",
+            "Racers and spectators",
+            "Drivers with names and faces, people along the track and a podium",
+            None,
+        ),
     )
     LEGEND = (
         ("start", "start", map_preview.TRACK_CAR),
@@ -1344,7 +1351,15 @@ class RacingBox(ArcadeBox):
             self.tr("Every track from above: the loop, its checkpoints and its pickups")
         )
 
+    footprint: tuple[int, int] | None = None  # an isometric race's diamond (T18.19)
+
+    def set_footprint(self, footprint: tuple[int, int] | None) -> None:
+        """The diamond the tracks are drawn on (None: from above)."""
+        self.footprint = footprint
+
     def picture(self, stages: dict[str, Any]):  # noqa: ANN201
+        if self.footprint is not None:
+            return map_preview.render_tracks(stages, scale=2, footprint=self.footprint)
         return map_preview.render_tracks(stages, scale=3)
 
     def words(self, stages: dict[str, Any]) -> str:
@@ -1415,7 +1430,13 @@ class FarmBox(ArcadeBox):
             "animals",
             "Animals",
             "The animal houses on the farm, each with its yard",
-            (("none", "None"), ("coop", "A coop"), ("coop_and_barn", "A coop and a barn")),
+            (
+                ("auto", "Those of the packs' animals"),
+                ("none", "None"),
+                ("coop", "A coop"),
+                ("barn", "A barn"),
+                ("coop_and_barn", "A coop and a barn"),
+            ),
         ),
         (
             "combo",
@@ -1457,6 +1478,27 @@ class FarmBox(ArcadeBox):
             "People to court",
             "How many people of the village can be courted and married; 0: nobody",
             people_plan.COURTABLE_RANGE,
+        ),
+        (
+            "check",
+            "exhaustion",
+            "Exhaustion ends the day",
+            "Working on at no energy passes out the farmer, as staying up to 2:00 does",
+            None,
+        ),
+        (
+            "check",
+            "cooking",
+            "Cooking",
+            "A kitchen in the farmhouse, dishes of what the farm grows and recipes to learn",
+            None,
+        ),
+        (
+            "check",
+            "children",
+            "Children",
+            "A married farmer can have children, who grow up in the farmhouse",
+            None,
         ),
         (
             "check",
@@ -1502,6 +1544,25 @@ class FarmBox(ArcadeBox):
         self.preview.setAccessibleName(
             self.tr("The planned farm: its house, its plot, its water and the way to the village")
         )
+        # a house no animal of the packs lives in (T18.05): said under the choice, with auto
+        animals = self.combos["animals"]
+        holder = animals.parentWidget()
+        column = holder.layout() if holder is not None else None
+        self.animals_note = _muted("", "farmAnimalsNote")
+        self.animals_note.setProperty("state", "warning")
+        self.animals_note.setVisible(False)
+        self.animals_auto = QPushButton(self.tr("Use the packs' animals"))
+        self.animals_auto.setObjectName("farmAnimalsAuto")
+        self.animals_auto.setVisible(False)
+        self.animals_auto.clicked.connect(self.use_pack_animals)
+        if column is not None:
+            column.addWidget(self.animals_note)
+            column.addWidget(self.animals_auto)
+
+    def use_pack_animals(self) -> None:
+        """The choice ``auto``: the houses whose animals the packs have."""
+        combo = self.combos["animals"]
+        combo.setCurrentIndex(max(0, combo.findData(farm_plan.AUTO)))
 
     def set_footprint(self, footprint: tuple[int, int] | None) -> None:
         """The diamond the picture is drawn on (None: squares, a farm seen from above)."""
@@ -1582,6 +1643,11 @@ class FarmBox(ArcadeBox):
             return
         words = [options.farm_text(plans), *(str(note) for note in plans.get("notes", []))]
         self.summary.setText("  ".join(words))
+        empty = [str(house) for house in plans.get("empty_houses", [])]
+        lines = [self.tr("The packs have no animal for the {0}").format(h) for h in empty]
+        self.animals_note.setText("\n".join(lines))
+        self.animals_note.setVisible(bool(empty))
+        self.animals_auto.setVisible(bool(empty))
         counts = map_preview.farm_markers(plans["map"])
         for key, item in self.legend_items.items():
             item.setVisible(counts.get(key, 0) > 0)

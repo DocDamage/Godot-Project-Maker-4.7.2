@@ -178,6 +178,36 @@ def test_the_dock_places_on_the_squares_of_the_sample(
         assert tool["one_step"] is True and tool["undo_ok"] is True and tool["redo_ok"] is True
 
 
+@pytest.mark.windowed
+def test_the_mouse_drops_onto_the_squares_of_the_sample(
+    sample: Path, godot_exe: Path, tmp_path: Path
+) -> None:
+    """A real drag and drop in a windowed editor (T18.18): the mouse is pressed on the dock's
+    item, pulled to the 2D view and let go; what the editor dropped is snapped to the grid among
+    the entities, and the editor's drop with the dock's fixing up is one Ctrl+Z."""
+    from tests.integration import dock_probe_run
+
+    if not dock_probe_run.can_open_a_window():
+        pytest.skip("no desktop to drive the editor's window with the mouse")
+    places = [
+        {"scene": SAMPLE_OBJECTS + "objects__town__tree_1.tscn", "how": "mouse", "offset": [0, 0]},
+        {"scene": SAMPLE_OBJECTS + "items__chest.tscn", "how": "mouse", "offset": [3, 1]},
+    ]
+    wanted = {
+        "map": "res://game/maps/starter_map.tscn",
+        "snap": 16,
+        "save": False,
+        "places": places,
+    }
+    run = dock_probe_run.run_probe(sample, tmp_path / "proj", godot_exe, wanted, windowed=True)
+    dock_probe_run.check_mouse_drops(run.report)
+    for seen in run.report["places"]:
+        at = seen["at"]
+        snapped = [(int(at[0]) + 8) // 16 * 16, (int(at[1]) + 8) // 16 * 16]
+        assert [seen["placed"]["x"], seen["placed"]["y"]] == snapped, seen
+        assert "drawn" not in seen, "on squares nothing is drawn over the view"
+
+
 def test_in_editor_rebuild_keeps_the_ledger_current(
     sample: Path, godot_exe: Path, tmp_path: Path
 ) -> None:

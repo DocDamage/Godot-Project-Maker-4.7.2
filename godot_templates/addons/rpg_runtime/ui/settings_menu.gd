@@ -46,7 +46,7 @@ func _ready() -> void:
 				_settings().set_quest_tracker(on))
 	var day_night := get_node_or_null("%DayNight") as CheckButton  # older scenes have none
 	if day_night != null:
-		day_night.button_pressed = s != null and s.day_night
+		day_night.button_pressed = s != null and s.day_night_on()  # a farm's is on by default
 		day_night.toggled.connect(func(on: bool) -> void:
 			if _settings() != null:
 				_settings().set_day_night(on))

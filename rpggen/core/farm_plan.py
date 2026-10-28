@@ -44,8 +44,13 @@ PLOTS = {"small": (6, 4), "medium": (12, 8), "large": (16, 10)}  # cells of the 
 ANIMALS: dict[str, tuple[str, ...]] = {
     "none": (),
     "coop": ("coop",),
+    "barn": ("barn",),  # T18.05
     "coop_and_barn": ("coop", "barn"),
 }
+# T18.05: the houses whose animals the packs have (``facts["animal_houses"]``), the coop first;
+# the default of a new farm. A config from before has one of the others and keeps it.
+AUTO = "auto"
+ANIMAL_CHOICES = ("none", AUTO, "coop", "barn", "coop_and_barn")
 DIFFICULTIES = ("easy", "normal", "hard")
 MIN_PLOT = 12
 MAX_ADDED = 8
@@ -132,7 +137,7 @@ def normalized(options: Any) -> dict[str, Any]:
     for key, allowed in (
         ("farm_size", tuple(SIZES)),
         ("plot", tuple(PLOTS)),
-        ("animals", tuple(ANIMALS)),
+        ("animals", ANIMAL_CHOICES),
         ("difficulty", DIFFICULTIES),
     ):
         if out[key] not in allowed:
@@ -154,20 +159,50 @@ def normalized(options: Any) -> dict[str, Any]:
 
 
 def facts_of(
-    house: Any = None, water: bool = True, coop: Any = None, barn: Any = None, grounds: Any = None
+    house: Any = None,
+    water: bool = True,
+    coop: Any = None,
+    barn: Any = None,
+    grounds: Any = None,
+    animal_houses: Any = None,
+    workbench: bool = False,
 ) -> Any:
     """What the planner needs to know of the packs: the footprint of the building that is the
     farmhouse (``map_preview.building_info_for``: ``{"size": [w, h], "door": [dx, dy]}`` in
     cells, or nothing), of a coop and a barn when the packs have their own, whether the packs
-    have water tiles (a pond) or not (a well), and the ground tile they have for a kind of
-    added map (``grounds``: ``{"beach": the id of a sand tile}``; a kind without one is drawn)."""
+    have water tiles (a pond) or not (a well), the ground tile they have for a kind of
+    added map (``grounds``: ``{"beach": the id of a sand tile}``; a kind without one is drawn),
+    and the animal houses whose animals the packs have (``animal_houses``, T18.05:
+    ``animal_plan.pack_houses``), which ``auto`` builds."""
     out: dict[str, Any] = {"water": bool(water)}
+    if workbench:  # T18.15: a farm that crafts has a workbench beside the house
+        out["workbench"] = True
+    if animal_houses is not None:
+        out["animal_houses"] = [h for h in ("coop", "barn") if h in set(animal_houses)]
     if grounds:
         out["grounds"] = {str(k): str(v) for k, v in sorted(dict(grounds).items()) if v}
     for key, value in (("house", house), ("coop", coop), ("barn", barn)):
         if value:
             out[key] = {"size": list(value["size"]), "door": list(value["door"])}
     return out
+
+
+def houses_for(choice: str, facts: Any = None) -> tuple[str, ...]:
+    """The animal houses a choice of ``animals`` builds: ``auto`` those whose animals the packs
+    have (``facts["animal_houses"]``), the coop first; any other its own (T18.05)."""
+    if choice == AUTO:
+        have = set((facts or {}).get("animal_houses") or ())
+        return tuple(h for h in ("coop", "barn") if h in have)
+    return ANIMALS[choice]
+
+
+def empty_houses(choice: str, facts: Any = None) -> list[str]:
+    """The houses ``choice`` builds that no animal of the packs lives in (none for ``auto``, and
+    none while the facts do not say what the packs have): what the Options page warns of."""
+    if choice == AUTO or "animal_houses" not in (facts or {}):
+        return []
+    have = set((facts or {}).get("animal_houses") or ())
+    return [h for h in houses_for(choice, facts) if h not in have]
 
 
 def _footprint(kind: str, facts: dict[str, Any]) -> tuple[int, int, int]:
@@ -285,6 +320,11 @@ def _smaller(plot: Cell) -> Cell | None:
     return None
 
 
+def _bench(cell: Cell) -> dict[str, list[int]]:
+    """The workbench of a plan (T18.15): its cell and the one before it, where the farmer stands."""
+    return {"cell": [cell[0], cell[1]], "front": [cell[0], cell[1] + 1]}
+
+
 def _lay_out(
     opts: dict[str, Any], plot: Cell, facts: dict[str, Any], rng: Random
 ) -> dict[str, Any] | None:
@@ -310,6 +350,17 @@ def _lay_out(
     take(hx, hy, h_wide, h_high)
     take(*bin_cell)
     take(bin_cell[0], bin_cell[1] + 1)
+    # the workbench (T18.15, a farm that crafts): on the other side of the house, in the row of
+    # the bin, with a free cell before it; no random number is drawn for it
+    bench: Cell | None = None
+    if facts.get("workbench"):
+        bench_x = hx + h_wide if bin_cell[0] < hx else hx - 1
+        spot = (bench_x, hy + h_high - 1)
+        inside = MARGIN <= spot[0] < cols - MARGIN and spot[1] + 1 < rows - MARGIN
+        if inside and not taken[spot[1]][spot[0]] and not taken[spot[1] + 1][spot[0]]:
+            bench = spot
+            take(*bench)
+            take(bench[0], bench[1] + 1)
     take(door[0], door[1], 1, 3)
     house: dict[str, Any] = {
         "id": "farm_house",
@@ -332,7 +383,8 @@ def _lay_out(
 
     # the animal houses, the larger first: the building, and before it a yard with a fence
     animal_houses: dict[str, dict[str, Any]] = {}
-    for kind in sorted(ANIMALS[opts["animals"]], key=lambda k: -BUILDINGS[k][0]):
+    houses = houses_for(opts["animals"], facts)
+    for kind in sorted(houses, key=lambda k: -BUILDINGS[k][0]):
         b_wide, b_high, b_door = _footprint(kind, facts)
         depth = YARD_DEPTH[kind]
         found = _candidates(taken, b_wide + 4, b_high + depth + 1)
@@ -402,6 +454,8 @@ def _lay_out(
     # paths from the door: to the way out, the plot, the water and every gate. A path does not
     # cross the plot or a yard.
     solid: set[Cell] = set(_rect_cells(house["rect"])) | {bin_cell} | set(water)
+    if bench is not None:
+        solid.add(bench)
     closed = set(solid) | set(tillable)
     gates: list[Cell] = []
     for animal_house in animal_houses.values():
@@ -516,13 +570,14 @@ def _lay_out(
         "size": [cols, rows],
         "house": house,
         "bin": {"cell": list(bin_cell), "front": [bin_cell[0], bin_cell[1] + 1]},
+        **({"workbench": _bench(bench)} if bench else {}),
         "tillable": _lists(tillable),
         "water": {
             "kind": "pond" if len(water) > 1 else "well",
             "cells": _lists(water),
             "fill": list(fill),
         },
-        "animal_houses": [animal_houses[kind] for kind in ANIMALS[opts["animals"]]],
+        "animal_houses": [animal_houses[kind] for kind in houses],
         "paths": _lists(paths),
         "debris": debris,
         "trees": _lists(trees),
@@ -613,6 +668,8 @@ def _trails(section: dict[str, Any], seed: int) -> list[dict[str, Any]]:
         if yard.get("gate"):
             taken.add(_cell(yard["gate"]))
     taken.update(_cell(section["bin"][key]) for key in ("cell", "front"))
+    if section.get("workbench"):
+        taken.update(_cell(section["workbench"][key]) for key in ("cell", "front"))
     if section["water"].get("fill"):
         taken.add(_cell(section["water"]["fill"]))
     for cell in (_cell(c) for c in section["water"]["cells"]):
@@ -676,6 +733,8 @@ def blocked_cells(section: dict[str, Any]) -> set[Cell]:
         out.update(_rect_cells(building["rect"]))
         out.update(_cell(c) for c in (building.get("yard") or {}).get("fence", []))
     out.add(_cell(section["bin"]["cell"]))
+    if section.get("workbench"):
+        out.add(_cell(section["workbench"]["cell"]))
     out.update(_cell(c) for c in section["water"]["cells"])
     out.update(_cell(c) for c in section.get("trees", []))
     for thing in [*section.get("scenery", []), *section.get("debris", [])]:
@@ -740,6 +799,8 @@ def _overlaps(section: dict[str, Any]) -> list[str]:
     claim(_rect_cells(section["house"]["rect"]), "the house")
     claim([section["house"]["door"]], "the door of the house")
     claim([section["bin"]["cell"]], "the shipping bin")
+    if section.get("workbench"):
+        claim([section["workbench"]["cell"]], "the workbench")
     for building in section.get("animal_houses", []):
         name = f"the {building['kind']}"
         yard = building.get("yard") or {}
@@ -826,6 +887,8 @@ def check(section: dict[str, Any]) -> list[str]:
         problems.append("the can cannot be filled where the plan says")
     if not beside_reached([section["bin"]["cell"]]):
         problems.append("the shipping bin cannot be reached from the house")
+    if section.get("workbench") and not beside_reached([section["workbench"]["cell"]]):
+        problems.append("the workbench cannot be reached from the house")
     for building in section.get("animal_houses", []):
         name = f"the {building['kind']}"
         yard = building.get("yard") or {}
@@ -964,7 +1027,10 @@ def summary(section: dict[str, Any]) -> str:
 def describe(options: Any) -> str:
     """What the options make, without planning: "a medium farm with a medium plot, a coop"."""
     opts = normalized(options)
-    animals = "".join(f", a {kind}" for kind in ANIMALS[opts["animals"]])
+    if opts["animals"] == AUTO:
+        animals = ", the animal houses of the packs' animals"
+    else:
+        animals = "".join(f", a {kind}" for kind in ANIMALS[opts["animals"]])
     added = "".join(f", a {row['kind']}" for row in opts["added_maps"])
     return f"a {opts['farm_size']} farm with a {opts['plot']} plot{animals}{added}"
 

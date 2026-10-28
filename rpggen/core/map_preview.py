@@ -1410,10 +1410,85 @@ TRACK_CAR = (220, 60, 60)
 TRACK_GAP = 6  # px between two tracks of the picture
 
 
-def render_track(track: dict[str, Any], scale: int = 4, tile: int = 16) -> Image.Image:
+def _track_colours(track: dict[str, Any]) -> list[list[tuple[int, int, int]]]:
+    """The colour of every tile of a track: its road, its grass, its barriers and walls."""
+    rows = track["rows"]
+    out = [[TRACK_COLORS["g"]] * len(rows[0]) for _ in rows]
+    for x, y, w, h in track.get("barriers", []):
+        edge = w == 1 or h == 1
+        for py in range(y, min(len(rows), y + h)):
+            for px in range(x, min(len(rows[0]), x + w)):
+                out[py][px] = TRACK_WALL if edge else TRACK_BARRIER
+    for y, row in enumerate(rows):
+        for x, char in enumerate(row):
+            if char != "g":
+                out[y][x] = TRACK_COLORS.get(char, TRACK_COLORS["r"])
+    return out
+
+
+def render_track_iso(
+    track: dict[str, Any], scale: int, tile: int, footprint: tuple[int, int]
+) -> Image.Image:
+    """``render_track`` on diamonds (T18.19: the picture of a race seen at an angle): each tile
+    a diamond of the project's shape, back to front; a barrier or a wall stands up half a
+    diamond with darker sides; the checkpoints, the pickups and the car where they are on the
+    ground."""
+    colours = _track_colours(track)
+    rows, cols = len(colours), len(colours[0])
+    w, h = farm_diamond(scale, footprint)
+    lift = max(2, h // 2)
+    cells = [(x, y) for y in range(rows) for x in range(cols)]
+    (ox, oy), size = _iso_frame(cells, (w, h), above=lift + 1, below=1)
+    picture = Image.new("RGB", size, (24, 24, 28))
+    draw = ImageDraw.Draw(picture)
+    raised = {TRACK_WALL, TRACK_BARRIER}
+
+    def corners(cell: Tile, up: int = 0) -> list[tuple[float, float]]:
+        return [(ox + x, oy + y - up) for x, y in iso_math.diamond(cell[0], cell[1], w, h)]
+
+    for cell in sorted(cells, key=lambda c: (c[0] + c[1], c[0])):
+        colour = colours[cell[1]][cell[0]]
+        if colour not in raised:
+            draw.polygon(corners(cell), fill=colour)
+            continue
+        _top, right, bottom, left = corners(cell)
+        _t, right_up, bottom_up, left_up = corners(cell, lift)
+        dark = tuple(max(0, c - 44) for c in colour)
+        darker = tuple(max(0, c - 70) for c in colour)
+        draw.polygon([left_up, bottom_up, bottom, left], fill=dark)
+        draw.polygon([bottom_up, right_up, right, bottom], fill=darker)
+        draw.polygon(corners(cell, lift), fill=colour)
+
+    def ground(position: list[float]) -> tuple[float, float]:
+        gx, gy = position[0] / max(1, tile) - 0.5, position[1] / max(1, tile) - 0.5
+        return ox + (gx - gy) * w / 2.0 + w / 2.0, oy + (gx + gy) * h / 2.0 + h / 2.0
+
+    dot = max(2, h // 3)
+    for pickup in track.get("pickups", []):
+        x, y = ground(pickup["position"])
+        draw.rectangle([x - dot / 2, y - dot / 2, x + dot / 2, y + dot / 2], fill=TRACK_PICKUP)
+    for point in track.get("checkpoints", []):
+        x, y = ground(point["position"])
+        draw.ellipse([x - dot, y - dot / 2, x + dot, y + dot / 2], fill=TRACK_CHECKPOINT)
+    start = track.get("start")
+    if start:
+        x, y = ground(start["position"])
+        draw.ellipse([x - dot, y - dot / 2, x + dot, y + dot / 2], fill=TRACK_CAR)
+    return picture
+
+
+def render_track(
+    track: dict[str, Any],
+    scale: int = 4,
+    tile: int = 16,
+    footprint: tuple[int, int] | None = None,
+) -> Image.Image:
     """One track of a racing game's plan at ``scale`` px a tile: the road and what lies on
     it, the barriers, the start line, the checkpoints (dots) and the car with the way it starts.
-    ``tile`` is the px of a tile in the plan."""
+    ``tile`` is the px of a tile in the plan. With ``footprint`` (an isometric race, T18.19) it
+    is drawn on diamonds."""
+    if footprint is not None:
+        return render_track_iso(track, scale, tile, footprint)
     rows = track["rows"]
     picture = Image.new("RGB", (len(rows[0]), len(rows)), TRACK_COLORS["g"])
     pixels = picture.load()
@@ -1449,26 +1524,35 @@ def render_track(track: dict[str, Any], scale: int = 4, tile: int = 16) -> Image
     return picture
 
 
-def track_rects(stages: dict[str, Any], scale: int = 4) -> dict[str, tuple[int, int, int, int]]:
+def track_rects(
+    stages: dict[str, Any], scale: int = 4, footprint: tuple[int, int] | None = None
+) -> dict[str, tuple[int, int, int, int]]:
     """Track id -> (left, top, width, height) of its picture in ``render_tracks``."""
     out: dict[str, tuple[int, int, int, int]] = {}
     left = 0
     for track in stages["list"]:
         rows = track["rows"]
-        out[track["id"]] = (left, 0, len(rows[0]) * scale, len(rows) * scale)
-        left += len(rows[0]) * scale + TRACK_GAP
+        if footprint is None:
+            wide, high = len(rows[0]) * scale, len(rows) * scale
+        else:
+            wide, high = render_track(track, scale, 16, footprint).size
+        out[track["id"]] = (left, 0, wide, high)
+        left += wide + TRACK_GAP
     return out
 
 
-def render_tracks(stages: dict[str, Any], scale: int = 4) -> Image.Image:
-    """Every track of a racing game's plan, side by side."""
-    rects = track_rects(stages, scale)
+def render_tracks(
+    stages: dict[str, Any], scale: int = 4, footprint: tuple[int, int] | None = None
+) -> Image.Image:
+    """Every track of a racing game's plan, side by side; on diamonds with ``footprint``."""
+    rects = track_rects(stages, scale, footprint)
     width = max(r[0] + r[2] for r in rects.values())
     height = max(r[3] for r in rects.values())
     picture = Image.new("RGB", (width, height), (24, 24, 28))
+    tile = int(stages.get("tile", 16))
     for track in stages["list"]:
         left, top, _w, _h = rects[track["id"]]
-        picture.paste(render_track(track, scale, int(stages.get("tile", 16))), (left, top))
+        picture.paste(render_track(track, scale, tile, footprint), (left, top))
     return picture
 
 
