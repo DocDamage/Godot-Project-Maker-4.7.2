@@ -82,3 +82,26 @@ func test_the_offered_locales_are_the_translations_of_the_project(t) -> void:
 	for locale: String in ["eo", "en", "de"]:
 		DirAccess.remove_absolute("%s/strings.%s.tres" % [folder, locale])
 	DirAccess.remove_absolute(folder)
+
+func test_a_saved_translation_lists_its_messages_by_key(t) -> void:
+	# the order a Translation saves in is its hash table's; the recipe writes them sorted, so the
+	# same strings make the same file
+	const TranslationsRecipe := preload("res://builder/recipes/translations_recipe.gd")
+	var path := "user://test_sorted_strings_%d.tres" % Time.get_ticks_usec()
+	var made := Translation.new()
+	for key: String in ["UI_ZEBRA", "FARM_APPLE", "UI_ALPHA", "ACHIEVEMENT_X", "MIDDLE"]:
+		made.add_message(StringName(key), StringName("%s text" % key.to_lower()))
+	made.add_message(&"TWO_LINES", &"first\nsecond")
+	ResourceSaver.save(made, path)
+	t.eq(TranslationsRecipe._sort_messages(path), OK)
+	var text := FileAccess.get_file_as_string(path)
+	var keys: Array[String] = []
+	for line in text.split("\n"):
+		if line.begins_with("[&\""):
+			keys.append(line.get_slice("&\"", 2).get_slice("\"", 0))
+	t.eq(keys, ["ACHIEVEMENT_X", "FARM_APPLE", "MIDDLE", "TWO_LINES", "UI_ALPHA", "UI_ZEBRA"] as Array[String])
+	var loaded := ResourceLoader.load(path, "", ResourceLoader.CACHE_MODE_IGNORE) as Translation
+	t.eq(loaded.get_message_count(), 6, "every message is read back")
+	t.eq(String(loaded.get_message(&"TWO_LINES")), "first\nsecond")
+	t.eq(String(loaded.get_message(&"UI_ZEBRA")), "ui_zebra text")
+	DirAccess.remove_absolute(path)
