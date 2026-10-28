@@ -32,11 +32,17 @@ def _pack_relative(asset: catalog_mod.Asset, pack_id: str) -> str:
     return asset.path[len(prefix) :] if asset.path.startswith(prefix) else asset.path
 
 
-def asset_key(asset: catalog_mod.Asset, pack_id: str) -> str:
+def asset_key(asset: catalog_mod.Asset, pack_id: str, inventory: Inventory | None = None) -> str:
     """The profile key of an asset: its pack-relative path, plus ``#<variant>`` for the
     per-character / per-face assets cut from one file."""
     variant = asset.id.split("#", 1)[1] if "#" in asset.id else ""
     rel = _pack_relative(asset, pack_id)
+    if inventory is not None and not asset.path.startswith(f"assets/packs/{pack_id}/"):
+        sources = [f.path for f in inventory.files if f.sha256 == asset.sha256]
+        base_id = asset.id.partition("#")[0]
+        named = [p for p in sources if ids.asset_id(pack_id, p) == base_id]
+        if named or len(sources) == 1:
+            rel = sorted(named or sources)[0]
     return f"{rel}#{variant}" if variant else rel
 
 
@@ -66,14 +72,19 @@ def export_profile(
     title = meta.get("title", "").strip() or pack_id
     out_assets: dict[str, Any] = {}
     key_of: dict[str, str] = {}
+    rendered_assets: list[str] = []
+    asset_hashes: dict[str, str] = {}
     for asset in sorted(catalog.assets, key=lambda a: a.id):
         if asset.pack_id != pack_id or asset.status == "MISSING":
             continue
-        key = asset_key(asset, pack_id)
+        key = asset_key(asset, pack_id, inventory)
         key_of[asset.id] = key
         if asset.overrides or asset.status == "CONFIRMED":
             facets = copy.deepcopy(catalog_mod.effective(asset))
             out_assets[key] = {k: v for k, v in facets.items() if k not in _DROPPED_FACETS}
+            asset_hashes[split_key(key)[0]] = asset.sha256
+            if not asset.path.startswith(f"assets/packs/{pack_id}/"):
+                rendered_assets.append(key)
             if isinstance(out_assets[key].get("audio"), dict):  # measured, not a decision
                 out_assets[key]["audio"].pop("duration_s", None)
 
@@ -111,6 +122,11 @@ def export_profile(
         "author": meta.get("author", ""),
         "license": meta.get("license") or DEFAULT_LICENSE,
     }
+    if rendered_assets:
+        # Helper profiles need both regeneration instructions and hashes for every source,
+        # including sheets outside the fingerprint sample. Ordinary v1 exports retain their
+        # established representation when no generated image needs recreating.
+        profile.update(asset_hashes=asset_hashes, rendered_assets=rendered_assets)
     pack = next((p for p in catalog.packs if p.pack_id == pack_id), None)
     if pack is not None and (pack.licence_stated() or pack.effective_license().ai_generated):
         # the licence the user stated for a pack with no licence file, and the mark of

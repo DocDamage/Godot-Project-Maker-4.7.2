@@ -2,7 +2,7 @@ extends RefCounted
 ## Builds one scene per world object under res://generated/scenes/objects/ and the index
 ## res://rpggen/object_index.json (object id -> scene path).
 
-const RECIPE_VERSION := 4
+const RECIPE_VERSION := 5
 
 const Paths := preload("../lib/paths.gd")
 const SceneUtil := preload("../lib/scene_util.gd")
@@ -79,6 +79,8 @@ func template_for(e: Dictionary, tile: int, is_chest: bool = false) -> String:
 	var coll: Dictionary = e["collision"]
 	if coll.get("profile", "NONE") != "NONE":
 		return "obstacle"
+	if JsonUtil.to_array(e["footprint"]).is_empty() and not ObjectEntries.is_iso(e):
+		return "prop"  # explicit NONE with no footprint must not acquire fallback collision
 	if e["role"] == "DECORATION" and ObjectEntries.footprint_area(e) >= 0.5 * tile * tile:
 		return "obstacle"
 	return "prop"

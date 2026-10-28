@@ -409,7 +409,9 @@ def licence_above(folder: Path) -> tuple[str, PackLicense] | None:
     except OSError:
         return None
     for name in names:
-        if inventory.classify_kind(name) != "license":
+        if inventory.classify_kind(name) != "license" and not re.search(
+            r"(?:^|[ _-])licen[cs]e(?:[ ._-]|$)", name, re.IGNORECASE
+        ):
             continue
         found = detect([(name, read_text(parent / name))])
         if found.license_id:

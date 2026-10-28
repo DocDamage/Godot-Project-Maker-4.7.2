@@ -62,6 +62,12 @@ def run_adapters(
         else get_adapters()
     ):
         try:
+            if adapter.name != "profile":
+                from rpggen.core import classifier
+
+                ctx.claimed.update(
+                    f.path for f in inv.files if classifier.documentation_art(f.path)
+                )
             if adapter.match(inv, root) < MATCH_THRESHOLD:
                 continue
             already_claimed = set(ctx.claimed)
@@ -78,10 +84,45 @@ def run_adapters(
             continue
         for fragment in result.assets:
             if fragment.claim == "full":
+                if fragment.path in result.recreate:
+                    continue  # the source reader must recreate the reviewed crop/strip
                 ctx.claimed.add(fragment.path)
         ctx.claimed.update(result.consumed)
         results.append(result)
         ctx.results.append(result)
+    from rpggen.core import classifier
+
+    emitted = {f.path for result in results for f in result.assets}
+    excluded = AdapterResult("unused")
+    for f in inv.files:
+        reason = classifier.not_game_art(f.path)
+        if (
+            f.kind == "image"
+            and f.image
+            and classifier.documentation_art(f.path)
+            and f.path not in emitted
+        ):
+            excluded.assets.append(
+                AssetFragment(
+                    f.path,
+                    {
+                        "usage": "sprite",
+                        "role": "NONE",
+                        "frame": [f.image["w"], f.image["h"]],
+                        "tags": [
+                            classifier.UNUSED_TAG + (reason or classifier.UNUSED_GUIDE_PICTURE)
+                        ],
+                    },
+                    1.0,
+                    "full",
+                )
+            )
+    if excluded.assets:
+        fallback = next((r for r in results if r.adapter == "generic_grid"), None)
+        if fallback is not None:
+            fallback.assets.extend(excluded.assets)
+        else:
+            results.append(excluded)
     return results
 
 
@@ -100,6 +141,7 @@ def register_defaults() -> None:
     from rpggen.core.adapters.ldtk import LdtkAdapter
     from rpggen.core.adapters.learned import LearnedAdapter
     from rpggen.core.adapters.lpc import LpcAdapter
+    from rpggen.core.adapters.pack_layouts import PackLayoutsAdapter
     from rpggen.core.adapters.profile import ProfileAdapter
     from rpggen.core.adapters.rpgmaker import RpgMakerAdapter
     from rpggen.core.adapters.sequences import SequencesAdapter
@@ -117,6 +159,7 @@ def register_defaults() -> None:
         RpgMakerAdapter(),
         GridwrightAdapter(),
         LpcAdapter(),
+        PackLayoutsAdapter(),
         SheetPartsAdapter(),
         ActionFramesAdapter(),
         CutterAdapter(),

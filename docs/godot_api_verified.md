@@ -9,6 +9,7 @@ machine). CI re-runs the probes on 4.7.2 (`python -m rpggen.dev godot-test`); if
 
 | API | Signature / usage | Verified by | Date | Result |
 |-----|-------------------|-------------|------|--------|
+| `Sprite2D.get_rect()`, `SpriteFrames.get_frame_texture(animation, frame)`, `Node2D.to_global(point)`, `Rect2.has_area()` | Determine the actual visible sprite bounds for the editor probe's screenshot camera, including a 512x480 static battler | `tests/integration/test_t17_33_assets_only.py::test_the_dock_is_exercised_for_character_packs_without_ground`: generate, place, render, assert visible art and no art cropped at the image edge | 2026-10-28 | OK on 4.7.2 with a renderer. |
 | CLI `--import` | `godot --headless --path <proj> --import` | ran on `godot_templates`; exit 0, creates `.godot/`, `*.uid`, `*.import` | 2026-10-06 | OK. Does not rewrite `project.godot` or `config_version`. Used by `godot.import_project()`. |
 | CLI `--version` | `godot --version` (no `--path`) | `integration/test_godot_runner.py::test_detect_version` | 2026-10-06 | OK. Prints `4.7.1.stable.official.<hash>`. |
 | CLI `--script` | `godot --headless --path <proj> --script res://x.gd` | probe in scratch project; script extends `SceneTree`, `_initialize()` runs | 2026-10-06 | OK. `quit(3)` inside `_initialize()` makes the process exit with code 3. |
