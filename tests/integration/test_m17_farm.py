@@ -440,7 +440,11 @@ def test_the_farm_is_built_from_its_stored_plan(plain) -> None:
     # cells of the scene to the plan's, and `clear_debris` the things to clear)
     debris = [f"Debris_{d['cell'][0]}_{d['cell'][1]}" for d in stored["debris"]]
     assert sorted(_nodes(farm, "Debris_")) == sorted(debris)
-    assert farm.count('metadata/farm_clear = "') == len(debris)
+    # and a farm that crafts breaks its rocks for stone (T18.15): they are cleared too
+    rocks = [t for t in stored.get("scenery", []) if t["kind"] == "rock"]
+    assert "workbench" in stored, "a new farm crafts"
+    assert farm.count('metadata/farm_clear = "') == len(debris) + len(rocks)
+    assert farm.count('entity_id = "farm_rock_') == len(rocks)
     assert farm.count('entity_id = "farm_debris_') == len(debris)
     assert len(_nodes(farm, "Tree")) == len(stored["trees"])
     scenery = [n for kind in ("Bush", "Rock", "Flowers") for n in _nodes(farm, kind)]
@@ -1006,7 +1010,9 @@ def _sample_config(**starter_map) -> config.GeneratorConfig:
         sample.name, [config.pack_ref_from_source(pack, sample.folder)], archetype="farm"
     )
     cfg.starter = mapping.default_starter(cat, sample.archetype, sample.projection)
-    cfg.starter_map = dict(starter_map)
+    # what a new farm chooses (M18), but no animals unless asked: the animals have farms of
+    # their own below
+    cfg.starter_map = {**config.NEW_FARM_OPTIONS, "animals": "none", **starter_map}
     return cfg
 
 

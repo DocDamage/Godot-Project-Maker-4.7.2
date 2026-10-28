@@ -51,8 +51,15 @@ func _physics_process(delta: float) -> void:
 	if _grace > 0.0:
 		_grace = maxf(0.0, _grace - delta)
 	_wander(delta)
-	if not encounter_on_interact and _grace <= 0.0 and _contact != null and _contact.has_overlapping_bodies():
+	if not encounter_on_interact and _grace <= 0.0 and _contact != null and _touched():
 		_try_encounter()
+
+## Something touches it, on its own level (T18.20: a battle starts only on one level).
+func _touched() -> bool:
+	for body in _contact.get_overlapping_bodies():
+		if RpgLevels.same_level(self, body):
+			return true
+	return false
 
 func _wander(delta: float) -> void:
 	if not wander_enabled or not input_enabled or RpgSequenceRunner.running():

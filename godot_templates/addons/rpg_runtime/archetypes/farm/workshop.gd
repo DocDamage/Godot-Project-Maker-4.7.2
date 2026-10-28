@@ -360,7 +360,7 @@ func _show(row: Dictionary, field: RpgField) -> void:
 	if field.resolved_id() != RpgUtil.to_str(row["map"]):
 		return
 	var cell := Vector2i(RpgUtil.to_int(row["x"]), RpgUtil.to_int(row["y"]))
-	var node := RpgPlacedThing.make(RpgUtil.to_int(row["id"]), RpgUtil.to_str(row["kind"]), field.tile_px, not WALKABLE.has(RpgUtil.to_str(row["kind"])))
+	var node := RpgPlacedThing.make(RpgUtil.to_int(row["id"]), RpgUtil.to_str(row["kind"]), field.tile_px, not WALKABLE.has(RpgUtil.to_str(row["kind"])), RpgIso.footprint_of(field.get_parent()))
 	var holder := field.get_node_or_null(field.crops_path)
 	if holder == null:
 		holder = field

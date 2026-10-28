@@ -8,7 +8,7 @@ from pathlib import Path
 import pytest
 
 from rpggen import features, paths, schema
-from rpggen.core import config, options, orchestrator, staging
+from rpggen.core import config, options, orchestrator, staging, track_plan
 
 REPO = Path(__file__).resolve().parents[2]
 
@@ -30,7 +30,8 @@ def test_the_config_of_a_racing_game_is_valid_and_keeps_its_options() -> None:
     cfg = _cfg()
     data = cfg.to_json()
     schema.validate("config", data)
-    assert data["archetype"] == "racing" and "starter_map" not in data
+    assert data["archetype"] == "racing"
+    assert data["starter_map"] == {**track_plan.defaults(), "racers": True}, "a new race (T18.19)"
     rules = config.starter_map_defaults("racing")
     assert (rules["steering"], rules["camera"]) == ("relative", "follow")
     assert (rules["tracks"], rules["laps"], rules["track_size"]) == (4, 3, "medium"), "T16.13"

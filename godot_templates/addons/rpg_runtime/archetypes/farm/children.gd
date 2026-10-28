@@ -178,9 +178,19 @@ func born() -> Dictionary:
 	_put("due", -1)
 	RpgUtil.notify(RpgFarmStrings.t("FARM_CHILD_BORN", [kid["name"]]))
 	if is_inside_tree() and RpgUtil.tree() != null and RpgUtil.tree().current_scene != null:
-		var box := RpgNamingDialog.open(RpgFarmStrings.t("FARM_CHILD"), str(kid["name"]))
-		box.named.connect(func(text: String) -> void: rename(RpgUtil.to_int(kid["id"]), text))
+		_ask_name(kid)
 	return kid
+
+## The naming box for a newborn, once the game runs again: a child is born in the night, while
+## the morning's fade holds the game paused.
+func _ask_name(kid: Dictionary) -> void:
+	var tree := RpgUtil.tree()
+	while tree != null and tree.paused:
+		await tree.process_frame
+	if tree == null or not is_inside_tree():
+		return
+	var box := RpgNamingDialog.open(RpgFarmStrings.t("FARM_CHILD"), str(kid["name"]))
+	box.named.connect(func(text: String) -> void: rename(RpgUtil.to_int(kid["id"]), text))
 
 func rename(id: int, text: String) -> bool:
 	var family := kids()

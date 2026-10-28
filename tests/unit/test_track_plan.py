@@ -294,6 +294,7 @@ def test_the_options_and_what_is_wrong_with_them() -> None:
         "rivals": 3,
         "rubber_band": True,
         "elimination": False,
+        "racers": False,  # T18.19: a new race has them (config.NEW_KIND_OPTIONS)
         "added_tracks": [],
     }
     assert config.starter_map_defaults("racing") == track_plan.defaults()
@@ -419,3 +420,25 @@ def test_the_tracks_the_runtimes_tests_drive_are_what_the_planner_gives() -> Non
         "acceleration",
         "speed",
     ], "a different part on each of three tracks"
+
+
+def test_an_isometric_race_is_pictured_on_diamonds() -> None:
+    """T18.19: the Options page draws the tracks of a race seen at an angle on the project's
+    diamonds, not from above."""
+    stages = track_plan.plan({}, 12345)
+    flat = map_preview.render_tracks(stages, 2)
+    iso = map_preview.render_tracks(stages, 2, footprint=(64, 32))
+    assert iso.size != flat.size
+    first = stages["list"][0]
+    picture = map_preview.render_track(first, 2, int(stages.get("tile", 16)), (64, 32))
+    rows, cols = len(first["rows"]), len(first["rows"][0])
+    # a diamond map of cols x rows cells is (cols + rows) half diamonds wide
+    assert picture.width >= (cols + rows) * 2
+    colours = {
+        picture.getpixel((x, y))
+        for x in range(0, picture.width, 3)
+        for y in range(0, picture.height, 3)
+    }
+    assert map_preview.TRACK_COLORS["g"] in colours and map_preview.TRACK_CAR in colours
+    rects = map_preview.track_rects(stages, 2, (64, 32))
+    assert rects[first["id"]][2:] == picture.size

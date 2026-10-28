@@ -640,7 +640,13 @@ def test_the_farm_is_painted_on_diamonds_where_its_plan_says(iso_farm, godot_exe
     cat = catalog.Catalog.from_json(jsonio.read(paths.from_posix_rel(paths.CATALOG, target)))
     cfg = _farm_config()
     facts = orchestrator.farm_facts(cfg, cat)
-    assert facts == {"water": False, "house": {"size": [1, 1], "door": [0, 1]}}
+    # a new farm's (M18): the houses of the packs' animals (this pack has none) and a workbench
+    assert facts == {
+        "water": False,
+        "house": {"size": [1, 1], "door": [0, 1]},
+        "animal_houses": [],
+        "workbench": True,
+    }
     from rpggen.core import farm_plan
 
     planned = farm_plan.plan(cfg.starter_map_options(), cfg.seed, facts)
@@ -1269,6 +1275,49 @@ DOCK_PLACES = [
     (ISLE_OBJECTS + "png__treeoak.tscn", (11, 8), (4, 2), "drop", "treeoak2"),
     (ISLE_OBJECTS + "png__treepine.tscn", (13, 10), (-5, -1), "double_click", "treepine2"),
 ]
+
+
+@pytest.mark.windowed
+def test_the_mouse_drops_onto_the_diamonds_of_stone_isle(
+    isle,  # noqa: ANN001
+    godot_exe: Path,
+    tmp_path: Path,
+) -> None:
+    """A real drag and drop in a windowed editor (T18.18): while the dock's item is over the 2D
+    view the diamond it will stand on is drawn (a house's four, the height of a raised cell);
+    let go, it stands on the middle of that diamond among the entities (on a raised one, as high
+    as the cell), and the editor's drop with the dock's fixing up is one Ctrl+Z."""
+    from tests.integration import dock_probe_run
+
+    if not dock_probe_run.can_open_a_window():
+        pytest.skip("no display to open the editor's window on")
+    target, _result = isle
+    places = [
+        {"scene": ISLE_OBJECTS + "png__treepine.tscn", "how": "mouse", "offset": [0, 0]},
+        {"scene": ISLE_OBJECTS + "png__house_1.tscn", "how": "mouse", "offset": [3, 1]},
+        {"scene": ISLE_OBJECTS + "png__rock.tscn", "how": "mouse", "offset": [-2, 2], "raise": 16},
+    ]
+    wanted = {"map": "res://" + MAPS[0], "snap": 16, "save": False, "places": places}
+    run = dock_probe_run.run_probe(target, tmp_path / "proj", godot_exe, wanted, windowed=True)
+    report = run.report
+    dock_probe_run.check_mouse_drops(report, raised=16)
+    tree, house, rock = report["places"]
+    for seen in (tree, house, rock):
+        cell = seen["target"]
+        middle = list(iso_math.cell_to_screen(*cell, *ISLE_FOOT))
+        lift = 16 if seen is rock else 0
+        assert [seen["placed"]["x"], seen["placed"]["y"] + lift] == middle, seen
+        assert seen["drawn"]["cell"] == cell, "the diamond under the mouse is drawn"
+    assert tree["drawn"]["cells"] == [*tree["target"], 1, 1] and tree["drawn"]["raise"] == 0
+    hx, hy = house["target"]
+    assert house["drawn"]["cells"] == [hx - 1, hy - 1, 2, 2], "a house's four cells"
+    assert sorted(map(tuple, house["cells"])) == [
+        (hx - 1, hy - 1),
+        (hx - 1, hy),
+        (hx, hy - 1),
+        (hx, hy),
+    ]
+    assert rock["drawn"]["raise"] == 16 and rock["raised"] is True, "the height of a raised cell"
 
 
 def test_the_dock_places_on_the_diamonds_of_stone_isle(

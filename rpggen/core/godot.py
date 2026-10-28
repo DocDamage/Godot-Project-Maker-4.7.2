@@ -271,14 +271,16 @@ def run_godot(
     log_dir: Path,
     is_cancelled: Callable[[], bool] | None = None,
     on_line: Callable[[str], None] | None = None,
+    headless: bool = True,
 ) -> GodotRun:
     """Run ``exe --headless --path project *args``; never raises on a non-zero exit code.
+    ``headless=False`` opens Godot's window (an editor test that sends the mouse, T18.18).
 
     ``is_cancelled`` is polled while Godot runs; when it turns true the process tree is killed
     and the result has ``cancelled=True``. ``on_line`` receives every line of output as it is
     printed. The log file (``godot_<name>.log``, stdout and stderr in the order they came) is open
     from the start and written as lines arrive."""
-    cmd = [str(exe), "--headless", "--path", str(project), *args]
+    cmd = [str(exe), *(["--headless"] if headless else []), "--path", str(project), *args]
     env = procenv.child_env(os.environ) or dict(os.environ)
     env["RPGGEN"] = "1"
     env["NO_COLOR"] = "1"  # saves work only: _run strips whatever colour codes still come

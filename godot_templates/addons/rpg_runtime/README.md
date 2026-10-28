@@ -29,6 +29,7 @@ precedence**, so `a or b and c` means `(a or b) and c`.
 | `birthday:<id>` | today is the person's birthday (a farm with festivals; false in every other game) |
 | `festival` / `festival_tomorrow` | today, or tomorrow, is a festival or another day for everybody (a farm with festivals) |
 | `event:<kind>` | today has an event of that kind: `event:egg_hunt`, `event:wedding` (a farm with festivals) |
+| `crafted:<recipe>` / `crafted:<recipe>>=N` | the player has made the recipe at least once / N times (with crafting) |
 
 ## Dialogue events
 
@@ -39,6 +40,7 @@ precedence**, so `a or b and c` means `(a or b) and c`.
 `join_party:<actor id>` / `leave_party:<actor id>` (see below), `heal_full` (the whole party), `open_shop:<id>` (opens `game/data/shops/<id>.tres` when the
 dialogue closes), `set_var:<name>=<N>`, `add_var:<name>:<N>` (N may be negative),
 `run_sequence:<id>` (plays `game/data/sequences/<id>.tres` once the dialogue has closed),
+`learn_recipe:<id>` (the player knows the recipe from now on; with crafting),
 `play_sound:<slot>` (a sound slot, your own included; silent when the slot has no sound) and
 `emit:<name>[:arg]` (sent as `Events.dialogue_event`).
 
@@ -116,6 +118,20 @@ chests and battle drops go through it). `RpgInventory.transact(giving, taking)` 
 rows all or nothing. An item with a `durability` wears (a weapon with each blow, armour and an
 accessory with each hit taken) and breaks at it; an item with a `set_id` counts towards an
 `RpgItemSet` (`game/data/item_sets/<id>.tres`) whose `bonuses` add modifiers for enough pieces.
+A shop with `repairs` has a Repair tab: `repair_rows(game)` lists worn gear (what is worn first),
+`repair_cost` is `REPAIR_SHARE` of the item's value for the wear, and `repair(game, i)` mends it
+for gold that goes to the shop's purse.
+
+## Crafting
+
+With the feature `crafting`, `RpgCrafting` (`core/crafting.gd`) keeps the recipe book: every
+`RpgRecipe` in `game/data/recipes/` (`ingredients` {item: count}, `result`, `count`, `station`,
+`minutes`, `known` from the start or learned with `learn_recipe:`). A recipe without a station is
+made by hand from the pause menu's *Crafting* at once; one with a station (an `RpgStation`, such
+as a farm's `workbench` or `kitchen`) is queued there and done after its minutes of play or of
+the calendar (`queue`, `update`, `progress`, `collect_all`). Making a recipe is one
+`Inventory.transact`; what has been made is counted for `crafted:`. Everything is kept in
+`flags`.
 
 ## Quests
 
@@ -146,9 +162,14 @@ gates and switches.
 ## Light, the minimap and the world map
 
 Every `RpgMapRoot` gets a `CanvasModulate` named `Ambient`: daylight outdoors, dimmer when
-`is_interior` (or the map id starts with `interior`), or `ambient_override`. Objects tagged `light`
+`is_interior` (or the map id starts with `interior`), or `ambient_override`. An isometric map
+with height layers (TileMapLayers with the meta `rpg_height`) also gets `Levels` (`RpgLevels`):
+each level's wall on physics layers 17 to 24, ramps walked at their ends, an actor drawn at the
+height of its cell, the way over the levels for villagers and enemies, shots and battles kept to
+a level. Objects tagged `light`
 get an `RpgLightSource` (a `PointLight2D` that flickers for a flame and switches itself off outside
-the camera). With `RpgSettings.day_night` on, outdoor maps follow the play time (`RpgDayNight`).
+the camera). With `RpgSettings.day_night_on()` (the player's choice once made, else the game's default: on with
+a calendar that drives the light), outdoor maps follow the play time (`RpgDayNight`).
 
 Boot adds the HUD minimap (`RpgMinimap`, hidden by `RpgSettings.minimap`): the picture the build
 made of each map in `generated/minimaps/`, the player, doors, unopened chests and quest targets,
@@ -377,6 +398,15 @@ the last race its heading names the champion) and keeps the table in the save of
 keeps of a run). With `elimination` a player who came in last `RpgChampionship.LAST_LIMIT`
 times is out (`eliminated`, then the arcade continue screen): *Continue* puts the table back
 to what it was before that race and drives it again.
+
+**The racers.** With the mode's `racers` (the option *Racers and spectators*) the build writes
+`generated/data/drivers.json` (`{"drivers": [{id, name, frames, portrait, colour}], "people":
+[frames]}`) and each track gets `People` (`RpgRacePeople`): the drivers stand beside their cars
+until the second count of the lights, a marshal waves the start and the player's last lap,
+spectators stand on the long barriers of the straights, and the last race's first three stand
+on the podium (`show_podium`). None of them has a body. `RpgChampionship.driver_name` is then
+the driver's name (the player stays *You*), `RpgRaceResults` shows each driver's face
+(`RpgRacePeople.portrait_of`) and a rival's `skill` moves up to `SKILL_SPREAD` by its driver.
 
 **The race.** `RpgRace` (the child `Race` of a track) is set up by the mode with the track's
 entry of the list of stages and its cars (`setup(data, cars)`, `begin()`): a countdown

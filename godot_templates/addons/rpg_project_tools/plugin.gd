@@ -32,6 +32,12 @@ func _enter_tree() -> void:
 	dock = script.new()
 	dock.set("plugin", self)
 	add_dock(dock)
+	# what a dragged library item will stand on is drawn over the 2D view (T18.18)
+	set_force_draw_over_forwarding_enabled()
+
+func _forward_canvas_force_draw_over_viewport(overlay: Control) -> void:
+	if dock != null and dock.has_method("draw_drag_over"):
+		dock.call("draw_drag_over", overlay)
 
 func _exit_tree() -> void:
 	if dock != null:

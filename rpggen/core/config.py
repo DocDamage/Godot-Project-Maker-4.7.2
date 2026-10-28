@@ -256,6 +256,12 @@ NEW_FARM_OPTIONS: dict[str, Any] = {
     "cooking": True,
     "children": True,
 }
+# The same for every kind that has such choices (M18): a race has its racers and spectators
+# (T18.19).
+NEW_KIND_OPTIONS: dict[str, dict[str, Any]] = {
+    "farm": NEW_FARM_OPTIONS,
+    "racing": {"racers": True},
+}
 
 
 ARCADE_KINDS = ("shmup", "run_and_gun", "racing")
@@ -471,7 +477,7 @@ def default_for(
     archetype: str = "turn_based",
     base_tile_size: int = 16,
 ) -> GeneratorConfig:
-    """A config with every default filled in (and a new farm's choices, NEW_FARM_OPTIONS)."""
+    """A config with every default filled in (and a new project's choices, NEW_KIND_OPTIONS)."""
     return GeneratorConfig(
         project_name=project_name,
         packs=list(packs),
@@ -479,7 +485,7 @@ def default_for(
         base_tile_size=base_tile_size,
         features=default_features(archetype),
         resolution=resolution_for(base_tile_size),
-        starter_map=dict(NEW_FARM_OPTIONS) if archetype == "farm" else {},
+        starter_map=dict(NEW_KIND_OPTIONS.get(archetype, {})),
     )
 
 

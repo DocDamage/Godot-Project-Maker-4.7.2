@@ -392,9 +392,23 @@ func path_to(target: Vector2) -> PackedVector2Array:
 	if NavigationServer2D.map_get_iteration_id(world.navigation_map) == 0:
 		return none
 	var path := NavigationServer2D.map_get_path(world.navigation_map, actor.global_position, target, true)
+	# height on diamonds (T18.20): a way that changes level, or crosses a block, goes by the levels
+	var levels := RpgLevels.near(actor)
+	if levels != null and not _keeps_level(levels, path, target):
+		path = levels.path(actor.global_position, target)
 	if path.is_empty() or path[path.size() - 1].distance_to(target) > REACH_PX:
 		return none
 	return path
+
+## True when the way stays on the level the NPC is on, to a target on that level.
+func _keeps_level(levels: RpgLevels, path: PackedVector2Array, target: Vector2) -> bool:
+	var level := levels.level_near(levels.height_at(actor.global_position))
+	if levels.level_near(levels.height_at(target)) != level:
+		return false
+	for point in path:
+		if not levels.walkable(RpgIso.cell_at(levels.map, point), level):
+			return false
+	return true
 
 func _go(target: Vector2, leaving: bool) -> void:
 	var path := path_to(target)

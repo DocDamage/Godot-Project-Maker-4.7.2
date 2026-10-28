@@ -37,6 +37,8 @@ var done := false
 var on_ground := false
 ## How far above its point on the ground its picture is drawn (world axes; on the ground only).
 var lift := Vector2.ZERO
+## The level it flies at (its shooter's, T18.20): it hurts nothing above it.
+var level := 0.0
 ## Where on its last way (0 to 1) first_on_path met a footprint.
 var _met_at := 1.0
 
@@ -65,6 +67,12 @@ static func create(shooter: Node2D, from: Vector2, direction: Vector2, shot_team
 	circle.radius = RADIUS
 	shape.shape = circle
 	shot.add_child(shape)
+	# height on diamonds (T18.20): it flies at its shooter's level; from the ground the side of a
+	# block stops it
+	shot.level = RpgLevels.level_of(shooter)
+	var levels := RpgLevels.near(shooter) if shooter != null and shooter.is_inside_tree() else null
+	if levels != null and levels.level_near(shot.level) == levels.levels[0]:
+		shot.set_collision_mask_value(levels.layer_of(levels.levels[0]), true)
 	var stats := _stats_of(shooter)
 	if stats != null:
 		var state := RpgUtil.state()
@@ -132,7 +140,7 @@ func targets() -> Array[RpgHurtbox]:
 		var hurtbox := node as RpgHurtbox
 		if hurtbox == null or hurtbox.team == team or not hurtbox.monitorable or hurtbox.is_queued_for_deletion():
 			continue
-		if hurtbox.get_collision_layer_value(layer):
+		if hurtbox.get_collision_layer_value(layer) and RpgLevels.reaches(level, RpgLevels.level_of(RpgRealtimeMath.actor_of(hurtbox))):
 			out.append(hurtbox)
 	return out
 
@@ -192,7 +200,10 @@ func finish() -> void:
 		queue_free()
 
 func _on_area_entered(area: Area2D) -> void:
-	hit(area as RpgHurtbox)
+	var hurtbox := area as RpgHurtbox
+	if hurtbox != null and not RpgLevels.reaches(level, RpgLevels.level_of(RpgRealtimeMath.actor_of(hurtbox))):
+		return  # up on a hill: out of its reach (T18.20)
+	hit(hurtbox)
 
 func _on_body_entered(body: Node) -> void:
 	if body != source:

@@ -755,8 +755,14 @@ your car in another colour. *Hazard* (a tyre), *Power-up* (the pickups) and *Dec
   steering, two rivals and the rubber band.
 * **Camera**: *follow* (ahead of the car, zooming out with speed) or *fixed* (the whole track).
 * **Elimination**: a player who comes in last twice is out.
-* The picture shows every **track** from above: the road, the start line, the checkpoints, the
-  oil, dirt and boost arrows on it, the pickups, and the car on the grid.
+* **Racers and spectators** (on for a new race): every car has a driver with a name and a face,
+  standing beside the car until the lights begin; a marshal waves the start and the last lap,
+  spectators stand along the straights, and after the last race the first three stand on the
+  podium. The drivers are your packs' people, else drawn figures in the colours of their cars.
+* The picture shows every **track** from above, or on diamonds when the *View* is isometric:
+  the road, the start line, the checkpoints, the oil, dirt and boost arrows on it, the pickups,
+  and the car on the grid. On an isometric track a pack without a car of eight headings or
+  more gets one drawn at the view's angle.
 
 ![The tracks](images/options_racing.png)
 
@@ -900,8 +906,11 @@ a **cave**: see *The cave* below.
 
 * **Farm** (small 32 x 24, medium 40 x 30, large 48 x 36 tiles) and **Plot** (24, 96 or 160
   cells that can be tilled). Only the plot can be tilled.
-* **Animals**: *None* (the default), *A coop*, or *A coop and a barn*, each a building with a
-  room inside and a fenced yard.
+* **Animals**: *The packs' animals* (a new farm's choice: a coop when your packs have hens, a
+  barn when they have cows, goats or sheep, both when they have both, none when they have
+  none), *None*, *A coop*, or *A coop and a barn*, each a building with a room inside and a
+  fenced yard. The note beside it says which animals your packs have; *Use the packs' animals*
+  sets it back.
 * **Difficulty**: how much there is to clear from the field, and how many days the crops take.
 * **Days a season** (28, 14 or 7; a year is four seasons) and the **Length of a day** (10, 14
   or 20 minutes for a day from 6:00 to 2:00).
@@ -910,6 +919,11 @@ a **cave**: see *The cave* below.
 * **Festivals and birthdays** (on): a festival in every season and a birthday for everybody.
   Off, the farm has neither. It can be switched on for a farm that exists; the dry run and
   the words under the picture then say *4 festivals*.
+* **Exhaustion** (on): working at zero energy is not possible, and trying twice offers to go
+  home; staying out ends the day as passing out does.
+* **Cooking** (on): the farmhouse has a kitchen where dishes are made of what the farm grows;
+  a dish restores more energy than its parts. **Children** (on, with marriage): a spouse asks,
+  and a child is born; it lies in the crib, then walks the farmhouse.
 * **People to court** (2): how many people of the village can be courted and married; 0
   turns marriage off. Who they are is chosen once and kept. It can be switched on for a farm
   that exists: its people are chosen then, and nothing else of them changes.
@@ -981,7 +995,10 @@ options are read on every generation.
   Still up at 2:00, you pass out: you wake at your bed with half your energy and a tenth of
   your money gone, and that is saved too.
 * **Energy** is the yellow bar over the hotbar. A tool costs some when it does something. At
-  zero you walk slowly and no tool works; eating what you harvested restores it.
+  zero you walk slowly and no tool works; eating what you harvested restores it. With
+  *Exhaustion*, the second try at zero asks whether to go home and sleep.
+* **Day and night**: the light follows the clock unless you switch it off in the settings;
+  your choice is kept.
 * A new game starts with a **hoe**, a **watering can**, fifteen seeds of the first crop and
   the starting money. The **sickle**, the **axe** and the **fishing rod** are bought at the
   shop. The can holds water for 20 squares and is filled at the pond or the well.
@@ -999,9 +1016,15 @@ options are read on every generation.
   have met.
 * **Animals** (with the option): bought at the shop while their house has a free stall, out
   in their yard by day and in their stalls from 18:00 and in bad weather. Put hay into the
-  trough, pet them, and collect the egg from the floor of the coop or milk the cow by
-  interacting with her; no pail is needed. Animals never die. A coop on a pack whose only
-  animal is a cow stays empty, since a cow lives in the barn.
+  trough, pet them, and collect the egg from the floor of the coop. A cow or a goat is milked
+  with a **pail**, a sheep shorn with **shears** (both at the shop, held and used on the
+  animal). A bought animal is named in a box that asks for it (a keyboard on screen with a
+  gamepad); *Pause → People* lists your animals by name. Animals never die.
+* **Crafting**: the **workbench** beside the farmhouse makes a sprinkler, fences, a chest, a
+  scarecrow, path stones and preserves jars from wood, stone and what the farm grows. Clear a
+  stump, a branch or a rock with the axe for wood and stone. Interact with the bench, choose a
+  recipe and wait the minutes it takes; what it made is put on the tile ahead of you. Recipes
+  are learned from people and from the start. **Cooking** works the same way at the kitchen.
 * **Fishing** (a farm with a pond): hold the rod, face the water and use it; after a bite,
   hold the button to keep the green zone over the fish until the meter is full. **Foraging**:
   every morning a few things of the season lie at the edges of the farm.
@@ -1060,8 +1083,10 @@ people say nothing of the day (their dialogue files were written before). Nobody
 anybody by hand: the hearts the smoke run needs are given to it, and the help is untuned. The
 spouse in the farmhouse is seen in the morning and the evening only; at night they are not
 seen, and they never walk onto the farm itself. A person from a farm made before marriage has
-no lines for courting in their dialogue (the spouse at home has its own). Children, cooking
-and crafting are not part of this kind.
+no lines for courting in their dialogue (the spouse at home has its own). Nobody has crafted,
+cooked or raised a child by hand: the recipes and the minutes are untuned, and the workbench,
+the kitchen and the crib are drawn when the packs have none. A farm made before 1.5.0's last
+changes has none of them unless you switch them on.
 
 ## 3d. The isometric view
 
@@ -1298,6 +1323,18 @@ says how high it lifts what stands on it. To stack:
 3. Things you place from the library on a cell with a stack stand on its top: a crate on a
    block, an air conditioner on a roof. Each sits in a node called *Raised* that keeps it
    sorted with the people walking past.
+4. Ground painted on a height layer (a floor of grass 32 px up) is raised ground. Select its
+   layer and press **Give raised ground its sides**: blocks of the same surface are stacked
+   under every edge you can see, down to the ground, so a hill has faces instead of floating.
+   One Ctrl+Z takes them back.
+
+**Height is walked** (in a game made from the level): the player, the villagers, the animals
+and the enemies stand on the level of the cell they are on and are drawn that high. The side
+of a block stops whoever is below it, the edge of raised ground keeps whoever is on it from
+walking off, and a ramp or a stair is walked up and down at its two ends. A villager and an
+enemy find the way up by a ramp; an enemy with no way up stops chasing. An arrow from below
+does not hit what stands on a hill, one from above does, and a battle of a turn-based game
+starts only with an enemy on your level.
 
 A height layer is an ordinary TileMapLayer drawn higher (its position) that sorts as its
 cells' ground does (its *Y Sort Origin*). Change both and the meta `rpg_height` together if you
@@ -1375,8 +1412,9 @@ goes among the Y-sorted entities, so it is drawn behind and in front of what is 
 of several diamonds stands with its nearest corner on that diamond and covers the diamonds
 behind it. The status line says which diamond it was. Three things differ from a map of squares:
 
-* While you drag, the picture follows the mouse freely; it settles on its diamond when you let
-  go.
+* While you drag, the diamond it will stand on is outlined under the mouse (all of a house's
+  diamonds, and on a raised cell the height it will stand at); it settles there when you let
+  go. The drop and its settling are one step: one Ctrl+Z takes the thing away.
 * Every **Snap** choice but *Off* means *the diamond*: a grid of 8 or 32 pixels has no meaning
   there. With *Off* the object stays exactly where you dropped it.
 * Nothing is dropped to a floor: that is for the rooms of a metroidvania, which are never
@@ -1392,7 +1430,13 @@ carry or own), and **Sell all** sells everything the shop buys after a second pr
 back** lists what you sold there, for what the shop paid, until it restocks. A shop can keep a
 limited stock that refills after some minutes of play (or every morning on a farm), have its own
 gold to buy with, and roll extra wares from a loot table: set `qty` on a stock row and
-`restock_minutes`, `funds` or `wares` on the shop's file in `game/data/shops/`.
+`restock_minutes`, `funds` or `wares` on the shop's file in `game/data/shops/`, or edit it in the
+dock's **Shops** tab (rows of items with their price and quantity, checked as you type, with undo
+and JSON export and import). A shop that **repairs** has a *Repair* tab for gear that wears. A new
+project's starter shop has three potions that restock, gold of its own, buying back and repairs.
+The dock's **Items** tab edits `game/data/items/` the same way, and **Recipes** the crafting
+recipes in `game/data/recipes/` (made by hand from the pause menu's *Crafting*, or at a station
+such as a farm's workbench).
 
 **Quests.** A quest can wait for another (`requires`, such as `quest_done:first`) and start by
 itself when it may (`auto_start`), fail (`fail_when`), and have a stage you turn in to

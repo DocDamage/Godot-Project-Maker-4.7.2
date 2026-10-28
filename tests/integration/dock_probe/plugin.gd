@@ -18,6 +18,13 @@ extends EditorPlugin
 ## looked at and not saved. Nobody moves a mouse: the 2D view's own drag and drop is not run.
 ## The report also has `undo_order`: the order in which the scene's history ran the operations of
 ## an action of its own (Placement.apply relies on it). It runs on a map of squares too.
+##
+## "mouse" (T18.18, a windowed editor only) is a real drag and drop: the mouse is pressed on the
+## dock's item, moved to the 2D view and let go there, as `Input.parse_input_event` events. It
+## has no `at` but an `offset` [columns, rows] from the cell in the middle of the view (the view
+## cannot be moved from here), and with `raise` (px) a height layer with a tile on that cell is
+## added first, which is not saved. The place then also says what was drawn over the view while
+## the item was over it (`drawn`: the cell, the cells and the height) and where the mouse let go.
 
 const IN := "res://rpggen/dock_probe_in.json"
 const OUT := "res://rpggen/results/dock_probe.json"
@@ -130,13 +137,18 @@ func _run() -> void:
 		for found: Dictionary in entries:
 			if str(found["scene_path"]) == scene:
 				entry = found
-		var at := Vector2(float(place["at"][0]), float(place["at"][1]))
+		var spot: Array = place.get("at", [0, 0])  # a drop of the mouse has none: it says where
+		var at := Vector2(float(spot[0]), float(spot[1]))
 		var placement: RefCounted = placement_script.new()
 		placement.set("snap", int(wanted.get("snap", 16)))
 		var seen := {"scene": scene, "how": str(place["how"]), "at": [at.x, at.y], "role": str(entry["role"])}
 		var before := history.get_version()
 		var node: Node2D = null
-		if str(place["how"]) == "drop":
+		if str(place["how"]) == "mouse":
+			node = await _mouse_drop(root, dock, entry, place, seen)
+			at = Vector2(float(seen["at"][0]), float(seen["at"][1]))
+			seen["status"] = _status(dock)
+		elif str(place["how"]) == "drop":
 			# what the editor's 2D view leaves behind: the instance under the root, at the mouse
 			node = (load(scene) as PackedScene).instantiate(PackedScene.GEN_EDIT_STATE_INSTANCE) as Node2D
 			root.add_child(node, true)
@@ -185,6 +197,120 @@ func _run() -> void:
 	_finish(report)
 
 var _order: Array[String] = []
+## Where the last mouse event of the probe was (window coordinates).
+var _mouse_at := Vector2.ZERO
+
+const HEIGHT_LAYERS := "res://addons/rpg_project_tools/tools/height_layers.gd"
+
+## A mouse event at `where` (the editor window's px), sent as the window would.
+func _send(event: InputEventMouse, where: Vector2) -> void:
+	event.position = where
+	event.global_position = where
+	Input.warp_mouse(where)  # the editor finds what is under a drag by the real mouse
+	Input.parse_input_event(event)
+	await _frames(2)
+
+func _motion(where: Vector2, held: bool) -> void:
+	var event := InputEventMouseMotion.new()
+	event.button_mask = MOUSE_BUTTON_MASK_LEFT if held else 0
+	event.relative = where - _mouse_at  # a drag starts once these add up past the threshold
+	_mouse_at = where
+	await _send(event, where)
+
+func _button(where: Vector2, down: bool) -> void:
+	var event := InputEventMouseButton.new()
+	event.button_index = MOUSE_BUTTON_LEFT
+	event.pressed = down
+	event.button_mask = MOUSE_BUTTON_MASK_LEFT if down else 0
+	await _send(event, where)
+
+## Drags the dock's item of `entry` to a cell of the 2D view and lets go there. Returns what the
+## dock placed (selected after the drop), or null.
+func _mouse_drop(root: Node, dock: Node, entry: Dictionary, place: Dictionary, seen: Dictionary) -> Node2D:
+	var list := dock.get("_list") as ItemList
+	var search := dock.get("_search") as LineEdit
+	if search != null and search.text != "":
+		search.text = ""
+		dock.call("_refresh_list")
+	var item := -1
+	for i in list.item_count:
+		if str(list.get_item_metadata(i)) == str(entry["scene_path"]):
+			item = i
+	if item < 0:
+		seen["error"] = "the dock does not list the scene"
+		return null
+	# the library tab in front, the item in sight
+	var tabs := list.get_parent()
+	while tabs != null and not (tabs is TabContainer):
+		tabs = tabs.get_parent()
+	if tabs != null:
+		(tabs as TabContainer).current_tab = 0
+	dock.call("make_visible") if dock.has_method("make_visible") else null
+	list.select(item)
+	list.ensure_current_is_visible()
+	EditorInterface.set_main_screen_editor("2D")  # the 2D view is what is dropped on
+	await _frames(10)
+	var from := list.get_global_transform_with_canvas() * list.get_item_rect(item).get_center()
+	# the cell in the middle of the view, and the one `offset` from it
+	var view := EditorInterface.get_editor_viewport_2d()
+	var container := view.get_parent() as Control
+	var shown := view.global_canvas_transform * view.canvas_transform
+	var middle := shown.affine_inverse() * (Vector2(view.size) * 0.5)
+	var off := Vector2i(int(place.get("offset", [0, 0])[0]), int(place.get("offset", [0, 0])[1]))
+	var cell := RpgIso.cell_at(root, middle) + off
+	var world := RpgIso.cell_position(root, cell) + Vector2(3, 1)  # a little off its middle
+	var raise := int(place.get("raise", 0))
+	if raise > 0:
+		var ground := RpgIso.ground_layer(root)
+		var heights: GDScript = load(HEIGHT_LAYERS)
+		var layer: TileMapLayer = heights.call("make_layer", root, raise)
+		ground.get_parent().add_child(layer)
+		var used := ground.get_used_cells()
+		var like := cell if ground.get_cell_source_id(cell) != -1 else used[0]
+		layer.set_cell(cell, ground.get_cell_source_id(like), ground.get_cell_atlas_coords(like), ground.get_cell_alternative_tile(like))
+	var to := container.get_global_transform_with_canvas() * (shown * world)
+	seen["target"] = [cell.x, cell.y]
+	seen["at"] = [world.x, world.y]
+	seen["mouse"] = [to.x, to.y]
+	seen["view"] = [view.size.x, view.size.y, container.is_visible_in_tree()]
+	seen["from"] = [from.x, from.y]
+	# press on the item, pull it out of the list, over the view, and let go
+	await _motion(from, false)
+	await _button(from, true)
+	for step in 12:
+		await _motion(from.lerp(to, float(step + 1) / 12.0), true)
+	for wiggle in 6:
+		await _motion(to + Vector2(0.0 if wiggle % 2 == 0 else 1.0, 0.0), true)
+	seen["dragging"] = get_viewport().gui_is_dragging()
+	var drawn: Dictionary = dock.get("drag_shown")
+	if not drawn.is_empty():
+		var cells: Rect2i = drawn["cells"]
+		var drawn_cell: Vector2i = drawn["cell"]
+		seen["drawn"] = {"cell": [drawn_cell.x, drawn_cell.y], "cells": [cells.position.x, cells.position.y, cells.size.x, cells.size.y], "raise": int(drawn["raise"])}
+	var manager := get_undo_redo()
+	var history := manager.get_history_undo_redo(manager.get_object_history_id(root))
+	var version := history.get_version()
+	var count := root.get_child_count()
+	await _motion(to, true)
+	await _button(to, false)
+	await _frames(20)
+	var nodes := EditorInterface.get_selection().get_selected_nodes()
+	var names: Array[String] = []
+	for picked in nodes:
+		names.append(str(picked.name))
+	seen["after"] = {"history": history.get_version() - version, "children": root.get_child_count() - count, "selected": names, "dragging": get_viewport().gui_is_dragging(), "armed": dock.get("_armed_scene")}
+	if nodes.is_empty() or not (nodes[0] is Node2D) or nodes[0] == root:
+		seen["error"] = "nothing was dropped"
+		return null
+	var node := nodes[0] as Node2D
+	seen["raised"] = String(node.get_parent().name).begins_with("Raised")
+	var cells_under: Array = []
+	var placement_script: GDScript = load(PLACEMENT)
+	var stands: Vector2i = placement_script.call("stands_on", node)
+	for under: Vector2i in placement_script.call("cells_under", cell, stands):
+		cells_under.append([under.x, under.y])
+	seen["cells"] = cells_under
+	return node
 
 func _note(what: String) -> void:
 	_order.append(what)

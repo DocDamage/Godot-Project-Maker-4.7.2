@@ -116,3 +116,57 @@ func test_what_is_placed_on_a_stack_stands_on_its_top(t) -> void:
 	t.eq(beside["raise"], 0, "on the ground beside it")
 	thing.free()
 	_cleanup()
+
+# ---------------------------------------------------------------- the sides of raised ground (T18.20)
+
+## A tile set whose tiles name their assets: a floor of grass, a block of grass (a side of grass,
+## lifting 16) and a block of stone (a side of stone).
+func _sided_tile_set() -> TileSet:
+	var ts := _tile_set()
+	ts.add_custom_data_layer()
+	ts.set_custom_data_layer_name(1, "asset_id")
+	ts.set_custom_data_layer_type(1, TYPE_STRING)
+	var src := ts.get_source(0) as TileSetAtlasSource
+	src.get_tile_data(FLOOR, 0).set_custom_data("asset_id", "kit.floors.floor_grass_01")
+	src.get_tile_data(BLOCK, 0).set_custom_data("asset_id", "kit.blocks.block_grass_01")
+	src.get_tile_data(STOREY, 0).set_custom_data("asset_id", "kit.blocks.block_stone_01")
+	src.get_tile_data(STOREY, 0).set_custom_data("lift", 16)
+	return ts
+
+const SIDED_CATALOG := {"assets": [
+	{"id": "kit.floors.floor_grass_01", "detected": {"role": "GROUND"}},
+	{"id": "kit.blocks.block_grass_01", "detected": {"stack": "block", "side_terrain": "grass"}},
+	{"id": "kit.blocks.block_stone_01", "detected": {"stack": "block", "side_terrain": "stone"}},
+]}
+
+func test_raised_ground_gets_its_sides_where_they_are_seen(t) -> void:
+	var root := _level()
+	var ts := _sided_tile_set()
+	(root.get_node("Ground") as TileMapLayer).tile_set = ts
+	var pieces := HeightLayers.side_pieces(ts, SIDED_CATALOG)
+	t.eq(pieces.keys().size(), 2, "a side of grass and one of stone")
+	t.eq((pieces["grass"] as Array)[0]["coords"], BLOCK)
+	# a plateau of grass floor 32 px up, on the cells (1..2, 1..2)
+	var top := _add(root, 32)
+	top.tile_set = ts
+	for cell: Vector2i in [Vector2i(1, 1), Vector2i(2, 1), Vector2i(1, 2), Vector2i(2, 2)]:
+		top.set_cell(cell, 0, FLOOR)
+	t.eq(HeightLayers.surface_of(top, Vector2i(1, 1), pieces.keys()), "grass")
+	var open := HeightLayers.open_sides(root, top)
+	open.sort()
+	t.eq(open, [Vector2i(1, 2), Vector2i(2, 1), Vector2i(2, 2)] as Array[Vector2i], "the cells whose sides face the camera; the back one is hidden")
+	var plan := HeightLayers.plan_sides(root, top, SIDED_CATALOG)
+	var made: Array[TileMapLayer] = plan["made"]
+	var puts: Array[Array] = plan["puts"]
+	t.eq(made.map(func(l: TileMapLayer) -> int: return HeightLayers.height_of(l)), [16, 0], "blocks at 16 and on the ground")
+	t.eq(puts.size(), 6, "two blocks of grass under each of the three cells")
+	for put in puts:
+		t.eq(put[3], BLOCK, "of its own surface")
+	for holder in made:
+		holder.free()
+	# a cell held up by a block below has no open side
+	var under := _add(root, 16)
+	under.tile_set = ts
+	under.set_cell(Vector2i(2, 2), 0, BLOCK)
+	t.ok(not HeightLayers.open_sides(root, top).has(Vector2i(2, 2)), "held up already")
+	_cleanup()

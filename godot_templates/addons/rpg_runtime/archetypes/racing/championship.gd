@@ -40,8 +40,11 @@ static func driver_of(car: RpgCar) -> String:
 			digits += letter
 	return "rival_%d" % maxi(1, digits.to_int())
 
-## What a driver is called on a screen.
+## What a driver is called on a screen: its name when the drivers are people (T18.19).
 static func driver_name(driver: String) -> String:
+	var named := RpgRacePeople.name_of(driver)
+	if named != "":
+		return named
 	if driver == PLAYER:
 		return RpgRacingStrings.t("RACE_DRIVER_YOU")
 	return RpgRacingStrings.t("RACE_DRIVER_RIVAL", [maxi(1, driver.get_slice("_", 1).to_int())])

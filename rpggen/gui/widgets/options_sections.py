@@ -1322,6 +1322,13 @@ class RacingBox(ArcadeBox):
         ("spin", "rivals", "Rivals", "Cars you race against", track_plan.RIVALS),
         ("check", "rubber_band", "Rubber-banding", "Rivals far behind catch up a little", None),
         ("check", "elimination", "Elimination", "Who is last twice is out", None),
+        (
+            "check",
+            "racers",
+            "Racers and spectators",
+            "Drivers with names and faces, people along the track and a podium",
+            None,
+        ),
     )
     LEGEND = (
         ("start", "start", map_preview.TRACK_CAR),
@@ -1344,7 +1351,15 @@ class RacingBox(ArcadeBox):
             self.tr("Every track from above: the loop, its checkpoints and its pickups")
         )
 
+    footprint: tuple[int, int] | None = None  # an isometric race's diamond (T18.19)
+
+    def set_footprint(self, footprint: tuple[int, int] | None) -> None:
+        """The diamond the tracks are drawn on (None: from above)."""
+        self.footprint = footprint
+
     def picture(self, stages: dict[str, Any]):  # noqa: ANN201
+        if self.footprint is not None:
+            return map_preview.render_tracks(stages, scale=2, footprint=self.footprint)
         return map_preview.render_tracks(stages, scale=3)
 
     def words(self, stages: dict[str, Any]) -> str:

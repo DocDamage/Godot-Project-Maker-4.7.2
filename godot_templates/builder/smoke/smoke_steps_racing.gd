@@ -14,6 +14,10 @@ extends RefCounted
 ## rows and its map with a dot for every car. The other tracks are each seen counting down and
 ## starting, and ended by hand, to the credits.
 ##
+## With *Racers and spectators* (T18.19) the drivers stand at their cars while the race counts
+## down and are in them when it starts, the results name them, and the last track's race is
+## ended as finished, with its first three on the podium.
+##
 ## The steps ask the plan of the track, not the screen: where a car is, what it drives on, the
 ## checkpoints and the waypoints are the plan's in both views, since a race is driven on the
 ## flat plan whatever it looks like (T17.15). The three things that are about the picture ask
@@ -535,8 +539,15 @@ func _race_is_driven_to_the_finish() -> String:
 			rivals.append(other)
 			if not other.visible or not (other.get_node_or_null("Input") is RpgRival):
 				return "%s is not on the track with a driver" % other.name
+	var people := mode.people if mode.racers else null
+	if people != null:
+		await _frames(3)
+		if people.drivers.size() != race.cars.size() or not people.drivers_standing():
+			return "%d drivers stand at %d cars before the start" % [people.drivers.size() if people.drivers_standing() else 0, race.cars.size()]
 	if not await _wait_for(func() -> bool: return race.is_running(), 60 * 6):
 		return "the race did not start"
+	if people != null and people.drivers.any(func(p: Node2D) -> bool: return p.visible):
+		return "the drivers did not get into their cars"
 	var grid_place := race.place_of(car)
 	if grid_place != race.cars.size():
 		return "the player starts the race at place %d of %d, not last" % [grid_place, race.cars.size()]
@@ -686,6 +697,11 @@ func _results_and_the_championship() -> String:
 		return "the results show %d and %d rows for %d cars" % [shown.size(), totals.size(), cars]
 	if shown[mine][1] != RpgChampionship.driver_name(RpgChampionship.PLAYER) or shown[mine][2] == "-":
 		return "the player's line of the results is %s" % [shown[mine]]
+	if mode.racers:  # the drivers by their names (T18.19)
+		for i in cars:
+			var driver := RpgUtil.to_str(_results[i].get("driver", ""))
+			if driver != RpgChampionship.PLAYER and (RpgRacePeople.name_of(driver) == "" or shown[i][1] != RpgRacePeople.name_of(driver)):
+				return "the results call %s '%s'" % [driver, shown[i][1]]
 	if said == "":
 		return "the results have no heading"
 	if not fits:
@@ -760,6 +776,17 @@ func _tracks_end_with_the_credits() -> String:
 		Input.action_release(&"accelerate")
 		if car.position.distance_to(from) < car.tile_size * 2.0 or car.surface == "grass":
 			return "the car of track %d did not get going along its road (%s -> %s, on %s)" % [index + 1, from, car.position, car.surface]
+		if mode.racers and index == count - 1:
+			# the last race ends as finished: its first three stand on the podium (T18.19)
+			race._finish()
+			var people := mode.people
+			var podium: Array[Node2D] = people.podium if people != null else ([] as Array[Node2D])
+			var first: Array = mode.last_results.slice(0, 3).map(func(row: Dictionary) -> String: return RpgUtil.to_str(row.get("driver", "")))
+			var stood: Array = podium.map(func(p: Node2D) -> String: return RpgUtil.to_str(p.get_meta(&"driver", "")))
+			if podium.size() != mini(3, race.cars.size()) or stood != first:
+				return "the podium has %s for the first three %s" % [stood, first]
+			print("[rpggen] INFO tracks_end_with_the_credits: the podium %s" % [stood])
+			continue
 		_stage().finish()
 	if not await _wait_for(func() -> bool: return finished[0], 900):
 		return "the run did not end after its last track was finished"

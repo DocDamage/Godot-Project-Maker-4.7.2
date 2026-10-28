@@ -659,6 +659,21 @@ func _stack(root: Node, ts: TileSet) -> Dictionary:
 			out["tiles"]["on_roof"] = tops[0]
 			(out["layers"] as Array).append({"name": String(on_roof.name), "height": top_height, "cells": 1})
 	out["top_of_house"] = heights.call("top_at", root, Vector2i(4, 4))
+	# a plateau of the ground's floor two blocks up, given its sides by the dock (T18.20): blocks
+	# of its surface under the edges that face the camera
+	var floors: Array[String] = []
+	for id: String in by_id:
+		if id.contains("floor_grass"):
+			floors.push_front(id)  # the ground's own kind first
+		elif id.contains("floor_"):
+			floors.append(id)
+	if not floors.is_empty():
+		var plateau: TileMapLayer = heights.call("add_layer", root, 32, manager)
+		for cell: Vector2i in [Vector2i(11, 2), Vector2i(12, 2), Vector2i(11, 3), Vector2i(12, 3)]:
+			_put(plateau, by_id, floors[0], cell)
+		var catalog: Dictionary = (load(CATALOG_EDIT) as GDScript).call("load_catalog")
+		var sides: int = heights.call("face_sides", root, plateau, manager, catalog)
+		out["plateau"] = {"floor": floors[0], "height": 32, "sides": sides, "top": heights.call("top_at", root, Vector2i(12, 3))}
 	return out
 
 func _cell_world(root: Node, cell: Vector2i) -> Vector2:

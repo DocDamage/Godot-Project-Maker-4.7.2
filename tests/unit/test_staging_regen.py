@@ -462,12 +462,15 @@ def test_an_arcade_kind_starts_with_dialogue_off_and_the_older_kinds_as_they_wer
     older = config.default_features()
     assert older == {k: k != "navigation" for k in config.FEATURE_KEYS}
     for kind in ("turn_based", "arpg", "metroidvania"):
-        assert config.default_features(kind) == older
-        assert config.default_for("T", [], archetype=kind).features == older
+        # a metroidvania does not craft (T18.14): it has no stations
+        want = {**older, "crafting": False} if kind == "metroidvania" else older
+        assert config.default_features(kind) == want
+        assert config.default_for("T", [], archetype=kind).features == want
     for kind in config.ARCADE_KINDS:
         feats = config.default_for("T", [], archetype=kind).features
         assert [k for k, on in feats.items() if not on] == [
             "dialogue",
             "navigation",
             "progression",
+            "crafting",
         ], kind

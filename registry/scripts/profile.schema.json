@@ -453,6 +453,8 @@
         "iso_terrain": {"type": "object"},
         "post": {"enum": ["nw", "ne", "es", "sw"]},
         "lift": {"type": "integer", "minimum": 0},
+        "side_terrain": {"type": "string", "minLength": 1},
+        "ramp": {"type": "array", "prefixItems": [{"type": "integer"}, {"type": "integer"}, {"enum": ["n", "e", "s", "w"]}], "minItems": 3, "maxItems": 3},
         "stack": {"enum": ["block", "ramp", "storey", "roof", "on_roof", "on_storey", "on_wall", "overlay"]},
         "tile_frames": {"type": "array", "items": {"type": "string"}, "minItems": 1},
         "tile_fps": {"type": "number", "exclusiveMinimum": 0},

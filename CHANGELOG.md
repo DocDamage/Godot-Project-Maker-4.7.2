@@ -311,13 +311,36 @@ does not ask for the isometric view is built as it was.
 * **The wizard is in English only**: its French translation, the *View > Language* menu and
   the translation tooling were removed (the games' own languages stay). A settings file that
   names a wizard language still loads; the key is ignored.
+* **Shops and items in the dock** (M18): the *Shops* and *Items* tabs edit `game/data/shops/`
+  and `game/data/items/` with undo and JSON export and import, and the validator names a shop
+  row whose item has no file. A new project's starter shop has three potions that restock, gold
+  of its own, buying back and repairs, and its starter weapon wears.
+* **A farm, finished** (M18). New farms choose *The packs' animals* (the coop and the barn of
+  what the packs have), and have *Exhaustion*, *Cooking* and *Children* on; a farm made before
+  keeps what it had. The farmer's tool strips of a pack are played; a cow or a goat is milked
+  with a pail and a sheep shorn; a bought animal is named; crafting at a workbench (a sprinkler,
+  fences, a chest, ...: wood and stone from what the axe clears), cooking in the farmhouse's
+  kitchen, and a child in a crib. The *Day and night* setting is followed once chosen,
+  villagers step aside, a long list of choices scrolls, and a crop whose kind was removed can
+  be cleared. Crafting is a feature of its own (*Crafting*: recipes, stations, the dock's
+  *Recipes* tab and the pause menu's window) in the turn-based game, the action RPG and the
+  farm.
+* **The mouse on diamonds** (M18): while a library item is dragged over an isometric map the
+  dock outlines the diamonds it will stand on, and the drop is one undo step.
+* **An isometric race** (M18): a pack without a car of eight headings gets a car drawn at the
+  view's angle; the option *Racers and spectators* (on for a new race) gives every car a driver
+  with a name and a face, a marshal, spectators along the track and a podium; the Options
+  page draws an isometric race on diamonds.
+* **Height on diamonds** (M18): what is stacked on a level's height layers is walked: blocks
+  block, raised ground keeps whoever stands on it, ramps lead up and down, villagers and
+  enemies find the way up, and shots and battles keep to a level. The dock's *Give raised
+  ground its sides* stacks the packs' blocks under raised ground.
 
 **Known limits.** Nobody has played either the farm or an isometric game by hand yet: what is
 known is what their tests and check runs assert. A farm's ground is one tile, and its soil,
 water and paths meet it with hard edges (no map is painted with terrains yet), and the door to an
-added map is a mark on the ground beside the farm's edge, which a tree before it can hide. An imported isometric map has no height: the stairs of a sample are pictures walked across, and a second floor is only drawn higher. A
-room of an isometric project has walls only when the packs have isometric wall pieces. An
-isometric race is shown from above on the Options page.
+added map is a mark on the ground beside the farm's edge, which a tree before it can hide. An imported isometric map has no height of its own (its stairs are pictures walked across): height is walked on the levels a user paints with the dock's height layers. A
+room of an isometric project has walls only when the packs have isometric wall pieces.
 
 ## 1.4.0 (in work)
 

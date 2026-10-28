@@ -633,6 +633,10 @@ func _clear_debris() -> String:
 	var mode := RpgFarmMode.current()
 	var plan := _plan()
 	var listed := JsonUtil.to_array(plan.get("debris", []))
+	if plan.has("workbench"):  # a farm that crafts breaks its rocks for stone (T18.15)
+		for raw: Variant in JsonUtil.to_array(plan.get("scenery", [])):
+			if JsonUtil.to_str(JsonUtil.to_dict(raw).get("kind", "")) == "rock":
+				listed.append(raw)
 	var holder := scene.get_node_or_null("YSorted/Entities")
 	var things: Array[Node2D] = []
 	for node in holder.get_children():
@@ -690,7 +694,10 @@ func _use_on(thing: Node2D, kind: String, cell: Vector2i, stand: Vector2i, facin
 	var energy := mode.energy.value
 	var seen: Array[String] = await _use_watched()
 	if not await _wait_for(func() -> bool: return field.clearable_at(cell, kinds) == null, 60):
-		return "`use` with %s did not clear the %s at %s" % [tool_id, kind, cell]
+		var farmer := _farmer()
+		return "`use` with %s did not clear the %s at %s (held %s, energy %d, input %s, locked %s, a sequence %s, ahead %s)" % [
+			tool_id, kind, cell, mode.hotbar.held_item(), mode.energy.value, farmer.input_enabled,
+			farmer.move_locked, RpgSequenceRunner.running(), farmer.tile_ahead()]
 	var played := _strip_played(tool.animation, seen)
 	if played != "":
 		return played
@@ -918,8 +925,15 @@ func _a_child_is_born() -> String:
 	state.set_flag(RpgFarmChildren.FLAG_ENTITY, "due", calendar.today() + 1)  # the days, given
 	await _weather_end_day()
 	await _animals_frames(3)
+	# the naming box opens once the morning's fade is over
+	var asked := func() -> bool: return not _tree().root.find_children("NamingDialog", "", true, false).is_empty()
+	if not await _wait_for(asked, 300):
+		return "no naming box asked for the newborn's name"
 	for box in _tree().root.find_children("NamingDialog", "", true, false):
 		(box as RpgNamingDialog).confirm()
+	await _animals_frames(2)
+	if _tree().paused:
+		return "the game stays paused after the newborn was named"
 	var kids := RpgFarmChildren.kids()
 	if kids.size() != 1:
 		return "the morning after it was due %d children were born" % kids.size()

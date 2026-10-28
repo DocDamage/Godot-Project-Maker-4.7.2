@@ -513,16 +513,23 @@ class OptionsModel:
         )
 
     def starter_defaults(self) -> dict[str, Any]:
-        """What Reset gives: the defaults, and for a farm what a new farm chooses (M18)."""
+        """What Reset gives: the defaults, and what a new project of the kind chooses (M18)."""
         assert self.draft is not None
         out = config_mod.starter_map_defaults(self.draft.archetype)
-        if self.draft.archetype == "farm":
-            out.update(config_mod.NEW_FARM_OPTIONS)
+        out.update(config_mod.NEW_KIND_OPTIONS.get(self.draft.archetype, {}))
         return out
 
+    def generator_defaults(self) -> dict[str, Any]:
+        """What the generator takes for an option the config lacks: what is stored is what
+        differs from these (a new project's choices, NEW_KIND_OPTIONS, are stored: a config
+        without them is one of before, and the generator reads it so)."""
+        assert self.draft is not None
+        return config_mod.starter_map_defaults(self.draft.archetype)
+
     def store_starter(self, values: dict[str, Any]) -> None:
-        """Stores only what differs from the defaults of the archetype. The starter map of a
-        project that exists keeps its options; only the areas table still counts (a new area)."""
+        """Stores only what differs from the generator's defaults of the archetype. The starter
+        map of a project that exists keeps its options; only the areas table still counts (a new
+        area)."""
         if self.draft is None:
             return
         if self.is_assets:  # no maps (T17.33)
@@ -538,7 +545,7 @@ class OptionsModel:
                 kept[key] = copy.deepcopy(values[key])
             self.draft.starter_map = kept
             return
-        defaults = self.starter_defaults()
+        defaults = self.generator_defaults()
         self.draft.starter_map = {
             k: v for k, v in values.items() if k not in defaults or v != defaults[k]
         }
@@ -546,7 +553,7 @@ class OptionsModel:
     def merged_farm(self, old: dict[str, Any], values: dict[str, Any]) -> dict[str, Any]:
         """The ``starter_map`` of a farm from what the widgets show: only what differs from the
         defaults, with the frozen options (``frozen_keys``) as ``old`` has them."""
-        defaults = self.starter_defaults()
+        defaults = self.generator_defaults()
         frozen = self.frozen_keys()
         out = {k: copy.deepcopy(v) for k, v in old.items() if k in frozen}
         for key, value in values.items():
@@ -1049,6 +1056,15 @@ class OptionsModel:
             return False
         old = self.draft.starter_map
         new = options.apply_preset(self.draft, preset)
+        # a preset that does not name a new project's choice (M18) keeps the one made
+        new.starter_map = {
+            **{
+                k: old[k]
+                for k in config_mod.NEW_KIND_OPTIONS.get(self.draft.archetype, {})
+                if k in old and k not in new.starter_map
+            },
+            **new.starter_map,
+        }
         self.draft = dataclasses.replace(new, seed=self.draft.seed)  # a preset keeps the seed
         if self.is_farm:  # what a farm that exists keeps is kept; the rest is the preset's
             self.draft.starter_map = self.merged_farm(old, new.starter_map_options())

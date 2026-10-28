@@ -19,8 +19,9 @@ const STATION := "res://addons/rpg_runtime/world/station.gd"
 @export var thing_id := 0
 @export var kind := ""
 
-## A thing of `kind` drawn for cells of `tile` px; `blocks`: on the world layer.
-static func make(id: int, of_kind: String, tile: int, blocks: bool) -> RpgPlacedThing:
+## A thing of `kind` drawn for cells of `tile` px; `blocks`: on the world layer. On an isometric
+## map (`diamond`, its cell) it blocks and is reached on its cell's diamond.
+static func make(id: int, of_kind: String, tile: int, blocks: bool, diamond: Vector2i = Vector2i.ZERO) -> RpgPlacedThing:
 	var made := RpgPlacedThing.new()
 	made.thing_id = id
 	made.kind = of_kind
@@ -30,12 +31,7 @@ static func make(id: int, of_kind: String, tile: int, blocks: bool) -> RpgPlaced
 	made.set_collision_layer_value(5, true)  # interactables: `interact` finds it
 	if blocks:
 		made.set_collision_layer_value(1, true)
-	var shape := CollisionShape2D.new()
-	var box := RectangleShape2D.new()
-	box.size = Vector2(tile, tile) * 0.8
-	shape.shape = box
-	shape.position = Vector2(0, -tile * 0.4)
-	made.add_child(shape)
+	made.add_child(cell_shape("Shape", tile, 0.8, diamond))
 	var colours: Array = COLOURS.get(of_kind, [Color.GRAY, Color.DIM_GRAY])
 	var t := float(tile)
 	for part: Array in _parts(of_kind, t):
@@ -45,11 +41,25 @@ static func make(id: int, of_kind: String, tile: int, blocks: bool) -> RpgPlaced
 		rect.color = colours[RpgUtil.to_int(part[1])]
 		made.add_child(rect)
 	if of_kind == "stove":  # a kitchen (T18.16): the crafting window on its tab
-		made.add_child(kitchen_station(tile, "placed_stove_%d" % id))
+		made.add_child(kitchen_station(tile, "placed_stove_%d" % id, diamond))
 	return made
 
+## A shape of one cell: on squares a box `share` of the cell standing on (0, 0), on diamonds
+## (`diamond`) the cell's diamond around it.
+static func cell_shape(shape_name: String, tile: int, share: float, diamond: Vector2i = Vector2i.ZERO) -> CollisionShape2D:
+	var shape := CollisionShape2D.new()
+	shape.name = shape_name
+	if diamond != Vector2i.ZERO:
+		shape.shape = RpgIso.cell_shape(diamond)
+		return shape
+	var box := RectangleShape2D.new()
+	box.size = Vector2(tile, tile) * share
+	shape.shape = box
+	shape.position = Vector2(0, -tile * share * 0.5)
+	return shape
+
 ## The RpgStation of a kitchen: `kitchen`, keeping its queue under `key`.
-static func kitchen_station(tile: int, key: String) -> Area2D:
+static func kitchen_station(tile: int, key: String, diamond: Vector2i = Vector2i.ZERO) -> Area2D:
 	var station := Area2D.new()
 	station.name = "Station"
 	station.set_script(load(STATION))
@@ -59,12 +69,7 @@ static func kitchen_station(tile: int, key: String) -> Area2D:
 	station.collision_layer = 0
 	station.collision_mask = 0
 	station.set_collision_layer_value(5, true)
-	var reach := CollisionShape2D.new()
-	var area := RectangleShape2D.new()
-	area.size = Vector2(tile, tile)
-	reach.shape = area
-	reach.position = Vector2(0.0, -tile * 0.5)
-	station.add_child(reach)
+	station.add_child(cell_shape("Reach", tile, 1.0, diamond))
 	return station
 
 ## [Rect2, colour index] of the drawing, the foot at (0, 0).

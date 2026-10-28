@@ -8,6 +8,8 @@ extends Control
 signal finished
 
 const HOLD_S := 10.0
+## How large a driver's face is shown beside its name.
+const PORTRAIT_PX := 20.0
 
 var _left := HOLD_S
 var _done := false
@@ -129,7 +131,23 @@ func _grid(parent: Control, grid_name: String, title: String, lines: Array[Packe
 				cell.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 			if mine:
 				cell.add_theme_color_override(&"font_color", Color(1.0, 0.9, 0.4))
-			grid.add_child(cell)
+			var face := RpgRacePeople.portrait_of(RpgUtil.to_str(rows[i].get("driver", ""))) if n == 1 else null
+			if face == null:
+				grid.add_child(cell)
+				continue
+			# the driver's face beside its name (T18.19)
+			var named := HBoxContainer.new()
+			named.name = "Driver%d" % i
+			var picture := TextureRect.new()
+			picture.name = "Portrait"
+			picture.texture = face
+			picture.custom_minimum_size = Vector2(PORTRAIT_PX, PORTRAIT_PX)
+			picture.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+			picture.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+			picture.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+			named.add_child(picture)
+			named.add_child(cell)
+			grid.add_child(named)
 
 ## The text of the heading (tests).
 func heading_shown() -> String:
@@ -144,8 +162,13 @@ func grid_texts(grid_name: String) -> Array[PackedStringArray]:
 		return out
 	var line := PackedStringArray()
 	for child in grid.get_children():
-		if child is Label and not child.is_queued_for_deletion():
-			line.append((child as Label).text)
+		if child.is_queued_for_deletion():
+			continue
+		var label := child as Label
+		if label == null:
+			label = child.get_child(child.get_child_count() - 1) as Label  # a face and a name
+		if label != null:
+			line.append(label.text)
 			if line.size() == grid.columns:
 				out.append(line)
 				line = PackedStringArray()

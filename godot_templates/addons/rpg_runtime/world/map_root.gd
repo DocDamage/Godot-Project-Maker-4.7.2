@@ -29,6 +29,8 @@ func _ready() -> void:
 	var settings := RpgUtil.settings()
 	if settings != null and not settings.changed.is_connected(update_ambient):
 		settings.changed.connect(update_ambient)
+	# height on diamonds (T18.20): a map with height layers has levels; others are as they were
+	RpgLevels.ensure(self)
 
 func _process(delta: float) -> void:
 	_since_update += delta

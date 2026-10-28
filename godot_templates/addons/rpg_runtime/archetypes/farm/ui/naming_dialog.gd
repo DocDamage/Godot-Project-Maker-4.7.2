@@ -108,8 +108,8 @@ func confirm() -> void:
 	if text.is_empty():
 		text = _start
 	var tree := get_tree()
-	if tree != null:
-		tree.paused = _paused_before
+	if tree != null and not _paused_before:  # a pause it did not make is not its to lift
+		tree.paused = false
 	named.emit(text)
 	queue_free()
 

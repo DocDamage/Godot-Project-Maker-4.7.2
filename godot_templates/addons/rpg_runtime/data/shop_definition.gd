@@ -1,3 +1,4 @@
+@tool
 class_name RpgShopDefinition
 extends Resource
 ## What a shop sells and buys. Files live in game/data/shops/<id>.tres; the dialogue event

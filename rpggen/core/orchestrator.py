@@ -435,7 +435,10 @@ def add_run_made_assets(
 
         # what the kind needs and the packs lack is drawn; the note for each (ASSET-031) is
         # the requirement check's, which the dry run and the wizard have too
-        arcade_kit.add(catalog, cfg.archetype, cfg.base_tile_size, root, cfg.projection)
+        footprint = None
+        if cfg.projection == config_mod.PROJECTION_ISOMETRIC:  # T18.19: a car at the view's angle
+            footprint = iso_atlas.project_footprint(catalog, cfg)
+        arcade_kit.add(catalog, cfg.archetype, cfg.base_tile_size, root, cfg.projection, footprint)
     if cfg.archetype == "farm":
         from rpggen.core import farm_kit
 

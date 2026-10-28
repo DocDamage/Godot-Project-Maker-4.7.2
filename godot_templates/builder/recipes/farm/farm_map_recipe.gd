@@ -960,12 +960,17 @@ func _add_workbench(ctx: BuildContext, farm: Dictionary, root: Node2D, entities:
 	body.collision_layer = 0
 	body.collision_mask = 0
 	body.set_collision_layer_value(1, true)
-	var shape := CollisionShape2D.new()
-	var rect := RectangleShape2D.new()
-	rect.size = Vector2(minf(size.x, tile) * 0.9, minf(size.y, tile) * 0.8)
-	shape.shape = rect
-	shape.position = Vector2(0.0, -rect.size.y * 0.5)
-	body.add_child(shape)
+	var diamond := geo.footprint if geo.isometric else Vector2i.ZERO  # its cell's diamond
+	if diamond != Vector2i.ZERO:
+		body.add_child(RpgPlacedThing.cell_shape("Shape", geo.tile_px, 0.9, diamond))
+	else:
+		var shape := CollisionShape2D.new()
+		shape.name = "Shape"
+		var rect := RectangleShape2D.new()
+		rect.size = Vector2(minf(size.x, tile) * 0.9, minf(size.y, tile) * 0.8)
+		shape.shape = rect
+		shape.position = Vector2(0.0, -rect.size.y * 0.5)
+		body.add_child(shape)
 	if texture != null:
 		var sprite := Sprite2D.new()
 		sprite.name = "Sprite"
@@ -984,12 +989,7 @@ func _add_workbench(ctx: BuildContext, farm: Dictionary, root: Node2D, entities:
 	station.collision_layer = 0
 	station.collision_mask = 0
 	station.set_collision_layer_value(5, true)  # interactables
-	var reach := CollisionShape2D.new()
-	var area := RectangleShape2D.new()
-	area.size = Vector2(tile, tile)
-	reach.shape = area
-	reach.position = Vector2(0.0, -tile * 0.5)
-	station.add_child(reach)
+	station.add_child(RpgPlacedThing.cell_shape("Reach", geo.tile_px, 1.0, diamond))
 	body.add_child(station)
 	body.position = _spot(cell_of(bench_plan.get("cell")), geo)
 	SceneUtil.add(entities, body, root, "Workbench")
@@ -1346,7 +1346,7 @@ func room_root(ctx: BuildContext, building: Dictionary, issues: Array) -> Node2D
 			_add_kitchen(ctx, root, entities, size, cell_of(bed_plan.get("cell")), hung, geo)
 		# the crib (T18.17): only in a farm with children, in a farmhouse that is being built
 		if FarmBuild.children(ctx):
-			_add_crib(root, entities, size, cell_of(bed_plan.get("cell")), geo)
+			_add_crib(root, entities, size, cell_of(bed_plan.get("cell")), arrive, geo)
 	if JsonUtil.to_array(room.get("trough")).size() == 2:
 		MapUtil.add_marker(markers, root, "Trough", geo.center(cell_of(room.get("trough"))))
 	var stalls := cells_of(room.get("stalls"))
@@ -1367,25 +1367,21 @@ func _add_kitchen(ctx: BuildContext, root: Node2D, entities: Node2D, size: Vecto
 		cell.x += -1 if cell.x > size.x / 2 else 1
 	var tile := float(geo.tile_px)
 	var texture := FarmBuild.first_frame(ctx, FarmBuild.kitchen_asset(ctx))
-	var body: StaticBody2D = RpgPlacedThing.make(0, "stove", geo.tile_px, true) if texture == null else StaticBody2D.new()
+	var diamond := geo.footprint if geo.isometric else Vector2i.ZERO  # its cell's diamond
+	var body: StaticBody2D = RpgPlacedThing.make(0, "stove", geo.tile_px, true, diamond) if texture == null else StaticBody2D.new()
 	body.name = "Kitchen"
 	if texture != null:
 		body.collision_layer = 0
 		body.collision_mask = 0
 		body.set_collision_layer_value(1, true)
-		var shape := CollisionShape2D.new()
-		var rect := RectangleShape2D.new()
-		rect.size = Vector2(tile, tile) * 0.8
-		shape.shape = rect
-		shape.position = Vector2(0.0, -tile * 0.4)
-		body.add_child(shape)
+		body.add_child(RpgPlacedThing.cell_shape("Shape", geo.tile_px, 0.8, diamond))
 		var sprite := Sprite2D.new()
 		sprite.name = "Sprite"
 		sprite.texture = texture
 		sprite.centered = false
 		sprite.position = Vector2(-texture.get_width() * 0.5, -texture.get_height())
 		body.add_child(sprite)
-		body.add_child(RpgPlacedThing.kitchen_station(geo.tile_px, "farm_kitchen"))
+		body.add_child(RpgPlacedThing.kitchen_station(geo.tile_px, "farm_kitchen", diamond))
 	else:
 		(body.get_node("Station") as Node).set("entity_id", "farm_kitchen")  # its station does the work
 	body.position = geo.center(cell) + (Vector2.ZERO if geo.isometric else Vector2(0.0, tile * 0.5))
@@ -1393,24 +1389,32 @@ func _add_kitchen(ctx: BuildContext, root: Node2D, entities: Node2D, size: Vecto
 	SceneUtil.set_owner_recursive(body, root)
 
 ## The crib of a farmhouse that is being built (T18.17): a small drawn bed against the bottom
-## wall below the bed's head, where a baby of the farm lies (RpgFarmChildren). A farmhouse built
-## before has none: the baby lies on the spouse's side of the bed.
+## wall below the bed's head, where a baby of the farm lies (RpgFarmChildren), kept two cells
+## from `arrive` (where the farmer comes in by the door). A farmhouse built before has none: the
+## baby lies on the spouse's side of the bed.
 const CRIB_COLOR := Color(0.85, 0.75, 0.55)
 
-func _add_crib(root: Node2D, entities: Node2D, size: Vector2i, bed_head: Vector2i, geo: MapGeo) -> void:
+func _add_crib(root: Node2D, entities: Node2D, size: Vector2i, bed_head: Vector2i, arrive: Vector2i, geo: MapGeo) -> void:
 	var cell := Vector2i(clampi(bed_head.x, 1, size.x - 2), size.y - 2)
+	if absi(cell.x - arrive.x) < 2 and absi(cell.y - arrive.y) < 2:
+		var away := arrive.x + 2 if arrive.x + 2 <= size.x - 2 else arrive.x - 2
+		cell.x = clampi(away, 1, size.x - 2)
 	var tile := float(geo.tile_px)
 	var crib := StaticBody2D.new()
 	crib.name = "Crib"
 	crib.collision_layer = 0
 	crib.collision_mask = 0
 	crib.set_collision_layer_value(1, true)
-	var shape := CollisionShape2D.new()
-	var rect := RectangleShape2D.new()
-	rect.size = Vector2(tile * 0.8, tile * 0.6)
-	shape.shape = rect
-	shape.position = Vector2(0.0, -tile * 0.3)
-	crib.add_child(shape)
+	if geo.isometric:  # its cell's diamond
+		crib.add_child(RpgPlacedThing.cell_shape("Shape", geo.tile_px, 0.8, geo.footprint))
+	else:
+		var shape := CollisionShape2D.new()
+		shape.name = "Shape"
+		var rect := RectangleShape2D.new()
+		rect.size = Vector2(tile * 0.8, tile * 0.6)
+		shape.shape = rect
+		shape.position = Vector2(0.0, -tile * 0.3)
+		crib.add_child(shape)
 	crib.add_child(FarmBuild.stand_in("Sprite", Vector2(tile * 0.8, tile * 0.6), CRIB_COLOR))
 	crib.position = geo.center(cell) + (Vector2.ZERO if geo.isometric else Vector2(0.0, tile * 0.5))
 	SceneUtil.add(entities, crib, root, "Crib")

@@ -1,3 +1,4 @@
+@tool
 class_name RpgFarmShop
 extends RpgShopDefinition
 ## The shop of a farm (T17.08): the shop of T12.46 with the quantities of T13.11, which also

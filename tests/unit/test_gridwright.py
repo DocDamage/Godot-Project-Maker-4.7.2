@@ -178,6 +178,12 @@ def test_what_is_stacked_says_where_and_how_high(tmp_path: Path) -> None:
     assert block["usage"] == "iso_tile" and block["stack"] == "block" and block["lift"] == 16
     ramp = _eff(cat, "1x/ramps/ramp_grass_up_ne_low.png")
     assert ramp["stack"] == "ramp" and ramp["lift"] == 8 and "up:n" in ramp["tags"]
+    assert ramp["ramp"] == [0, 8, "n"], "its two ends and the side it rises to (T18.20)"
+    block = _eff(cat, "1x/blocks/block_grass_01.png")
+    assert block["stack"] == "block" and block["side_terrain"] == "grass", "a face of grass"
+    assert gridwright.surface_word("floor_grass_02") == "grass"
+    assert gridwright.surface_word("block_sidewalk_03") == "sidewalk"
+    assert gridwright.surface_word("block_01") == ""
     storey = _eff(cat, "1x/storeys/storey_brick_ground_door_sw.png")
     assert storey["role"] == "BUILDING" and storey["stack"] == "storey" and storey["lift"] == 20
     assert {"facade:brick", "level:ground", "storey:door_sw"} <= set(storey["tags"])

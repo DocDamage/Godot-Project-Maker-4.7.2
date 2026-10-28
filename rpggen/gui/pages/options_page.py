@@ -502,6 +502,8 @@ class OptionsPage(WizardPage):
             self.world_box.show_plan(*self.model.rooms_preview(self.starter_values()))
             return
         if (arcade := self.arcade_box) is not None:
+            if isinstance(arcade, sections.RacingBox):  # a race seen at an angle (T18.19)
+                arcade.set_footprint(self.model.farm_footprint())
             arcade.show_plan(*self.model.stages_preview(self.starter_values()))
             return
         self.starter_box.show_world(self.model.world_preview(self.starter_values()))

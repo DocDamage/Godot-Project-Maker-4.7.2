@@ -186,7 +186,8 @@ def test_each_arcade_kind_can_be_chosen_with_its_flag_on(qtbot, monkeypatch) -> 
         assert state.archetype == key and state.config.archetype == key
         assert state.config.input == config.default_input(key), "untouched bindings follow"
         assert state.config.features == config.default_features(key), "and untouched features"
-        assert state.config.starter_map == {}, "the rooms are no option of this kind"
+        # the rooms are no option of this kind; what a new project of it chooses is (M18)
+        assert state.config.starter_map == config.NEW_KIND_OPTIONS.get(key, {})
         assert state.config.to_json()["archetype"] == key
         page.enter(state)
         assert page.selected() == key, "coming back, the card is still the chosen one"
@@ -360,8 +361,9 @@ def test_the_farm_can_be_chosen_with_its_flag_on_and_what_follows_it(qtbot, monk
     assert cfg.input == config.default_input("farm"), "untouched bindings follow"
     assert cfg.features == config.default_features("farm"), "and untouched features"
     assert cfg.features["combat"] is False and cfg.features["demo"] is True
-    # the starter map is the farm's village: its options are the same options
-    assert cfg.starter_map == {"buildings": 2, "areas": areas}
+    # the starter map is the farm's village: its options are the same options (and what a new
+    # farm chooses, M18)
+    assert cfg.starter_map == {"buildings": 2, "areas": areas, **config.NEW_FARM_OPTIONS}
     assert cfg.to_json()["archetype"] == "farm"
     assert set(cfg.starter_map_options()) >= {"farm_size", "plot", "days_per_season"}
     page.enter(state)

@@ -664,7 +664,7 @@ def test_what_a_farm_needs_of_its_features_and_what_it_says_of_itself() -> None:
     assert options.dependencies("arpg") is options.DEPENDENCIES
     assert options.hidden_features("farm") == (), "combat is shown since T17.24: it gives a cave"
     assert options.hidden_features("racing") == options.ARCADE_HIDDEN
-    assert options.hidden_features("metroidvania") == ("navigation",)
+    assert options.hidden_features("metroidvania") == ("navigation", "crafting")
     assert options.hidden_features("turn_based") == ()
     assert "people of the village" in options.feature_text("navigation", "farm")
     assert options.feature_text("navigation", "arpg") == options.FEATURE_INFO["navigation"][2]
@@ -850,12 +850,13 @@ def test_the_options_of_a_farm_follow_its_box(qtbot, monkeypatch) -> None:
     assert page.farm_box.combos["animals"].currentData() == "coop_and_barn"
     page.farm_box.reset.click()
     page.leave(state)
-    assert state.config.starter_map == {"buildings": 3}
+    # (with what a new farm chooses, M18: stored, since a config without it is one of before)
+    assert state.config.starter_map == {"buildings": 3, **config.NEW_FARM_OPTIONS}
     page.enter(state)
     page.farm_box.combos["plot"].setCurrentIndex(0)
     page.starter_reset.click()
     page.leave(state)
-    assert state.config.starter_map == {"plot": "small"}
+    assert state.config.starter_map == {"plot": "small", **config.NEW_FARM_OPTIONS}
     # two maps of one name are no farm: said on the page, and Next waits
     page.enter(state)
     page.farm_box.add_row("Beach")

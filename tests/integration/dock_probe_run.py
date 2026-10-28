@@ -27,6 +27,34 @@ NOT_IN_TREE = "not inside tree"
 NO_PATH = "No path can be resolved"
 
 
+def can_open_a_window() -> bool:
+    """A windowed editor can be run here: Windows and macOS have a desktop, Linux a display
+    (``xvfb-run`` in CI)."""
+    import os
+    import sys
+
+    return sys.platform != "linux" or bool(os.environ.get("DISPLAY"))
+
+
+def check_mouse_drops(report: dict, raised: int = 0) -> None:
+    """What a real drag and drop placed (T18.18): on the cell the mouse let go over, one step of
+    the scene's history that one Ctrl+Z takes away and redo brings back."""
+    mouse = [seen for seen in report["places"] if seen["how"] == "mouse"]
+    assert mouse, "the probe dragged with the mouse"
+    for seen in mouse:
+        assert "error" not in seen, seen
+        assert seen["action"].startswith("Place ") and seen["one_step"] is True, (
+            "the editor's drop and the dock's fixing up are one step"
+        )
+        assert seen["undo_ok"] is True and seen["undone_in_tree"] is False, "one Ctrl+Z"
+        assert seen["redo_ok"] is True
+        assert seen["status"].startswith("Placed "), seen["status"]
+        if raised and seen.get("raised"):
+            assert seen["placed"]["parent"].startswith("YSorted/Entities/Raised")
+        else:
+            assert seen["placed"]["parent"] == "YSorted/Entities"
+
+
 @dataclass
 class ProbeRun:
     project: Path
@@ -34,9 +62,12 @@ class ProbeRun:
     log: str
 
 
-def run_probe(target: Path, project: Path, godot_exe: Path, wanted: dict) -> ProbeRun:
+def run_probe(
+    target: Path, project: Path, godot_exe: Path, wanted: dict, *, windowed: bool = False
+) -> ProbeRun:
     """Copies the generated project `target` to `project`, enables the probe beside the tools
-    addon, and runs the editor headless with `wanted` (see dock_probe/plugin.gd)."""
+    addon, and runs the editor headless with `wanted` (see dock_probe/plugin.gd); `windowed`
+    opens the editor's window, for a drag and drop of the mouse (T18.18)."""
     shutil.copytree(target, project, ignore=shutil.ignore_patterns(".rpggen_*"))
     shutil.copytree(DOCK_PROBE, project / "addons" / "zz_dock_probe")
     settings = project / "project.godot"
@@ -46,10 +77,25 @@ def run_probe(target: Path, project: Path, godot_exe: Path, wanted: dict) -> Pro
     settings.write_text(text.replace(ENABLED, probe), encoding="utf-8")
     jsonio.write(project / "rpggen/dock_probe_in.json", wanted)
     exe = godot.find_console_exe(godot_exe)
+    broken: list[str] = []  # a probe that stops at an error leaves the editor open: end it
+
+    def watch(line: str) -> None:
+        if "zz_dock_probe" in line and ("Parse Error" in line or "at:" in line):
+            broken.append(line)
+
     run = godot.run_godot(
-        exe, project, ["--editor"], timeout_s=600, log_name="dock", log_dir=project / "rpggen/logs"
+        exe,
+        project,
+        ["--editor"],
+        timeout_s=600,
+        log_name="dock",
+        log_dir=project / "rpggen/logs",
+        on_line=watch,
+        is_cancelled=lambda: bool(broken),
+        headless=not windowed,
     )
     log = run.log_path.read_text(encoding="utf-8", errors="replace")
+    assert not broken, log[-3000:]
     assert not run.timed_out and run.returncode == 0, log[-3000:]
     assert "SCRIPT ERROR" not in log, log[-3000:]
     report = jsonio.read(project / "rpggen/results/dock_probe.json")

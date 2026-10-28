@@ -78,6 +78,9 @@ def defaults() -> dict[str, Any]:
         "rivals": 3,
         "rubber_band": True,
         "elimination": False,
+        # the racers as people and the people along the track (T18.19): a new race has them
+        # (config.NEW_KIND_OPTIONS), a config from before lacks the key and is without
+        "racers": False,
         "added_tracks": [],
     }
 
@@ -98,7 +101,7 @@ def normalized(options: Any) -> dict[str, Any]:
     ):
         if out[key] not in allowed:
             raise TrackPlanError(f"{key} must be one of {', '.join(allowed)}")
-    for key in ("rubber_band", "elimination"):
+    for key in ("rubber_band", "elimination", "racers"):
         if not isinstance(out[key], bool):
             raise TrackPlanError(f"{key} must be true or false")
     for key, (low, high) in (("tracks", TRACK_RANGE), ("laps", LAP_RANGE), ("rivals", RIVALS)):

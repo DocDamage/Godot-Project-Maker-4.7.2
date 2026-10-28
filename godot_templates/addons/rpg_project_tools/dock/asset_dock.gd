@@ -57,6 +57,13 @@ var _armed_scene := ""
 var _armed_until := 0.0
 var _handled: Dictionary = {}  # instance id -> true
 var _previous_selection: Node = null
+## The version of the edited scene's history when the drag began: the editor's own drop is the
+## one action after it (T18.18).
+var _armed_version := -1
+## How many cells each library scene stands on (scene path -> Vector2i), for the drag's outline.
+var _stands_on: Dictionary = {}
+## What the last drawing over the 2D view showed of a drag: the cells and the height (tests).
+var drag_shown: Dictionary = {}
 
 func _init() -> void:
 	title = "Assets"
@@ -263,6 +270,11 @@ func _build_project_tab() -> Control:
 	add_height.tooltip_text = "Isometric levels: a tile layer drawn higher, for what stands on a block or a storey (the next storey, a roof, a sign on a front). Paint it with the Terrain or the tile tools as any layer; it sorts with the people as its cells' ground does. What you place from the library on a cell with a stack stands on its top."
 	add_height.pressed.connect(_add_height_layer)
 	page.add_child(add_height)
+	var sides := Button.new()
+	sides.text = "Give raised ground its sides"
+	sides.tooltip_text = "Isometric levels: under ground painted on a height layer (the selected one, else every one above the ground), where its sides face you, the blocks of its own surface are stacked down to the ground, so a hill has faces instead of a hard edge. One undo step."
+	sides.pressed.connect(_face_sides)
+	page.add_child(sides)
 	return page
 
 func _suggest_height() -> void:
@@ -287,6 +299,28 @@ func _add_height_layer() -> void:
 	EditorInterface.get_selection().add_node(layer)
 	_height.value = HeightLayers.suggested(root)
 	_set_status("Added %s, drawn %d px higher. Paint it; the next layer is suggested at %d px." % [layer.name, height, int(_height.value)])
+
+func _face_sides() -> void:
+	var root := EditorInterface.get_edited_scene_root()
+	if root == null or plugin == null or RpgIso.footprint_of(root) == Vector2i.ZERO:
+		_set_status("Open an isometric level with a height layer to give its raised ground sides.")
+		return
+	var chosen: Array[TileMapLayer] = []
+	for node in EditorInterface.get_selection().get_selected_nodes():
+		if node is TileMapLayer and HeightLayers.height_of(node as TileMapLayer) > 0:
+			chosen.append(node as TileMapLayer)
+	if chosen.is_empty():
+		for layer in HeightLayers.layers(root):
+			if HeightLayers.height_of(layer) > 0:
+				chosen.append(layer)
+	var catalog := CatalogEdit.load_catalog()
+	var put := 0
+	for layer in chosen:
+		put += HeightLayers.face_sides(root, layer, plugin.get_undo_redo(), catalog)
+	if put == 0 and HeightLayers.side_pieces(RpgIso.ground_layer(root).tile_set, catalog).is_empty():
+		_set_status("The packs have no blocks to make the sides of raised ground with.")
+	else:
+		_set_status("Put %d blocks under the raised ground's edges." % put)
 
 func _add_lock(kind: String) -> void:
 	var root := EditorInterface.get_edited_scene_root()
@@ -422,6 +456,69 @@ func _on_drag_started(scene_path: String) -> void:
 	_apply_settings()
 	_armed_scene = scene_path
 	_armed_until = Time.get_ticks_msec() / 1000.0 + 60.0  # until the drop; shortened when it ends
+	var history := _history(EditorInterface.get_edited_scene_root())
+	_armed_version = history.get_version() if history != null else -1
+	set_process(true)
+
+## The undo history of the scene being edited, or null.
+func _history(root: Node) -> UndoRedo:
+	if root == null or plugin == null:
+		return null
+	var manager := plugin.get_undo_redo()
+	return manager.get_history_undo_redo(manager.get_object_history_id(root))
+
+## While a library item is dragged over the 2D view, the view is drawn over again each frame.
+func _process(_delta: float) -> void:
+	if plugin == null:
+		set_process(false)
+		return
+	plugin.update_overlays()
+	if _armed_scene == "" or not get_viewport().gui_is_dragging():
+		drag_shown = {} if _armed_scene == "" else drag_shown
+		set_process(get_viewport().gui_is_dragging())
+
+## Draws over the 2D view (the plugin's `_forward_canvas_force_draw_over_viewport`): on an
+## isometric map, while a library item is dragged over it, the diamond under the mouse (every
+## cell of a larger footprint) and on a raised cell the height the thing will stand at.
+func draw_drag_over(overlay: Control) -> void:
+	if _armed_scene == "" or not get_viewport().gui_is_dragging():
+		return
+	var root := EditorInterface.get_edited_scene_root()
+	if root == null or not (root is Node2D) or Placement.diamond_of(root) == Vector2i.ZERO:
+		return
+	var view := EditorInterface.get_editor_viewport_2d()
+	var shown := view.global_canvas_transform * view.canvas_transform
+	var mouse := overlay.get_local_mouse_position()
+	if not Rect2(Vector2.ZERO, overlay.size).has_point(mouse):
+		return
+	var world := shown.affine_inverse() * mouse
+	var cell := RpgIso.cell_at(root, world)
+	var size := _scene_stands_on(_armed_scene)
+	var cells := Rect2i(cell - size + Vector2i.ONE, size)
+	var outline := Placement.cells_outline(root, cells)
+	var raise := HeightLayers.top_at(root, cell)
+	var colour := Color(0.3, 0.9, 1.0)
+	var ground := shown * outline
+	overlay.draw_colored_polygon(ground, Color(colour, 0.2))
+	overlay.draw_polyline(ground + PackedVector2Array([ground[0]]), colour, 2.0)
+	if raise > 0:
+		var up := shown.basis_xform(Vector2(0, -raise))
+		var lifted := PackedVector2Array()
+		for point in ground:
+			lifted.append(point + up)
+			overlay.draw_line(point, point + up, Color(colour, 0.6), 1.0)
+		overlay.draw_polyline(lifted + PackedVector2Array([lifted[0]]), Color(1.0, 0.85, 0.3), 2.0)
+		overlay.draw_string(get_theme_default_font(), lifted[0] + Vector2(4, -4), "+%d px" % raise)
+	drag_shown = {"cell": cell, "cells": cells, "raise": raise}
+
+func _scene_stands_on(scene_path: String) -> Vector2i:
+	if not _stands_on.has(scene_path):
+		var packed := load(scene_path) as PackedScene
+		var instance := packed.instantiate(PackedScene.GEN_EDIT_STATE_INSTANCE) if packed != null else null
+		_stands_on[scene_path] = Placement.stands_on(instance)
+		if instance != null:
+			instance.free()
+	return _stands_on[scene_path]
 
 func _notification(what: int) -> void:
 	if what == NOTIFICATION_DRAG_END and _armed_scene != "":
@@ -443,7 +540,8 @@ func _process_selection() -> void:
 			var dropped := node as Node2D
 			if dropped != null and node != root and node.scene_file_path == _armed_scene and not _handled.has(node.get_instance_id()) and root.is_ancestor_of(node):
 				_handled[node.get_instance_id()] = true
-				_fix_dropped(dropped, root)
+				# after the editor's own drop is committed (it selects what it dropped)
+				_fix_dropped.call_deferred(dropped, root)
 	if not nodes.is_empty() and nodes[0].scene_file_path != _armed_scene:
 		_previous_selection = nodes[0]
 
@@ -451,12 +549,29 @@ func _entry_for_scene(scene_path: String) -> Dictionary:
 	for e in _entries:
 		if e["scene_path"] == scene_path:
 			return e
-	return {"name": scene_path.get_file().get_basename(), "role": "", "tags": []}
+	return {"name": scene_path.get_file().get_basename(), "role": "", "tags": [], "scene_path": scene_path}
 
+## Fixes up what the editor dropped. When the drop is the one action of the scene's history since
+## the drag began (the 2D view's own instancing), it is undone and the thing is placed anew where
+## it was dropped, in one action: one Ctrl+Z takes it away (T18.18). Otherwise (a drop the
+## history does not know) the dropped instance itself is planned and applied.
 func _fix_dropped(node: Node2D, root: Node) -> void:
 	_apply_settings()
 	var entry := _entry_for_scene(node.scene_file_path)
 	var selected: Node = _previous_selection if is_instance_valid(_previous_selection) else null
+	var history := _history(root)
+	if history != null and _armed_version >= 0 and history.get_version() == _armed_version + 1 and node.is_inside_tree():
+		var at := node.global_position
+		_armed_version = -1
+		if history.undo() and not node.is_inside_tree():
+			var placed := placement.place_new(entry, root, plugin.get_undo_redo(), at, selected)
+			if placed != null:
+				_handled[placed.get_instance_id()] = true
+				EditorInterface.get_selection().clear()
+				EditorInterface.get_selection().add_node(placed)
+				_set_status("Placed %s%s." % [entry["name"], _cell_text(root, placed)])
+				return
+			history.redo()
 	var p := placement.plan(node, root, entry, selected)
 	placement.apply(p, node, root, plugin.get_undo_redo(), JsonIo.to_str(entry["name"]))
 	_set_status("Placed %s%s%s." % [entry["name"], " as " + JsonIo.to_str(p["entity_id"]) if JsonIo.to_str(p["entity_id"]) != "" else "", _cell_text(root, node)])

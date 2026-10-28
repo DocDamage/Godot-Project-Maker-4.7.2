@@ -23,6 +23,9 @@ var _components: Dictionary = {}
 var _driver := RpgAnimationDriver.new()
 ## The last direction of travel: a sprite with diagonal animations shows them along it.
 var _look := Vector2.ZERO
+## The levels of the map the actor is on (T18.20), found once; null on a map without heights.
+var _levels: RpgLevels = null
+var _levels_known := false
 
 func _ready() -> void:
 	_cache_components()
@@ -88,6 +91,7 @@ func _set_facing_property(f: String) -> void:
 	facing_changed.emit(f)
 
 func _physics_process(_delta: float) -> void:
+	_keep_level()
 	if animation_locked:
 		return
 	if velocity.length() > 1.0 or scripted_walk:
@@ -96,6 +100,15 @@ func _physics_process(_delta: float) -> void:
 		_driver.play("walk", facing, _look)
 	else:
 		_play_idle()
+
+## On a map with height layers (T18.20): the level under the actor, its picture drawn that
+## high, and the wall of its level in its mask (RpgLevels.follow). Nothing on any other map.
+func _keep_level() -> void:
+	if not _levels_known or (_levels != null and not is_instance_valid(_levels)):
+		_levels_known = true
+		_levels = RpgLevels.near(self) if is_inside_tree() else null
+	if _levels != null:
+		_levels.follow(self, get_node_or_null("Visual") as Node2D)
 
 ## Plays "<base>_<facing>" and holds it (a sequence's `animate`) until release_animation().
 ## False when the actor has no such animation.
