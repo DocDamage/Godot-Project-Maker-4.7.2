@@ -28,11 +28,14 @@ NO_PATH = "No path can be resolved"
 
 
 def can_open_a_window() -> bool:
-    """A windowed editor can be run here: Windows and macOS have a desktop, Linux a display
-    (``xvfb-run`` in CI)."""
+    """A windowed editor can be driven with the mouse here: a desktop of a person (Windows and
+    macOS, Linux with a display). Not in CI unless ``RPGGEN_WINDOWED`` is set: a runner's desktop
+    starts no drag from the events the probe sends."""
     import os
     import sys
 
+    if os.environ.get("CI") and not os.environ.get("RPGGEN_WINDOWED"):
+        return False
     return sys.platform != "linux" or bool(os.environ.get("DISPLAY"))
 
 

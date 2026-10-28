@@ -1290,7 +1290,7 @@ def test_the_mouse_drops_onto_the_diamonds_of_stone_isle(
     from tests.integration import dock_probe_run
 
     if not dock_probe_run.can_open_a_window():
-        pytest.skip("no display to open the editor's window on")
+        pytest.skip("no desktop to drive the editor's window with the mouse")
     target, _result = isle
     places = [
         {"scene": ISLE_OBJECTS + "png__treepine.tscn", "how": "mouse", "offset": [0, 0]},

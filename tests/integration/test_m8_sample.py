@@ -188,7 +188,7 @@ def test_the_mouse_drops_onto_the_squares_of_the_sample(
     from tests.integration import dock_probe_run
 
     if not dock_probe_run.can_open_a_window():
-        pytest.skip("no display to open the editor's window on")
+        pytest.skip("no desktop to drive the editor's window with the mouse")
     places = [
         {"scene": SAMPLE_OBJECTS + "objects__town__tree_1.tscn", "how": "mouse", "offset": [0, 0]},
         {"scene": SAMPLE_OBJECTS + "items__chest.tscn", "how": "mouse", "offset": [3, 1]},
