@@ -59,7 +59,41 @@ def complete(facets: dict[str, Any], kind: str = "static_object") -> bool:
         return _complete_static_sprite(facets, "ANIMAL", "static_animal")
     if kind == "actor_art":
         return _complete_actor_art(facets)
+    if kind == "crop_art":
+        return _complete_crop_art(facets)
     return False
+
+
+def _complete_crop_art(facets: dict[str, Any]) -> bool:
+    """A source-bound field growth strip; timing, seasons and harvest yields stay defaults."""
+    if set(facets) - {"usage", "role", "size", "frame", "origin", "grid", "stages", "tags"}:
+        return False
+    frame, stages = facets.get("frame"), facets.get("stages")
+    if facets.get("usage") != "growth_strip" or facets.get("role") != "CROP":
+        return False
+    if (
+        not isinstance(frame, list)
+        or len(frame) != 2
+        or any(type(v) is not int or v <= 0 for v in frame)
+        or type(stages) is not int
+        or not 2 <= stages <= 32
+    ):
+        return False
+    if facets.get("size") != [frame[0] * stages, frame[1]]:
+        return False
+    if facets.get("grid") != {"cell": frame, "margin": [0, 0], "separation": [0, 0]}:
+        return False
+    if facets.get("origin") != [frame[0] // 2, frame[1] - 1]:
+        return False
+    tags = facets.get("tags")
+    if not isinstance(tags, list) or any(not isinstance(tag, str) for tag in tags):
+        return False
+    produce = [t for t in tags if re.fullmatch(r"produce:[a-z][a-z0-9_]*", t)]
+    return (
+        len(produce) == 1
+        and len(tags) == 4
+        and set(tags) == {"crop", "crop_art", "growth_by:reviewed_sheet", produce[0]}
+    )
 
 
 def _complete_actor_art(facets: dict[str, Any]) -> bool:

@@ -1,0 +1,313 @@
+{
+  "date": "2026-10-29",
+  "scope": "Field-crop art stages, visual produce labels and authored-default runtime conformance; not artist-authored growth/harvest rules or independent accuracy labels",
+  "baseline_revision": "f9ced9219db323de0e34b1a803644dd9619d1abb",
+  "tested_files_sha256": {
+    "rpggen/core/adapters/reviewed_crops.py": "8cb1a06b0f2d09fd39cb08adfbbc7111e1d4fddb0e9968b29220413e91d61e09",
+    "rpggen/core/adapters/sheet_parts.py": "86165837bda7526ff36344476a621741af471cb2ced9c408846f0b737c901c6b",
+    "rpggen/core/metadata_reviews.py": "aa0ac7cdb837f485fd43fb0cad01e5a401d861e1640b43652509847460ce1aa6",
+    "rpggen/data/crop_layouts.json": "7aa72ebedaf4e276cba19ea2328de49a0207cc73faf919b855921b1c5ac39544",
+    "rpggen/data/confirmed_metadata.json": "b8c5c79dcb9a6639b30a39e33ebffbf7e975e5c6c8400673daa9db6ec2e472d0",
+    "godot_templates/addons/rpg_runtime/archetypes/farm/crop.gd": "207c3cdbfbe8a78bcf78f517e28f278cd804d7fa875112ef020dd09b9c88f2a7",
+    "godot_templates/tests/unit/test_crop_art.gd": "a7162b4a8bf9fc2c6acd9eb71a9763150def13f7b3a296e5d917ba6b36bef0d9",
+    "tests/unit/test_reviewed_crops.py": "1949c9ead4c704ab5ca261f710d6ff09916dc89a4515895ecd51afcc43dbeece"
+  },
+  "private_evidence_root": "D:\\rpggen_crop_terrain_metadata_20261029",
+  "certifications": [
+    {
+      "id": "farm_tileset_pixel_art.farm.n1#crop0_0",
+      "variant": "crop0_0",
+      "produce": "corn",
+      "frame": [
+        48,
+        96
+      ],
+      "stages": 4,
+      "origin": [
+        24,
+        95
+      ],
+      "source_sha256": "df333ba9f08d137f17715e4b60ac35f9824d3bd0e20677fbf459de8ee791800a",
+      "pixel_sha256": "cccb310c01d9976bcd791f984df48966486d1e430e16f31f7fd8e53941c8dbe9",
+      "confidence": 0.6,
+      "project_path": "generated/sheet_parts/4e8b0d2babb81bf25d75f003eeb3960b8005b445eb3b16d5f5e2ae56d3ee88af.png"
+    },
+    {
+      "id": "farm_tileset_pixel_art.farm.n1#crop0_144",
+      "variant": "crop0_144",
+      "produce": "cabbage",
+      "frame": [
+        48,
+        48
+      ],
+      "stages": 3,
+      "origin": [
+        24,
+        47
+      ],
+      "source_sha256": "df333ba9f08d137f17715e4b60ac35f9824d3bd0e20677fbf459de8ee791800a",
+      "pixel_sha256": "527e398609eedd7916ced02c011c50c1517752925f91937baeb6031351c087e2",
+      "confidence": 0.6,
+      "project_path": "generated/sheet_parts/2662ee8c187d93c73a91414174cb0a81ba75f1d94ebbbfa74b31f40354ad6e7d.png"
+    },
+    {
+      "id": "farm_tileset_pixel_art.farm.n1#crop0_192",
+      "variant": "crop0_192",
+      "produce": "chili_pepper",
+      "frame": [
+        48,
+        96
+      ],
+      "stages": 5,
+      "origin": [
+        24,
+        95
+      ],
+      "source_sha256": "df333ba9f08d137f17715e4b60ac35f9824d3bd0e20677fbf459de8ee791800a",
+      "pixel_sha256": "8b153b6cee1b9c29df53d0a2a278fb060c7d1e9b691e50314699c612f3a0582a",
+      "confidence": 0.6,
+      "project_path": "generated/sheet_parts/e88bda898555b6c0c68a8e526da8a5f907e56e8228e7bb1823028f641621fc90.png"
+    },
+    {
+      "id": "farm_tileset_pixel_art.farm.n1#crop0_288",
+      "variant": "crop0_288",
+      "produce": "strawberry",
+      "frame": [
+        48,
+        96
+      ],
+      "stages": 5,
+      "origin": [
+        24,
+        95
+      ],
+      "source_sha256": "df333ba9f08d137f17715e4b60ac35f9824d3bd0e20677fbf459de8ee791800a",
+      "pixel_sha256": "e4eeab2c36bc37d36d8d0782857d55364c02e69440b0469a4472dc7a541e4ed4",
+      "confidence": 0.6,
+      "project_path": "generated/sheet_parts/5d49c82bfa74ea0215c7094640d367b9376b6c533946aed96e9bb4108f0072c2.png"
+    },
+    {
+      "id": "farm_tileset_pixel_art.farm.n1#crop384_0",
+      "variant": "crop384_0",
+      "produce": "carrot",
+      "frame": [
+        48,
+        96
+      ],
+      "stages": 4,
+      "origin": [
+        24,
+        95
+      ],
+      "source_sha256": "df333ba9f08d137f17715e4b60ac35f9824d3bd0e20677fbf459de8ee791800a",
+      "pixel_sha256": "9f87a7af4df26c025b0cfd1869d34f3d43d97d80a7b32853deda83bb24d1224a",
+      "confidence": 0.6,
+      "project_path": "generated/sheet_parts/b505aceb4dcf70146e212c75014b2a87ba1ebe08a50aaad1da73bacd1ab55ebd.png"
+    },
+    {
+      "id": "farm_tileset_pixel_art.farm.n1#crop384_192",
+      "variant": "crop384_192",
+      "produce": "tomato",
+      "frame": [
+        48,
+        96
+      ],
+      "stages": 5,
+      "origin": [
+        24,
+        95
+      ],
+      "source_sha256": "df333ba9f08d137f17715e4b60ac35f9824d3bd0e20677fbf459de8ee791800a",
+      "pixel_sha256": "85fd09f3ded7e530bcc72ae676baa50ded24cce44b928e532d2c34e856a8f649",
+      "confidence": 0.6,
+      "project_path": "generated/sheet_parts/156dffd5b39640704b14f6b28cab2451a17ce32e729caddb74711bfade45208d.png"
+    },
+    {
+      "id": "farm_tileset_pixel_art.farm.n1#crop384_288",
+      "variant": "crop384_288",
+      "produce": "watermelon",
+      "frame": [
+        48,
+        96
+      ],
+      "stages": 3,
+      "origin": [
+        24,
+        95
+      ],
+      "source_sha256": "df333ba9f08d137f17715e4b60ac35f9824d3bd0e20677fbf459de8ee791800a",
+      "pixel_sha256": "48de9b94decfed641af362ef5893d43361b115a899e61a76bb600a3bd185cfdd",
+      "confidence": 0.6,
+      "project_path": "generated/sheet_parts/40e7ad3db54b3d802986209973e130d669dbf6a1858543aa8dbb66d1c254a8be.png"
+    },
+    {
+      "id": "farm_tileset_pixel_art.farm.n1#crop384_96",
+      "variant": "crop384_96",
+      "produce": "cotton",
+      "frame": [
+        48,
+        96
+      ],
+      "stages": 5,
+      "origin": [
+        24,
+        95
+      ],
+      "source_sha256": "df333ba9f08d137f17715e4b60ac35f9824d3bd0e20677fbf459de8ee791800a",
+      "pixel_sha256": "7628f131297656f49e67e4f85b6572ff2e18a9abaac234f0b1fd4816e9463a4e",
+      "confidence": 0.6,
+      "project_path": "generated/sheet_parts/1c907d08acfe4883539d0f7613e71998a0dad5652fde3156acec31b8d861c5dd.png"
+    },
+    {
+      "id": "farm_tileset_pixel_art.farm.n1#crop432_384",
+      "variant": "crop432_384",
+      "produce": "garlic",
+      "frame": [
+        48,
+        96
+      ],
+      "stages": 4,
+      "origin": [
+        24,
+        95
+      ],
+      "source_sha256": "df333ba9f08d137f17715e4b60ac35f9824d3bd0e20677fbf459de8ee791800a",
+      "pixel_sha256": "e1f0bb458f4c74a05b42fcdf49ceca92216c077168357df86b28f1f00b507b2d",
+      "confidence": 0.6,
+      "project_path": "generated/sheet_parts/974853da23cf02968c488b0cb4677736139dc8c15c450a2b89dbe26b14ca5393.png"
+    },
+    {
+      "id": "farm_tileset_pixel_art.farm.n1#crop48_384",
+      "variant": "crop48_384",
+      "produce": "potato",
+      "frame": [
+        48,
+        96
+      ],
+      "stages": 3,
+      "origin": [
+        24,
+        95
+      ],
+      "source_sha256": "df333ba9f08d137f17715e4b60ac35f9824d3bd0e20677fbf459de8ee791800a",
+      "pixel_sha256": "93f3b4819672a3c8aeba39f264fbc9d3f14e3ab91031dacfe720ce4d9c75b37c",
+      "confidence": 0.6,
+      "project_path": "generated/sheet_parts/5500797d6c880294fa17b81730132be5f0b43721f6bd32fd07accd7498d9bf0e.png"
+    }
+  ],
+  "source_checks": {
+    "confirmed": 10,
+    "native_stages": 41,
+    "omitted_adjacent_soil_pixels": 51,
+    "header_checks": {
+      "images": 583,
+      "animations": 0,
+      "frames": 0,
+      "image_headers": 583,
+      "failures": [],
+      "passed": true
+    },
+    "all_ids_preserved": true,
+    "non_crop_entries_unchanged": true,
+    "saved_crop_plan_unchanged": true,
+    "source_sha256": "df333ba9f08d137f17715e4b60ac35f9824d3bd0e20677fbf459de8ee791800a"
+  },
+  "compatibility": {
+    "all_catalog_ids_preserved": true,
+    "all_project_image_paths_preserved": true,
+    "review_keys_checked": 590,
+    "missing_review_keys": 0,
+    "saved_choices_sha256": "52294b9655fb46c2165751c05cb0d2245baf5f798d3dbcd3965a224458901128",
+    "calibration_sha256": "73abface1d895568205ddc41c917dbfb0558daf7e6ca95e0ca2fcaf1a269b588"
+  },
+  "native_validation": {
+    "crops": 10,
+    "legacy_three_stage_garlic": true,
+    "passed": true,
+    "ripe_interaction_gates": true,
+    "stages": 41,
+    "normalized_rgba_matches": 41
+  },
+  "assets_project": {
+    "ok": true,
+    "target": "D:\\rpggen_crop_terrain_metadata_20261029\\assets_project",
+    "timings": {
+      "preflight": 0.08,
+      "stage": 0.0,
+      "install": 0.33,
+      "catalog": 6.88,
+      "import": 11.86,
+      "build": 2.08,
+      "validate": 11.45,
+      "smoke": 0.0,
+      "export": 0.0,
+      "promote": 0.94,
+      "report": 0.09
+    },
+    "issues": [
+      {
+        "code": "ASSET-021",
+        "severity": "info",
+        "message": "Pack farm_tileset_pixel_art has no license file."
+      },
+      {
+        "code": "VAL-032",
+        "severity": "info",
+        "message": "An assets-only project has no game: it was not played and not test-exported."
+      }
+    ]
+  },
+  "assets_project_header_checks": {
+    "images": 583,
+    "animations": 0,
+    "frames": 0,
+    "image_headers": 583,
+    "failures": [],
+    "passed": true
+  },
+  "analysis_resources": [
+    {
+      "pack": "p01",
+      "seconds": 9.42,
+      "peak_private_bytes": 744222720
+    }
+  ],
+  "assets_resources": {
+    "exit_code": 0,
+    "peak_private_bytes": 1408204800,
+    "seconds": 35.3,
+    "stopped": ""
+  },
+  "validation": {
+    "full_python_passed": 2627,
+    "full_python_skipped": 3,
+    "full_python_seconds": 708.02,
+    "final_cache_path_focused_passed": 58,
+    "godot_passed": 1109,
+    "godot_failed": 0,
+    "godot_script_errors": 0,
+    "known_fixture_engine_diagnostics": 53,
+    "push_diagnostics": 28,
+    "ruff": "passed",
+    "mypy_modules": 218,
+    "formatting": "passed"
+  },
+  "ledger_delta": {
+    "previous_unresolved": 2465,
+    "new_crop_art_dispositions": 10,
+    "remaining": 2455,
+    "fresh_all_30_pack_import": false,
+    "blockers": {
+      "building": 133,
+      "segmentation_or_state": 2012,
+      "terrain": 310
+    }
+  },
+  "terrain_confirmations_added": 0,
+  "remaining": [
+    "terrain topology and material behavior",
+    "building/segmentation semantic metadata",
+    "independent calibration labels",
+    "qualified held-out sample and human release checks"
+  ]
+}

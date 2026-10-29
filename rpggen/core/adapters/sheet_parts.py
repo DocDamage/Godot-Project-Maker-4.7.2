@@ -1004,7 +1004,7 @@ def cut_cells(
 def _saved(f: InventoryFile, cut: _Cut, work: Path) -> _Cut:
     """``cut`` with the picture of each part drawn into the work folder (and let go of)."""
     for part in cut.parts:
-        dest = work / _render_name(f, part.variant)
+        dest = work / _cache_render_name(f, part.variant)
         try:
             if not dest.exists():
                 dest.parent.mkdir(parents=True, exist_ok=True)
@@ -1018,6 +1018,43 @@ def _saved(f: InventoryFile, cut: _Cut, work: Path) -> _Cut:
 def _render_name(f: InventoryFile, variant: str) -> str:
     text = f"sheet_part/{RENDER_VERSION}\n{f.sha256}\n{variant}"
     return hashlib.sha256(text.encode("utf-8")).hexdigest() + ".png"
+
+
+def _cache_render_name(f: InventoryFile, variant: str) -> str:
+    from rpggen.core.adapters import reviewed_crops
+
+    name = _render_name(f, variant)
+    if key := reviewed_crops.layout_key(f.sha256, variant):
+        # Review keys and project paths stay stable. The physical cache must change
+        # when rectangles or masks change, even though the source image is unchanged.
+        return hashlib.sha256(f"{name}\nreviewed_crop/{key}".encode()).hexdigest() + ".png"
+    return name
+
+
+def _reviewed_crops(f: InventoryFile, a: np.ndarray, cut: _Cut) -> _Cut:
+    from rpggen.core.adapters import farm, reviewed_crops
+
+    layouts = reviewed_crops.reviewed(f.sha256)
+    if not layouts:
+        return cut
+    # Keep existing non-crop parts (including the owner's harvested ITEM variants).
+    cut.parts = [p for p in cut.parts if p.facets.get("usage") != "growth_strip"]
+    for layout in layouts:
+        width, height = layout["frame"]
+        strip = np.zeros((height, width * len(layout["rects"]), 4), dtype=np.uint8)
+        for i, (rect, offset) in enumerate(zip(layout["rects"], layout["offsets"], strict=True)):
+            x, y, w, h = rect
+            ox, oy = offset
+            if not (x >= 0 and y >= 0 and x + w <= a.shape[1] and y + h <= a.shape[0]):
+                raise ValueError("reviewed crop rectangle outside source")
+            if not (ox >= 0 and oy >= 0 and ox + w <= width and oy + h <= height):
+                raise ValueError("reviewed crop rectangle outside canvas")
+            strip[oy : oy + h, i * width + ox : i * width + ox + w] = a[y : y + h, x : x + w]
+        facts = farm._crop_facets(
+            len(layout["rects"]), width, height, layout["name"], "reviewed_sheet"
+        )
+        cut.parts.append(_Part(layout["variant"], strip, facts, CROP_CONFIDENCE))
+    return cut
 
 
 class SheetPartsAdapter:
@@ -1067,6 +1104,7 @@ class SheetPartsAdapter:
                 # set is offered as tiles of 48 px by the grid reader (T16.21), as it was
                 return _Cut(reason="")
             cut = sort_cells(a, cell, farming) if cell else cut_objects(f, a)
+            cut = _reviewed_crops(f, a, cut)
             return _saved(f, cut, work)
 
         cuts = iso_sheets.in_parallel(one, files, ctx)
@@ -1083,7 +1121,11 @@ class SheetPartsAdapter:
 
                 checked = pack_readings.region_facts(f.sha256, part.variant)
                 pack_readings.apply_facts(part.facets, checked)
-                if part.facets.get("usage") == "growth_strip":
+                if part.facets.get(
+                    "usage"
+                ) == "growth_strip" and "growth_by:reviewed_sheet" not in part.facets.get(
+                    "tags", []
+                ):
                     # named by the pack's item its produce looks like, else by its colour and
                     # shape (T17.33: no ``crop_1``); a name twice gets a number
                     crops += 1
@@ -1092,7 +1134,7 @@ class SheetPartsAdapter:
                     looks = next(
                         (t[len(LOOKS) :] for t in part.facets["tags"] if t.startswith(LOOKS)), ""
                     )
-                    ripe = _ripe_of(work / _render_name(f, part.variant), part.facets)
+                    ripe = _ripe_of(work / _cache_render_name(f, part.variant), part.facets)
                     name = (match_item(ripe, items) if ripe is not None else "") or looks
                     name = name or f"{CROP_NAME}{crops}"
                     used_names[name] = used_names.get(name, 0) + 1
@@ -1105,7 +1147,7 @@ class SheetPartsAdapter:
                 result.assets.append(
                     AssetFragment(f.path, part.facets, part.confidence, "full", part.variant)
                 )
-                result.generated[project] = str(work / name)
+                result.generated[project] = str(work / _cache_render_name(f, part.variant))
                 result.rendered[f"{f.path}#{part.variant}"] = project
             result.assets.append(iso_sheets.aside(f, cut.reason or UNUSED_OBJECT_SHEET))
         result.issues = list(issues)

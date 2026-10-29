@@ -93,6 +93,12 @@ the shipped document explicitly restricts commercial use. Matched old/new docume
 changes only p22 among the 30 inputs; this does not reclassify all packs or qualify a commercial
 held-out sample. Native frame/pivot checks and an assets-only project validate the new decisions.
 
+The [field-crop pass](crop_metadata_2026-10-29.md) adds ten source-bound growth-strip art
+decisions, validates 41 native stages and preserves both saved ITEM choices on the same sheet.
+All 590 current review keys for that pack still resolve; stable project paths are kept separate
+from versioned physical render caches. A complete assets-only build validates. The ledger delta
+is now 2,455 unresolved entries. No terrain promotion or independent accuracy claim is added.
+
 *Pending (human).* The maintainer picks **5 packs not used during development**: at least 2
 commercial, 1 in RPG Maker format, 1 with Tiled metadata and 1 "messy" pack (inconsistent names,
 mixed sizes, nested folders). For each pack and each archetype run

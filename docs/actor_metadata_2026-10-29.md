@@ -111,3 +111,6 @@ terrain 310. This closes the previously flagged actor-art bucket, not every acto
 question in the library. It is a ledger delta, not a new all-30-pack status measurement.
 Independent calibration labels, the remaining semantic metadata and the human/qualified-sample
 release requirements remain open.
+
+Follow-up: the [field-crop pass](crop_metadata_2026-10-29.md) records ten further art dispositions
+and the updated 2,455-entry unresolved ledger. The actor results above retain their original scope.

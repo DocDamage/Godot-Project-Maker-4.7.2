@@ -283,6 +283,796 @@
         },
         "pixel_sha256": "27cb433689d43bddd024691105d1b2e6a5f7d36c17d4e792d8cf5cc0f0f92aa7",
         "review": "2026-10-28 static placement; visual page 1; owner selected harvested produce on 2026-10-28"
+      },
+      "crop0_0": {
+        "kind": "crop_art",
+        "input": {
+          "frame": [
+            48,
+            96
+          ],
+          "grid": {
+            "cell": [
+              48,
+              96
+            ],
+            "margin": [
+              0,
+              0
+            ],
+            "separation": [
+              0,
+              0
+            ]
+          },
+          "origin": [
+            24,
+            95
+          ],
+          "role": "CROP",
+          "size": [
+            192,
+            96
+          ],
+          "stages": 4,
+          "tags": [
+            "crop",
+            "growth_by:reviewed_sheet",
+            "produce:corn"
+          ],
+          "usage": "growth_strip"
+        },
+        "approved": {
+          "frame": [
+            48,
+            96
+          ],
+          "grid": {
+            "cell": [
+              48,
+              96
+            ],
+            "margin": [
+              0,
+              0
+            ],
+            "separation": [
+              0,
+              0
+            ]
+          },
+          "origin": [
+            24,
+            95
+          ],
+          "role": "CROP",
+          "size": [
+            192,
+            96
+          ],
+          "stages": 4,
+          "tags": [
+            "crop",
+            "crop_art",
+            "growth_by:reviewed_sheet",
+            "produce:corn"
+          ],
+          "usage": "growth_strip"
+        },
+        "pixel_sha256": "cccb310c01d9976bcd791f984df48966486d1e430e16f31f7fd8e53941c8dbe9",
+        "reviewed_on": "2026-10-29",
+        "scope": "Visually reviewed field-crop art stages and produce identity. Exact source-bound rectangles exclude harvested ITEM variants and adjacent-row soil. Timing, seasons, regrowth, yields, prices and edible effects remain editable project defaults, not artist-authored metadata."
+      },
+      "crop0_144": {
+        "kind": "crop_art",
+        "input": {
+          "frame": [
+            48,
+            48
+          ],
+          "grid": {
+            "cell": [
+              48,
+              48
+            ],
+            "margin": [
+              0,
+              0
+            ],
+            "separation": [
+              0,
+              0
+            ]
+          },
+          "origin": [
+            24,
+            47
+          ],
+          "role": "CROP",
+          "size": [
+            144,
+            48
+          ],
+          "stages": 3,
+          "tags": [
+            "crop",
+            "growth_by:reviewed_sheet",
+            "produce:cabbage"
+          ],
+          "usage": "growth_strip"
+        },
+        "approved": {
+          "frame": [
+            48,
+            48
+          ],
+          "grid": {
+            "cell": [
+              48,
+              48
+            ],
+            "margin": [
+              0,
+              0
+            ],
+            "separation": [
+              0,
+              0
+            ]
+          },
+          "origin": [
+            24,
+            47
+          ],
+          "role": "CROP",
+          "size": [
+            144,
+            48
+          ],
+          "stages": 3,
+          "tags": [
+            "crop",
+            "crop_art",
+            "growth_by:reviewed_sheet",
+            "produce:cabbage"
+          ],
+          "usage": "growth_strip"
+        },
+        "pixel_sha256": "527e398609eedd7916ced02c011c50c1517752925f91937baeb6031351c087e2",
+        "reviewed_on": "2026-10-29",
+        "scope": "Visually reviewed field-crop art stages and produce identity. Exact source-bound rectangles exclude harvested ITEM variants and adjacent-row soil. Timing, seasons, regrowth, yields, prices and edible effects remain editable project defaults, not artist-authored metadata."
+      },
+      "crop0_192": {
+        "kind": "crop_art",
+        "input": {
+          "frame": [
+            48,
+            96
+          ],
+          "grid": {
+            "cell": [
+              48,
+              96
+            ],
+            "margin": [
+              0,
+              0
+            ],
+            "separation": [
+              0,
+              0
+            ]
+          },
+          "origin": [
+            24,
+            95
+          ],
+          "role": "CROP",
+          "size": [
+            240,
+            96
+          ],
+          "stages": 5,
+          "tags": [
+            "crop",
+            "growth_by:reviewed_sheet",
+            "produce:chili_pepper"
+          ],
+          "usage": "growth_strip"
+        },
+        "approved": {
+          "frame": [
+            48,
+            96
+          ],
+          "grid": {
+            "cell": [
+              48,
+              96
+            ],
+            "margin": [
+              0,
+              0
+            ],
+            "separation": [
+              0,
+              0
+            ]
+          },
+          "origin": [
+            24,
+            95
+          ],
+          "role": "CROP",
+          "size": [
+            240,
+            96
+          ],
+          "stages": 5,
+          "tags": [
+            "crop",
+            "crop_art",
+            "growth_by:reviewed_sheet",
+            "produce:chili_pepper"
+          ],
+          "usage": "growth_strip"
+        },
+        "pixel_sha256": "8b153b6cee1b9c29df53d0a2a278fb060c7d1e9b691e50314699c612f3a0582a",
+        "reviewed_on": "2026-10-29",
+        "scope": "Visually reviewed field-crop art stages and produce identity. Exact source-bound rectangles exclude harvested ITEM variants and adjacent-row soil. Timing, seasons, regrowth, yields, prices and edible effects remain editable project defaults, not artist-authored metadata."
+      },
+      "crop0_288": {
+        "kind": "crop_art",
+        "input": {
+          "frame": [
+            48,
+            96
+          ],
+          "grid": {
+            "cell": [
+              48,
+              96
+            ],
+            "margin": [
+              0,
+              0
+            ],
+            "separation": [
+              0,
+              0
+            ]
+          },
+          "origin": [
+            24,
+            95
+          ],
+          "role": "CROP",
+          "size": [
+            240,
+            96
+          ],
+          "stages": 5,
+          "tags": [
+            "crop",
+            "growth_by:reviewed_sheet",
+            "produce:strawberry"
+          ],
+          "usage": "growth_strip"
+        },
+        "approved": {
+          "frame": [
+            48,
+            96
+          ],
+          "grid": {
+            "cell": [
+              48,
+              96
+            ],
+            "margin": [
+              0,
+              0
+            ],
+            "separation": [
+              0,
+              0
+            ]
+          },
+          "origin": [
+            24,
+            95
+          ],
+          "role": "CROP",
+          "size": [
+            240,
+            96
+          ],
+          "stages": 5,
+          "tags": [
+            "crop",
+            "crop_art",
+            "growth_by:reviewed_sheet",
+            "produce:strawberry"
+          ],
+          "usage": "growth_strip"
+        },
+        "pixel_sha256": "e4eeab2c36bc37d36d8d0782857d55364c02e69440b0469a4472dc7a541e4ed4",
+        "reviewed_on": "2026-10-29",
+        "scope": "Visually reviewed field-crop art stages and produce identity. Exact source-bound rectangles exclude harvested ITEM variants and adjacent-row soil. Timing, seasons, regrowth, yields, prices and edible effects remain editable project defaults, not artist-authored metadata."
+      },
+      "crop384_0": {
+        "kind": "crop_art",
+        "input": {
+          "frame": [
+            48,
+            96
+          ],
+          "grid": {
+            "cell": [
+              48,
+              96
+            ],
+            "margin": [
+              0,
+              0
+            ],
+            "separation": [
+              0,
+              0
+            ]
+          },
+          "origin": [
+            24,
+            95
+          ],
+          "role": "CROP",
+          "size": [
+            192,
+            96
+          ],
+          "stages": 4,
+          "tags": [
+            "crop",
+            "growth_by:reviewed_sheet",
+            "produce:carrot"
+          ],
+          "usage": "growth_strip"
+        },
+        "approved": {
+          "frame": [
+            48,
+            96
+          ],
+          "grid": {
+            "cell": [
+              48,
+              96
+            ],
+            "margin": [
+              0,
+              0
+            ],
+            "separation": [
+              0,
+              0
+            ]
+          },
+          "origin": [
+            24,
+            95
+          ],
+          "role": "CROP",
+          "size": [
+            192,
+            96
+          ],
+          "stages": 4,
+          "tags": [
+            "crop",
+            "crop_art",
+            "growth_by:reviewed_sheet",
+            "produce:carrot"
+          ],
+          "usage": "growth_strip"
+        },
+        "pixel_sha256": "9f87a7af4df26c025b0cfd1869d34f3d43d97d80a7b32853deda83bb24d1224a",
+        "reviewed_on": "2026-10-29",
+        "scope": "Visually reviewed field-crop art stages and produce identity. Exact source-bound rectangles exclude harvested ITEM variants and adjacent-row soil. Timing, seasons, regrowth, yields, prices and edible effects remain editable project defaults, not artist-authored metadata."
+      },
+      "crop384_192": {
+        "kind": "crop_art",
+        "input": {
+          "frame": [
+            48,
+            96
+          ],
+          "grid": {
+            "cell": [
+              48,
+              96
+            ],
+            "margin": [
+              0,
+              0
+            ],
+            "separation": [
+              0,
+              0
+            ]
+          },
+          "origin": [
+            24,
+            95
+          ],
+          "role": "CROP",
+          "size": [
+            240,
+            96
+          ],
+          "stages": 5,
+          "tags": [
+            "crop",
+            "growth_by:reviewed_sheet",
+            "produce:tomato"
+          ],
+          "usage": "growth_strip"
+        },
+        "approved": {
+          "frame": [
+            48,
+            96
+          ],
+          "grid": {
+            "cell": [
+              48,
+              96
+            ],
+            "margin": [
+              0,
+              0
+            ],
+            "separation": [
+              0,
+              0
+            ]
+          },
+          "origin": [
+            24,
+            95
+          ],
+          "role": "CROP",
+          "size": [
+            240,
+            96
+          ],
+          "stages": 5,
+          "tags": [
+            "crop",
+            "crop_art",
+            "growth_by:reviewed_sheet",
+            "produce:tomato"
+          ],
+          "usage": "growth_strip"
+        },
+        "pixel_sha256": "85fd09f3ded7e530bcc72ae676baa50ded24cce44b928e532d2c34e856a8f649",
+        "reviewed_on": "2026-10-29",
+        "scope": "Visually reviewed field-crop art stages and produce identity. Exact source-bound rectangles exclude harvested ITEM variants and adjacent-row soil. Timing, seasons, regrowth, yields, prices and edible effects remain editable project defaults, not artist-authored metadata."
+      },
+      "crop384_288": {
+        "kind": "crop_art",
+        "input": {
+          "frame": [
+            48,
+            96
+          ],
+          "grid": {
+            "cell": [
+              48,
+              96
+            ],
+            "margin": [
+              0,
+              0
+            ],
+            "separation": [
+              0,
+              0
+            ]
+          },
+          "origin": [
+            24,
+            95
+          ],
+          "role": "CROP",
+          "size": [
+            144,
+            96
+          ],
+          "stages": 3,
+          "tags": [
+            "crop",
+            "growth_by:reviewed_sheet",
+            "produce:watermelon"
+          ],
+          "usage": "growth_strip"
+        },
+        "approved": {
+          "frame": [
+            48,
+            96
+          ],
+          "grid": {
+            "cell": [
+              48,
+              96
+            ],
+            "margin": [
+              0,
+              0
+            ],
+            "separation": [
+              0,
+              0
+            ]
+          },
+          "origin": [
+            24,
+            95
+          ],
+          "role": "CROP",
+          "size": [
+            144,
+            96
+          ],
+          "stages": 3,
+          "tags": [
+            "crop",
+            "crop_art",
+            "growth_by:reviewed_sheet",
+            "produce:watermelon"
+          ],
+          "usage": "growth_strip"
+        },
+        "pixel_sha256": "48de9b94decfed641af362ef5893d43361b115a899e61a76bb600a3bd185cfdd",
+        "reviewed_on": "2026-10-29",
+        "scope": "Visually reviewed field-crop art stages and produce identity. Exact source-bound rectangles exclude harvested ITEM variants and adjacent-row soil. Timing, seasons, regrowth, yields, prices and edible effects remain editable project defaults, not artist-authored metadata."
+      },
+      "crop384_96": {
+        "kind": "crop_art",
+        "input": {
+          "frame": [
+            48,
+            96
+          ],
+          "grid": {
+            "cell": [
+              48,
+              96
+            ],
+            "margin": [
+              0,
+              0
+            ],
+            "separation": [
+              0,
+              0
+            ]
+          },
+          "origin": [
+            24,
+            95
+          ],
+          "role": "CROP",
+          "size": [
+            240,
+            96
+          ],
+          "stages": 5,
+          "tags": [
+            "crop",
+            "growth_by:reviewed_sheet",
+            "produce:cotton"
+          ],
+          "usage": "growth_strip"
+        },
+        "approved": {
+          "frame": [
+            48,
+            96
+          ],
+          "grid": {
+            "cell": [
+              48,
+              96
+            ],
+            "margin": [
+              0,
+              0
+            ],
+            "separation": [
+              0,
+              0
+            ]
+          },
+          "origin": [
+            24,
+            95
+          ],
+          "role": "CROP",
+          "size": [
+            240,
+            96
+          ],
+          "stages": 5,
+          "tags": [
+            "crop",
+            "crop_art",
+            "growth_by:reviewed_sheet",
+            "produce:cotton"
+          ],
+          "usage": "growth_strip"
+        },
+        "pixel_sha256": "7628f131297656f49e67e4f85b6572ff2e18a9abaac234f0b1fd4816e9463a4e",
+        "reviewed_on": "2026-10-29",
+        "scope": "Visually reviewed field-crop art stages and produce identity. Exact source-bound rectangles exclude harvested ITEM variants and adjacent-row soil. Timing, seasons, regrowth, yields, prices and edible effects remain editable project defaults, not artist-authored metadata."
+      },
+      "crop432_384": {
+        "kind": "crop_art",
+        "input": {
+          "frame": [
+            48,
+            96
+          ],
+          "grid": {
+            "cell": [
+              48,
+              96
+            ],
+            "margin": [
+              0,
+              0
+            ],
+            "separation": [
+              0,
+              0
+            ]
+          },
+          "origin": [
+            24,
+            95
+          ],
+          "role": "CROP",
+          "size": [
+            192,
+            96
+          ],
+          "stages": 4,
+          "tags": [
+            "crop",
+            "growth_by:reviewed_sheet",
+            "produce:garlic"
+          ],
+          "usage": "growth_strip"
+        },
+        "approved": {
+          "frame": [
+            48,
+            96
+          ],
+          "grid": {
+            "cell": [
+              48,
+              96
+            ],
+            "margin": [
+              0,
+              0
+            ],
+            "separation": [
+              0,
+              0
+            ]
+          },
+          "origin": [
+            24,
+            95
+          ],
+          "role": "CROP",
+          "size": [
+            192,
+            96
+          ],
+          "stages": 4,
+          "tags": [
+            "crop",
+            "crop_art",
+            "growth_by:reviewed_sheet",
+            "produce:garlic"
+          ],
+          "usage": "growth_strip"
+        },
+        "pixel_sha256": "e1f0bb458f4c74a05b42fcdf49ceca92216c077168357df86b28f1f00b507b2d",
+        "reviewed_on": "2026-10-29",
+        "scope": "Visually reviewed field-crop art stages and produce identity. Exact source-bound rectangles exclude harvested ITEM variants and adjacent-row soil. Timing, seasons, regrowth, yields, prices and edible effects remain editable project defaults, not artist-authored metadata."
+      },
+      "crop48_384": {
+        "kind": "crop_art",
+        "input": {
+          "frame": [
+            48,
+            96
+          ],
+          "grid": {
+            "cell": [
+              48,
+              96
+            ],
+            "margin": [
+              0,
+              0
+            ],
+            "separation": [
+              0,
+              0
+            ]
+          },
+          "origin": [
+            24,
+            95
+          ],
+          "role": "CROP",
+          "size": [
+            144,
+            96
+          ],
+          "stages": 3,
+          "tags": [
+            "crop",
+            "growth_by:reviewed_sheet",
+            "produce:potato"
+          ],
+          "usage": "growth_strip"
+        },
+        "approved": {
+          "frame": [
+            48,
+            96
+          ],
+          "grid": {
+            "cell": [
+              48,
+              96
+            ],
+            "margin": [
+              0,
+              0
+            ],
+            "separation": [
+              0,
+              0
+            ]
+          },
+          "origin": [
+            24,
+            95
+          ],
+          "role": "CROP",
+          "size": [
+            144,
+            96
+          ],
+          "stages": 3,
+          "tags": [
+            "crop",
+            "crop_art",
+            "growth_by:reviewed_sheet",
+            "produce:potato"
+          ],
+          "usage": "growth_strip"
+        },
+        "pixel_sha256": "93f3b4819672a3c8aeba39f264fbc9d3f14e3ab91031dacfe720ce4d9c75b37c",
+        "reviewed_on": "2026-10-29",
+        "scope": "Visually reviewed field-crop art stages and produce identity. Exact source-bound rectangles exclude harvested ITEM variants and adjacent-row soil. Timing, seasons, regrowth, yields, prices and edible effects remain editable project defaults, not artist-authored metadata."
       }
     },
     "9dfe6c667d8ce600a939496f9db0e387057e11db59842d474ae1624598fa23b1": {

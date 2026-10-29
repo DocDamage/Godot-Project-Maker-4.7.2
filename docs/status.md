@@ -53,6 +53,14 @@ The ledger now has 2,465 unresolved entries by disposition. Seven tile sheets an
 multi-source actors in that pack remain outside the new certification scope. No detector
 confidence, saved owner choice or calibration table is changed.
 
+The [field-crop follow-up](crop_metadata_2026-10-29.md) certifies ten crop-art strips and
+41 stages, restores garlic's early sprout, removes neighboring-row residue and preserves the
+owner's harvested ITEM variants. Saved logical stage counts now map correctly onto updated
+art without rewriting crop settings. All catalog IDs, project image paths and 590 review keys
+remain valid. The assets-only build and native crop checks pass. The ledger now has 2,455
+unresolved entries by disposition; terrain, building/segmentation metadata, independent
+calibration labels and qualified/human release checks remain open.
+
 The owner's words: "the whole purpose is for me to be able to make my own levels without having
 to add all the underlying logic to my assets as I import them." Generated starter maps, villages
 and stages are examples; the product is a pack's assets carrying their logic into Godot. Work is
