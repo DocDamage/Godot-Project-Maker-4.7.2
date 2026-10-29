@@ -31,6 +31,11 @@ The accepted orchard and hazard follow-up now has eight hash-bound orchard growt
 persistent seasonal fruit trees, and individual tile damage/interval controls in asset details.
 See [orchard and hazard rules](orchards_and_hazards.md) for the editable defaults and behavior.
 
+The [2026-10-29 validation pass](metadata_validation_2026-10-29.md) checks 13,612 active images,
+14,137 animation frames and all 6,070 stored complete decisions. Calibration now requires
+explicit field provenance, unchanged source hashes and held-out source support; the current
+draft corpus cannot increase confidence. The owner's four saved choices remain unchanged.
+
 The owner's words: "the whole purpose is for me to be able to make my own levels without having
 to add all the underlying logic to my assets as I import them." Generated starter maps, villages
 and stages are examples; the product is a pack's assets carrying their logic into Godot. Work is

@@ -1,0 +1,352 @@
+{
+  "date": "2026-10-29",
+  "scope": "Read-only checks of saved catalog snapshots, not fresh imports or independent semantic ground truth",
+  "packs": [
+    {
+      "name": "cozy_farming_village",
+      "images": 346,
+      "animations": 50,
+      "frames": 50,
+      "image_headers": 346,
+      "passed": true,
+      "failures": 0,
+      "pictures": 368,
+      "with_reviewed_fields": 0,
+      "calibration_eligible": 0
+    },
+    {
+      "name": "farm_tileset_pixel_art",
+      "images": 583,
+      "animations": 0,
+      "frames": 0,
+      "image_headers": 583,
+      "passed": true,
+      "failures": 0,
+      "pictures": 582,
+      "with_reviewed_fields": 2,
+      "calibration_eligible": 0
+    },
+    {
+      "name": "farmrpg",
+      "images": 1594,
+      "animations": 1490,
+      "frames": 6236,
+      "image_headers": 1684,
+      "passed": true,
+      "failures": 0,
+      "pictures": 2049,
+      "with_reviewed_fields": 23,
+      "calibration_eligible": 0
+    },
+    {
+      "name": "gothicvania",
+      "images": 188,
+      "animations": 68,
+      "frames": 387,
+      "image_headers": 254,
+      "passed": true,
+      "failures": 0,
+      "pictures": 398,
+      "with_reviewed_fields": 0,
+      "calibration_eligible": 0
+    },
+    {
+      "name": "lords_of_pain_old_school_isometric_asset",
+      "images": 87,
+      "animations": 450,
+      "frames": 2416,
+      "image_headers": 537,
+      "passed": true,
+      "failures": 0,
+      "pictures": 90,
+      "with_reviewed_fields": 0,
+      "calibration_eligible": 0
+    },
+    {
+      "name": "medieval_town",
+      "images": 268,
+      "animations": 0,
+      "frames": 0,
+      "image_headers": 268,
+      "passed": true,
+      "failures": 0,
+      "pictures": 269,
+      "with_reviewed_fields": 0,
+      "calibration_eligible": 0
+    },
+    {
+      "name": "mfarm",
+      "images": 2681,
+      "animations": 319,
+      "frames": 4534,
+      "image_headers": 2683,
+      "passed": true,
+      "failures": 0,
+      "pictures": 8078,
+      "with_reviewed_fields": 0,
+      "calibration_eligible": 0
+    },
+    {
+      "name": "miniature_farm",
+      "images": 228,
+      "animations": 0,
+      "frames": 0,
+      "image_headers": 228,
+      "passed": true,
+      "failures": 0,
+      "pictures": 470,
+      "with_reviewed_fields": 0,
+      "calibration_eligible": 0
+    },
+    {
+      "name": "nature",
+      "images": 752,
+      "animations": 0,
+      "frames": 0,
+      "image_headers": 752,
+      "passed": true,
+      "failures": 0,
+      "pictures": 753,
+      "with_reviewed_fields": 0,
+      "calibration_eligible": 0
+    },
+    {
+      "name": "pathways_dry",
+      "images": 396,
+      "animations": 0,
+      "frames": 0,
+      "image_headers": 396,
+      "passed": true,
+      "failures": 0,
+      "pictures": 432,
+      "with_reviewed_fields": 0,
+      "calibration_eligible": 0
+    },
+    {
+      "name": "pixel_platformer",
+      "images": 24,
+      "animations": 44,
+      "frames": 76,
+      "image_headers": 4,
+      "passed": true,
+      "failures": 0,
+      "pictures": 251,
+      "with_reviewed_fields": 0,
+      "calibration_eligible": 0
+    },
+    {
+      "name": "platformer_pack_remastered",
+      "images": 192,
+      "animations": 40,
+      "frames": 55,
+      "image_headers": 232,
+      "passed": true,
+      "failures": 0,
+      "pictures": 389,
+      "with_reviewed_fields": 0,
+      "calibration_eligible": 0
+    },
+    {
+      "name": "roads_realistic",
+      "images": 231,
+      "animations": 0,
+      "frames": 0,
+      "image_headers": 231,
+      "passed": true,
+      "failures": 0,
+      "pictures": 252,
+      "with_reviewed_fields": 0,
+      "calibration_eligible": 0
+    },
+    {
+      "name": "sakpix_cozy_villagers",
+      "images": 11,
+      "animations": 176,
+      "frames": 176,
+      "image_headers": 99,
+      "passed": true,
+      "failures": 0,
+      "pictures": 22,
+      "with_reviewed_fields": 0,
+      "calibration_eligible": 0
+    },
+    {
+      "name": "sb_crates",
+      "images": 240,
+      "animations": 0,
+      "frames": 0,
+      "image_headers": 240,
+      "passed": true,
+      "failures": 0,
+      "pictures": 448,
+      "with_reviewed_fields": 0,
+      "calibration_eligible": 0
+    },
+    {
+      "name": "sb_doorways",
+      "images": 1728,
+      "animations": 0,
+      "frames": 0,
+      "image_headers": 1728,
+      "passed": true,
+      "failures": 0,
+      "pictures": 3744,
+      "with_reviewed_fields": 0,
+      "calibration_eligible": 0
+    },
+    {
+      "name": "sb_floor",
+      "images": 504,
+      "animations": 0,
+      "frames": 0,
+      "image_headers": 504,
+      "passed": true,
+      "failures": 0,
+      "pictures": 1064,
+      "with_reviewed_fields": 18,
+      "calibration_eligible": 0
+    },
+    {
+      "name": "sb_objects",
+      "images": 86,
+      "animations": 0,
+      "frames": 0,
+      "image_headers": 86,
+      "passed": true,
+      "failures": 0,
+      "pictures": 410,
+      "with_reviewed_fields": 0,
+      "calibration_eligible": 0
+    },
+    {
+      "name": "sb_overworld",
+      "images": 180,
+      "animations": 0,
+      "frames": 0,
+      "image_headers": 180,
+      "passed": true,
+      "failures": 0,
+      "pictures": 380,
+      "with_reviewed_fields": 0,
+      "calibration_eligible": 0
+    },
+    {
+      "name": "sb_town",
+      "images": 873,
+      "animations": 0,
+      "frames": 0,
+      "image_headers": 873,
+      "passed": true,
+      "failures": 0,
+      "pictures": 877,
+      "with_reviewed_fields": 0,
+      "calibration_eligible": 0
+    },
+    {
+      "name": "sb_walls",
+      "images": 2016,
+      "animations": 0,
+      "frames": 0,
+      "image_headers": 2016,
+      "passed": true,
+      "failures": 0,
+      "pictures": 4116,
+      "with_reviewed_fields": 0,
+      "calibration_eligible": 0
+    },
+    {
+      "name": "tiles_vehicles",
+      "images": 34,
+      "animations": 0,
+      "frames": 0,
+      "image_headers": 34,
+      "passed": true,
+      "failures": 0,
+      "pictures": 315,
+      "with_reviewed_fields": 0,
+      "calibration_eligible": 0
+    },
+    {
+      "name": "tiny_farm",
+      "images": 18,
+      "animations": 10,
+      "frames": 10,
+      "image_headers": 18,
+      "passed": true,
+      "failures": 0,
+      "pictures": 147,
+      "with_reviewed_fields": 0,
+      "calibration_eligible": 0
+    },
+    {
+      "name": "vector_roads_base",
+      "images": 96,
+      "animations": 0,
+      "frames": 0,
+      "image_headers": 96,
+      "passed": true,
+      "failures": 0,
+      "pictures": 97,
+      "with_reviewed_fields": 0,
+      "calibration_eligible": 0
+    },
+    {
+      "name": "warped",
+      "images": 256,
+      "animations": 46,
+      "frames": 197,
+      "image_headers": 295,
+      "passed": true,
+      "failures": 0,
+      "pictures": 377,
+      "with_reviewed_fields": 1,
+      "calibration_eligible": 0
+    }
+  ],
+  "totals": {
+    "packs": 25,
+    "active_images_checked": 13612,
+    "animations_checked": 2693,
+    "frames_checked": 14137,
+    "geometry_failures": 0,
+    "corpus_keys_resolved": 26378,
+    "unresolved_corpus_keys": 0,
+    "owner_reviewed_role_entries": 44,
+    "calibration_eligible": 0
+  },
+  "static_decisions": {
+    "stored_complete_decisions": 6070,
+    "pixel_and_geometry_checks_passed": 6070,
+    "source_files_rehashed": 174,
+    "source_files_unavailable": [],
+    "failures": [],
+    "peak_private_bytes": 710082560
+  },
+  "saved_choices_sha256": "52294b9655fb46c2165751c05cb0d2245baf5f798d3dbcd3965a224458901128",
+  "owner_choice_mismatches": 0,
+  "calibration_table_changed": false,
+  "publication_guard_rejected_draft_only_data": true,
+  "limitations": [
+    "Geometry validity is not semantic correctness, source-authored timing or collision certification.",
+    "No full-confidence profiles or confidence increases were produced.",
+    "Source-byte grouping does not identify re-encoded or visually similar sources.",
+    "Fully reviewed independent labels and held-out real-pack validation remain required for an accuracy claim."
+  ],
+  "verification": {
+    "full_unit_run": {
+      "passed": 2593,
+      "skipped": 3
+    },
+    "final_focused_run": {
+      "passed": 45
+    },
+    "unique_current_passed_cases": 2595,
+    "real_cli_packs": [
+      "farmrpg",
+      "warped"
+    ],
+    "lint": true,
+    "format": true,
+    "mypy_modules": 217
+  }
+}

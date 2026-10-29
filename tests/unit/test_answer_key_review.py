@@ -8,6 +8,75 @@ import pytest
 from tools import answer_key
 
 
+def test_fitting_draft_only_corpus_cannot_replace_the_shipped_table(tmp_path, monkeypatch):
+    from rpggen import analyze_cmd
+    from rpggen.core import calibration
+
+    monkeypatch.setenv("RPGGEN_CALIBRATION", "off")
+    table = tmp_path / "table.json"
+    table.write_text('{"keep": true}')
+    monkeypatch.setattr(calibration, "TABLE", table)
+    monkeypatch.setattr(answer_key, "load_packs", lambda _: [])
+    monkeypatch.setattr(
+        analyze_cmd,
+        "run_private_corpus",
+        lambda *_: {
+            "packs": {
+                "draft": {
+                    "pictures": [{"right": True, "calibration_eligible": False}],
+                    "review_coverage": {"calibration_eligible": 0},
+                }
+            },
+            "missing": [],
+        },
+    )
+    with pytest.raises(ValueError, match="no independently supported bins"):
+        answer_key.fit(tmp_path, True)
+    assert table.read_text() == '{"keep": true}'
+    assert "No calibration-eligible observations" in (tmp_path / "fit_report.md").read_text()
+
+
+@pytest.mark.parametrize("held_out_right", [True, False])
+def test_table_publication_requires_held_out_source_support(tmp_path, monkeypatch, held_out_right):
+    from rpggen import analyze_cmd
+    from rpggen.core import calibration
+
+    monkeypatch.setenv("RPGGEN_CALIBRATION", "off")
+    table = tmp_path / "table.json"
+    table.write_text('{"keep": true}')
+    monkeypatch.setattr(calibration, "TABLE", table)
+    monkeypatch.setattr(answer_key, "load_packs", lambda _: [])
+    packs = {}
+    for name in ["a", "b"]:
+        rows = [
+            {
+                "reader": "grid",
+                "role": "GROUND",
+                "confidence": 0.5,
+                "sure": False,
+                "right": held_out_right or name == "a",
+                "source_sha256": f"{name}:{i}",
+                "calibration_eligible": True,
+            }
+            for i in range(500)
+        ]
+        packs[name] = {"pictures": rows, "review_coverage": {"calibration_eligible": 500}}
+    monkeypatch.setattr(
+        analyze_cmd, "run_private_corpus", lambda *_: {"packs": packs, "missing": []}
+    )
+    if held_out_right:
+        answer_key.fit(tmp_path, True)
+        published = json.loads(table.read_text())
+        assert published["version"] == calibration.VERSION
+        assert all("|*|" not in key for key in published["bins"]), (
+            "untested generic sure bins are removed"
+        )
+    else:
+        with pytest.raises(ValueError, match="99% support"):
+            answer_key.fit(tmp_path, True)
+        assert table.read_text() == '{"keep": true}'
+
+
 @pytest.fixture
 def review(tmp_path: Path) -> Path:
     (tmp_path / "review_queue.json").write_text(

@@ -19,7 +19,9 @@ in ``DIR/marks/NAME.json`` as they are made; ``corpus`` writes ``DIR/corpus/NAME
 ``fit`` scores the corpus with the raw confidences, fits the calibration and reports per pack
 and per publisher the sure share and the accuracy of the sure pictures before calibration and
 after it, each pack measured with a table fitted on the other packs (``DIR/fit_report.md``);
-``--write`` puts the table fitted on every pack into ``rpggen/data/calibration.json``.
+Only fully reviewed, source-bound observations train calibration. ``--write`` publishes to
+``rpggen/data/calibration.json`` only with supported bins and held-out source validation;
+otherwise the existing table is preserved.
 
 ``DIR/packs.json`` lists the packs: ``[{"name", "path", "publisher"}, ...]``.
 """
@@ -477,12 +479,44 @@ def fit(out: Path, write: bool) -> None:
 
     summary = analyze_cmd.run_private_corpus(out / "corpus", [])
     publisher_of = {p["name"]: p["publisher"] for p in load_packs(out)}
-    pictures = {name: rep["pictures"] for name, rep in summary["packs"].items()}
+    pictures = {
+        name: [p for p in rep["pictures"] if p.get("calibration_eligible") is True]
+        for name, rep in summary["packs"].items()
+    }
     auto, confirmed = catalog.AUTO_CONFIDENCE, catalog.CONFIRMED_CONFIDENCE
     rows: dict[str, dict[str, Any]] = {}
+    validated: list[dict[str, Any]] = []
+    validated_publishers: dict[str, list[dict[str, Any]]] = {}
+    validated_bins: dict[str, list[dict[str, Any]]] = {}
     for name, own in sorted(pictures.items()):
         others = [p for n, ps in pictures.items() if n != name for p in ps]
-        table = calibration.fit(others, auto, confirmed)
+        table = calibration.fit(calibration.training_for(others, own), auto, confirmed)
+        tested = [
+            {
+                **p,
+                "sure": calibration.calibrate_with(
+                    table,
+                    p["reader"],
+                    p.get("role", ""),
+                    float(p["confidence"]),
+                    p.get("publisher", ""),
+                )
+                >= auto,
+            }
+            for p in own
+        ]
+        validated.extend(tested)
+        validated_publishers.setdefault(publisher_of.get(name, "?"), []).extend(tested)
+        for p in tested:
+            key = calibration.fitted_key(
+                table,
+                p["reader"],
+                p.get("role", ""),
+                float(p["confidence"]),
+                p.get("publisher", ""),
+            )
+            if key is not None:
+                validated_bins.setdefault(key, []).append(p)
         rows[name] = {
             "before": _sure_counts(own, lambda p: p["sure"]),
             "after": _sure_counts(
@@ -516,6 +550,11 @@ def fit(out: Path, write: bool) -> None:
     lines = [
         "# Calibration on the answer key",
         "",
+        "Only explicit reviewed_fields with complete measured-field coverage are eligible.",
+        "Role-only owner choices and inherited draft fields are excluded. Variants and copies",
+        "of the held-out source are excluded from training, even in other packs. Bins count",
+        "independent source images, not the number of regions cut from the same sheet.",
+        "",
         "Sure: confirmed, or confidence at Auto-detected or above. *After*: each pack with a",
         "table fitted on the other packs (leave one pack out), so the numbers are what a new",
         "pack would see.",
@@ -546,14 +585,54 @@ def fit(out: Path, write: bool) -> None:
     )
     if summary["missing"]:
         lines += ["", "Not found: " + ", ".join(summary["missing"])]
+    coverage = {n: r.get("review_coverage", {}) for n, r in summary["packs"].items()}
+    validation = calibration.validation_support(validated)
+    publisher_validation = {
+        name: calibration.validation_support(ps) for name, ps in validated_publishers.items()
+    }
+    table = calibration.fit([p for ps in pictures.values() for p in ps], auto, confirmed)
+    removed = []
+    for key, bin_info in list(table["bins"].items()):
+        if (
+            bin_info["confidence"] >= auto
+            and not calibration.validation_support(validated_bins.get(key, []))["passed"]
+        ):
+            removed.append(key)
+            del table["bins"][key]
+    if not any(pictures.values()):
+        lines += ["", "No calibration-eligible observations. The shipped table is unchanged."]
+    else:
+        lines += [
+            "",
+            "Held-out sure source images: "
+            f"{validation['right_sources']}/{validation['sure_sources']}; "
+            f"95% Wilson lower bound: {pct(validation['wilson_low'])}. "
+            "Publishing requires at least 99% overall and per publisher with sure predictions.",
+        ]
     (out / "fit_report.md").write_text("\n".join(lines) + "\n", encoding="utf-8")
-    jsonio.write(out / "fit_report.json", {"packs": rows, "missing": summary["missing"]})
+    jsonio.write(
+        out / "fit_report.json",
+        {
+            "packs": rows,
+            "missing": summary["missing"],
+            "review_coverage": coverage,
+            "validation": validation,
+            "publisher_validation": publisher_validation,
+            "unsupported_sure_bins_removed": removed,
+        },
+    )
     print("\n".join(lines))
     if write:
-        table = calibration.fit([p for ps in pictures.values() for p in ps], auto, confirmed)
-        calibration.TABLE.write_text(
-            json.dumps(table, indent=1, sort_keys=True) + "\n", encoding="utf-8"
-        )
+        if summary["missing"] or not table["bins"]:
+            raise ValueError(
+                "Calibration not written: missing packs or no independently supported bins."
+            )
+        if not validation["passed"] or any(
+            not v["passed"] for v in publisher_validation.values() if v["sure_sources"]
+        ):
+            raise ValueError("Calibration not written: held-out source accuracy lacks 99% support.")
+        jsonio.write(calibration.TABLE, table)
+        calibration._table.cache_clear()
         print(f"wrote {calibration.TABLE} ({len(table['bins'])} bins)")
 
 
@@ -737,7 +816,10 @@ def main(argv: list[str] | None = None) -> int:
     elif args.cmd == "corpus":
         corpus(args.out)
     elif args.cmd == "fit":
-        fit(args.out, args.write)
+        try:
+            fit(args.out, args.write)
+        except ValueError as exc:
+            parser.error(str(exc))
     elif args.cmd == "vision":
         vision(args.out, args.per_pack, args.server, args.model, args.projector, args.write)
     return 0
