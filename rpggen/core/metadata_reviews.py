@@ -39,7 +39,7 @@ def decision(
     if not record or facets != record["input"]:
         return None
     approved = record.get("approved", {})
-    if not complete_static(approved):
+    if not complete(approved, record.get("kind", "static_object")):
         return None
     try:
         if pixel_hash(picture) != record["pixel_sha256"]:
@@ -47,6 +47,40 @@ def decision(
     except (OSError, ValueError):
         return None
     return copy.deepcopy(approved)
+
+
+def complete(facets: dict[str, Any], kind: str = "static_object") -> bool:
+    if kind == "static_object":
+        return complete_static(facets)
+    if kind == "static_battler":
+        return complete_static_battler(facets)
+    return False
+
+
+def complete_static_battler(facets: dict[str, Any]) -> bool:
+    """A reviewed whole enemy illustration, not a moving actor or a combat-behavior claim.
+
+    One-frame idle is a presentation default. Collision and attack/movement behavior are
+    not inferred from the illustration and must remain absent from this kind of record.
+    """
+    size, origin = facets.get("size"), facets.get("origin")
+    return bool(
+        facets.get("usage") == "sprite"
+        and facets.get("role") == "ENEMY"
+        and facets.get("tags") == ["static_battler"]
+        and isinstance(size, list)
+        and len(size) == 2
+        and all(isinstance(v, int) and v > 0 for v in size)
+        and facets.get("frame") == size
+        and isinstance(origin, list)
+        and len(origin) == 2
+        and all(isinstance(v, int) and 0 <= v < size[i] for i, v in enumerate(origin))
+        and facets.get("grid") == {"cell": size, "margin": [0, 0], "separation": [0, 0]}
+        and facets.get("animations")
+        == {"idle_down": {"fps": 1.0, "frames": [[0, 0]], "loop": True}}
+        and set(facets)
+        <= {"usage", "role", "size", "frame", "origin", "grid", "animations", "tags"}
+    )
 
 
 def complete_static(facets: dict[str, Any]) -> bool:

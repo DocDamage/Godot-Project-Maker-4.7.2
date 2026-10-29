@@ -52,6 +52,39 @@ def test_confirmation_applies_without_inflating_confidence(reviewed) -> None:
     schema.validate("catalog", cat.to_json())
 
 
+def test_static_battler_confirmation_is_explicit_and_not_a_moving_actor_review(reviewed):
+    opened, inv, before, old, path, record = reviewed
+    approved = {k: copy.deepcopy(record["approved"][k]) for k in ("size", "frame", "origin")}
+    approved.update(
+        usage="sprite",
+        role="ENEMY",
+        tags=["static_battler"],
+        grid={"cell": approved["size"], "margin": [0, 0], "separation": [0, 0]},
+        animations={"idle_down": {"fps": 1.0, "frames": [[0, 0]], "loop": True}},
+    )
+    record.update(kind="static_battler", approved=approved)
+    cat, _, _ = catalog.assemble([(opened, inv)], None, [])
+    assert cat.asset(old.id).status == "CONFIRMED"
+    assert cat.asset(old.id).confidence == old.confidence
+    for change in [
+        {"animations": {"walk_down": {"fps": 8, "frames": [[0, 0], [1, 0]], "loop": True}}},
+        {"collision": {"profile": "FULL"}},
+        {"origin": [-1, 0]},
+        {"tags": []},
+    ]:
+        record["approved"] = {**approved, **change}
+        assert (
+            metadata_reviews.decision(old.sha256, old.id.partition("#")[2], record["input"], path)
+            is None
+        )
+    record["approved"] = approved
+    record["kind"] = "unknown"
+    assert (
+        metadata_reviews.decision(old.sha256, old.id.partition("#")[2], record["input"], path)
+        is None
+    )
+
+
 def test_source_render_and_input_facets_all_guard_confirmation(reviewed) -> None:
     _, _, _, a, path, record = reviewed
     variant = a.id.partition("#")[2]
@@ -91,7 +124,9 @@ def test_packaged_confirmations_are_complete_valid_and_independent() -> None:
     for sha, variants in data["assets"].items():
         assert len(sha) == 64
         for record in variants.values():
-            assert metadata_reviews.complete_static(record["approved"])
+            assert metadata_reviews.complete(
+                record["approved"], record.get("kind", "static_object")
+            )
             a = catalog.Asset(
                 "test.picture",
                 "test",

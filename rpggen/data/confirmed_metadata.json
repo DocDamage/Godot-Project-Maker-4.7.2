@@ -1,7 +1,7 @@
 {
   "review_version": 1,
   "reviewed_on": "2026-10-28",
-  "scope": "Visually reviewed single-frame scenery, inventory art and static effect stamps. Origin is a measured base pivot. Collision NONE is an authored non-blocking default, not a source-supplied gameplay claim. Animation is empty for these individual static images. Functional doors/traps, terrain, stage grids, partial/composite sheets and unclear crops remain unconfirmed.",
+  "scope": "Visually reviewed single-frame scenery, inventory art and static effect stamps. Origin is a measured base pivot. Collision NONE is an authored non-blocking default, not a source-supplied gameplay claim. Animation is empty for these individual static images. Functional doors/traps, terrain, stage grids, partial/composite sheets and unclear crops remain unconfirmed. The 2026-10-29 static_battler records certify whole single-frame enemy illustrations and their presentation only; they do not certify movement or combat behavior.",
   "assets": {
     "df333ba9f08d137f17715e4b60ac35f9824d3bd0e20677fbf459de8ee791800a": {
       "o194_148": {
@@ -243599,6 +243599,279 @@
         },
         "pixel_sha256": "0ab194814bcc7b4d3c8c45c891bb699d5b48477c4162409d2bf8a1d4f3055e8d",
         "review": "2026-10-28 specialized page 8: complete standalone static plant/scenery image"
+      }
+    },
+    "48714f6602677cffd709ebb4c708c703082b49bb72fffa55113ff07d18779c61": {
+      "": {
+        "kind": "static_battler",
+        "input": {
+          "animations": {
+            "idle_down": {
+              "fps": 1.0,
+              "frames": [
+                [
+                  0,
+                  0
+                ]
+              ],
+              "loop": true
+            }
+          },
+          "frame": [
+            184,
+            210
+          ],
+          "grid": {
+            "cell": [
+              184,
+              210
+            ],
+            "margin": [
+              0,
+              0
+            ],
+            "separation": [
+              0,
+              0
+            ]
+          },
+          "role": "ENEMY",
+          "size": [
+            184,
+            210
+          ],
+          "usage": "sprite"
+        },
+        "approved": {
+          "animations": {
+            "idle_down": {
+              "fps": 1.0,
+              "frames": [
+                [
+                  0,
+                  0
+                ]
+              ],
+              "loop": true
+            }
+          },
+          "frame": [
+            184,
+            210
+          ],
+          "grid": {
+            "cell": [
+              184,
+              210
+            ],
+            "margin": [
+              0,
+              0
+            ],
+            "separation": [
+              0,
+              0
+            ]
+          },
+          "role": "ENEMY",
+          "size": [
+            184,
+            210
+          ],
+          "usage": "sprite",
+          "origin": [
+            92,
+            209
+          ],
+          "tags": [
+            "static_battler"
+          ]
+        },
+        "pixel_sha256": "6a221c2e3df9f88676c56c968ce6e7f99b0dacdcac29d31940f08a163ef2f0b9",
+        "reviewed_on": "2026-10-29",
+        "scope": "Whole static enemy illustration; authored bottom-center placement and one-frame idle presentation. No movement, attack timing, collision or gameplay behavior certified."
+      }
+    },
+    "6934e75aeb3ec5b6f86ebd2d82061f9e6a4cefc3b18b5d934be84eece966d8bf": {
+      "": {
+        "kind": "static_battler",
+        "input": {
+          "animations": {
+            "idle_down": {
+              "fps": 1.0,
+              "frames": [
+                [
+                  0,
+                  0
+                ]
+              ],
+              "loop": true
+            }
+          },
+          "frame": [
+            394,
+            400
+          ],
+          "grid": {
+            "cell": [
+              394,
+              400
+            ],
+            "margin": [
+              0,
+              0
+            ],
+            "separation": [
+              0,
+              0
+            ]
+          },
+          "role": "ENEMY",
+          "size": [
+            394,
+            400
+          ],
+          "usage": "sprite"
+        },
+        "approved": {
+          "animations": {
+            "idle_down": {
+              "fps": 1.0,
+              "frames": [
+                [
+                  0,
+                  0
+                ]
+              ],
+              "loop": true
+            }
+          },
+          "frame": [
+            394,
+            400
+          ],
+          "grid": {
+            "cell": [
+              394,
+              400
+            ],
+            "margin": [
+              0,
+              0
+            ],
+            "separation": [
+              0,
+              0
+            ]
+          },
+          "role": "ENEMY",
+          "size": [
+            394,
+            400
+          ],
+          "usage": "sprite",
+          "origin": [
+            197,
+            399
+          ],
+          "tags": [
+            "static_battler"
+          ]
+        },
+        "pixel_sha256": "567aab206310a2b9e329f135907bbedd5a089a15006bdeec3e7b3fbd9df8a750",
+        "reviewed_on": "2026-10-29",
+        "scope": "Whole static enemy illustration; authored bottom-center placement and one-frame idle presentation. No movement, attack timing, collision or gameplay behavior certified."
+      }
+    },
+    "00f97476b75bd2d93c9b51a8119026631694b21c0beb8af87cc6f24638ef91d6": {
+      "": {
+        "kind": "static_battler",
+        "input": {
+          "animations": {
+            "idle_down": {
+              "fps": 1.0,
+              "frames": [
+                [
+                  0,
+                  0
+                ]
+              ],
+              "loop": true
+            }
+          },
+          "frame": [
+            204,
+            218
+          ],
+          "grid": {
+            "cell": [
+              204,
+              218
+            ],
+            "margin": [
+              0,
+              0
+            ],
+            "separation": [
+              0,
+              0
+            ]
+          },
+          "role": "ENEMY",
+          "size": [
+            204,
+            218
+          ],
+          "usage": "sprite"
+        },
+        "approved": {
+          "animations": {
+            "idle_down": {
+              "fps": 1.0,
+              "frames": [
+                [
+                  0,
+                  0
+                ]
+              ],
+              "loop": true
+            }
+          },
+          "frame": [
+            204,
+            218
+          ],
+          "grid": {
+            "cell": [
+              204,
+              218
+            ],
+            "margin": [
+              0,
+              0
+            ],
+            "separation": [
+              0,
+              0
+            ]
+          },
+          "role": "ENEMY",
+          "size": [
+            204,
+            218
+          ],
+          "usage": "sprite",
+          "origin": [
+            102,
+            217
+          ],
+          "tags": [
+            "static_battler"
+          ]
+        },
+        "pixel_sha256": "b3701a9fe5f505afad040e5299395e17f8979853b1d22c31b4affb42d56f1fdc",
+        "reviewed_on": "2026-10-29",
+        "scope": "Whole static enemy illustration; authored bottom-center placement and one-frame idle presentation. No movement, attack timing, collision or gameplay behavior certified."
       }
     }
   }
