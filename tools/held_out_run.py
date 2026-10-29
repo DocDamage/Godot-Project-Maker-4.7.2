@@ -16,7 +16,8 @@ from __future__ import annotations
 
 import argparse
 import os
-import shutil
+import re
+import subprocess
 import sys
 import time
 from pathlib import Path
@@ -32,36 +33,89 @@ HEADER = (
 )
 
 
+def run_target(out: Path, name: str, archetype: str) -> Path:
+    """Every trial has a fresh target. Never erase a previous project or failed run."""
+    if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_-]{0,63}", name):
+        raise ValueError("name must be a short folder name using letters, digits, - or _")
+    if archetype not in ("turn_based", "arpg"):
+        raise ValueError("unsupported held-out archetype")
+    target = (out / name / archetype).resolve()
+    if out.resolve() not in target.parents:
+        raise ValueError("run target escapes the output folder")
+    if target.exists() or target.with_suffix(".run.json").exists():
+        raise FileExistsError(f"Previous trial exists; use a new --out folder: {target}")
+    return target
+
+
 def run_one(pack: Path, name: str, archetype: str, godot: Path, out: Path) -> dict[str, object]:
+    from rpggen import jsonio
+    from rpggen.core import catalog as catalog_mod
     from rpggen.core import orchestrator
     from rpggen.gui import workers
     from rpggen.gui.state import WizardState
 
-    target = out / name / archetype
-    if target.exists():
-        shutil.rmtree(target)
+    target = run_target(out, name, archetype)
+    target.parent.mkdir(parents=True, exist_ok=True)
+    evidence = {
+        "pack": name,
+        "source": str(pack.resolve()),
+        "archetype": archetype,
+        "target": str(target),
+        "state": "analyzing",
+        "placeholders_requested": ["PLAYER", "GROUND"],
+        "revision": subprocess.check_output(
+            ["git", "rev-parse", "HEAD"], cwd=REPO, text=True
+        ).strip(),
+        "working_tree": subprocess.check_output(
+            ["git", "status", "--porcelain"], cwd=REPO, text=True
+        ).splitlines(),
+    }
+    evidence_path = target.with_suffix(".run.json")
+    jsonio.write(evidence_path, evidence)
     started = time.perf_counter()
     state = WizardState(pack_sources=[pack], target=None)
-    workers.apply_analysis(state, workers.analyze_packs(state, callbacks=orchestrator.Callbacks()))
+    analysis = workers.analyze_packs(state, callbacks=orchestrator.Callbacks())
+    workers.apply_analysis(state, analysis)
     analysis_s = time.perf_counter() - started
+    evidence.update(
+        state="generating",
+        analysis_s=round(analysis_s, 3),
+        inventories=[inv.to_json() for inv in analysis.inventories],
+    )
+    jsonio.write(evidence_path, evidence)
+    if state.catalog is not None:
+        catalog_mod.save(state.catalog, target.with_suffix(".catalog.json"))
     cfg = orchestrator.default_config_for_pack(pack, name, archetype=archetype)
     started = time.perf_counter()
     result = orchestrator.run_in_memory(
         cfg, state.catalog, target, godot, placeholders=["PLAYER", "GROUND"]
     )
     generation_s = time.perf_counter() - started
-    errors = [i for i in result.issues if i.severity.value == "error"]
-    warnings = [i for i in result.issues if i.severity.value == "warning"]
-    return {
+    all_issues = [*analysis.issues, *result.issues]
+    errors = [i for i in all_issues if i.severity.value == "error"]
+    warnings = [i for i in all_issues if i.severity.value == "warning"]
+    row_data = {
         "pack": name,
         "archetype": archetype,
         "analysis_s": round(analysis_s, 1),
         "generation_s": round(generation_s, 1),
-        "passed": result.ok,
+        "passed": result.ok and not errors,
         "errors": [f"{i.code} {i.message}" for i in errors],
         "warnings": len(warnings),
         "target": str(target),
     }
+    evidence.update(
+        state="finished",
+        result=row_data,
+        phase_timings=result.timings,
+        failed_phase=result.failed_phase,
+        failed_staging=str(result.failed_staging or ""),
+        issues=[
+            {"code": i.code, "severity": i.severity.value, "message": i.message} for i in all_issues
+        ],
+    )
+    jsonio.write(evidence_path, evidence)
+    return row_data
 
 
 def row(r: dict[str, object]) -> str:
@@ -87,6 +141,11 @@ def main(argv: list[str] | None = None) -> int:
     if godot is None:
         print("held_out_run: pass --godot or set RPGGEN_GODOT")
         return 2
+    try:
+        for archetype in ("turn_based", "arpg"):
+            run_target(args.out, args.name, archetype)
+    except (ValueError, FileExistsError) as exc:
+        parser.error(str(exc))
     args.out.mkdir(parents=True, exist_ok=True)
     table = args.out / "results.md"
     if not table.exists():

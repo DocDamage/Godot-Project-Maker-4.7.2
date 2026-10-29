@@ -209,6 +209,8 @@ static func inputs(catalog: CatalogReader) -> Array:
 			var row := [id, asset.get("sha256", ""), eff.get("origin"), eff.get("collision"), eff.get("role"), eff.get("tags", [])]
 			if eff.has("iso_terrain"):  # only a piece of a terrain has it (T17.31)
 				row.append(eff["iso_terrain"])
+			if eff.has("tile_overrides"):
+				row.append(["tile_overrides", eff["tile_overrides"]])
 			for key: String in ["lift", "stack", "ramp"]:  # only a piece of a stack has them (2026-10-26, T18.20)
 				if eff.has(key):
 					row.append([key, eff[key]])

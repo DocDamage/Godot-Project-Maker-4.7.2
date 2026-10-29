@@ -45,6 +45,23 @@ func _shoot() -> void:
 		if node.get_parent() != null and String(node.get_parent().name) == "Entities":
 			lo = lo.min((node as Node2D).global_position - Vector2(48, 64))
 			hi = hi.max((node as Node2D).global_position + Vector2(48, 16))
+		# Use the art's actual bounds too: battlers can be hundreds of pixels tall.
+		# A fixed actor-sized margin crops them even though their imported frame is whole.
+		var box := Rect2()
+		if node is Sprite2D:
+			box = (node as Sprite2D).get_rect()
+		elif node is AnimatedSprite2D:
+			var sprite := node as AnimatedSprite2D
+			if sprite.sprite_frames != null and sprite.sprite_frames.has_animation(sprite.animation):
+				var texture := sprite.sprite_frames.get_frame_texture(sprite.animation, sprite.frame)
+				if texture != null:
+					var size := texture.get_size()
+					box = Rect2(sprite.offset - (size / 2.0 if sprite.centered else Vector2.ZERO), size)
+		if box.has_area():
+			for corner: Vector2 in [box.position, Vector2(box.end.x, box.position.y), box.end, Vector2(box.position.x, box.end.y)]:
+				var at := (node as Node2D).to_global(corner)
+				lo = lo.min(at - Vector2(4, 4))
+				hi = hi.max(at + Vector2(4, 4))
 	if not is_finite(lo.x):
 		lo = Vector2.ZERO
 		hi = Vector2(640, 360)

@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Asset decisions</title>
+<link rel="icon" href="data:,">
+<style>
+:root { color-scheme: light dark; font: 16px system-ui, sans-serif; }
+body { max-width: 1000px; margin: 32px auto; padding: 0 20px 64px; line-height: 1.5; }
+h1 { margin-bottom: 8px; } h2 { font-size: 1.3rem; }
+.muted { opacity: .75; } .question { border-top: 1px solid #8886; margin-top: 32px; padding-top: 12px; }
+img { display: block; max-width: 100%; height: auto; image-rendering: pixelated; margin: 16px 0; }
+label { display: block; margin: 10px 0; } input[type=radio] { margin-right: 8px; }
+textarea { box-sizing: border-box; display: block; width: 100%; max-width: 660px; min-height: 65px; padding: 8px; font: inherit; }
+button { margin-top: 12px; padding: 9px 18px; font: inherit; cursor: pointer; }
+.status { margin-left: 12px; } .error { color: #c43d37; }
+a { color: light-dark(#155c8c, #8ccaff); }
+</style>
+</head>
+<body>
+<h1>A few choices about your assets</h1>
+<p id="summary">Loading the review…</p>
+<p class="muted">Technical corrections have been handled in the answer key. These choices depend on the game you want to make. Nothing is selected automatically. You can leave a choice open and keep the suggested interpretation.</p>
+<p><span id="progress"></span> · <a href="/?all=1">Browse the full answer key</a></p>
+<ul id="saved-summary"></ul>
+<main id="questions"></main>
+<script>
+const esc = s => String(s).replace(/[&<>"']/g, c => ({"&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;"}[c]));
+async function start() {
+  const response = await fetch('/api/questions');
+  if (!response.ok) throw new Error('Could not load the review.');
+  const data = await response.json();
+  const decisions = data.decisions || {};
+  const progress = () => {
+    const saved = data.questions.filter(q => q.choices.includes(decisions[q.id]?.choice)).length;
+    const pending = data.questions.length - saved;
+    document.getElementById('progress').textContent = `${saved} of ${data.questions.length} choices saved`;
+    document.querySelector('h1').textContent = pending ? 'A few choices about your assets' : 'Your asset choices are saved';
+    document.getElementById('summary').textContent = `${data.entries.toLocaleString()} entries across ${data.packs} packs screened. ` + (pending ? `${pending} grouped choices remain.` : 'All choices are saved. You can change them below at any time.');
+    document.getElementById('saved-summary').innerHTML = data.questions.filter(q => q.choices.includes(decisions[q.id]?.choice)).map(q => `<li><b>${esc(q.title)}</b>: ${esc(decisions[q.id].choice)}</li>`).join('');
+  };
+  document.getElementById('questions').innerHTML = data.questions.map((q, n) => {
+    const saved = decisions[q.id] || {};
+    return `<section class="question" aria-labelledby="title-${esc(q.id)}"><h2 id="title-${esc(q.id)}">${n + 1}. ${esc(q.title)}</h2>` +
+      `<p>${esc(q.question)}</p><p class="muted">${q.count} ${q.count === 1 ? 'entry' : 'entries'} · Suggested: ${esc(q.default)}</p>` +
+      `<img loading="lazy" src="/review-sheet?id=${encodeURIComponent(q.id)}" alt="${esc(q.title)} — affected pictures">` +
+      `<form data-id="${esc(q.id)}">${q.choices.map((choice, i) => `<label><input type="radio" name="choice" value="${esc(choice)}" ${saved.choice === choice ? 'checked' : ''}>${esc(choice)}</label>`).join('')}` +
+      `<label>Notes (optional)<textarea name="note" maxlength="2000">${esc(saved.note || '')}</textarea></label><button type="submit">Save choice</button><span class="status" role="status">${saved.choice ? 'Saved' : ''}</span></form></section>`;
+  }).join('');
+  progress();
+  document.querySelectorAll('form').forEach(form => form.onsubmit = async event => {
+    event.preventDefault();
+    const status = form.querySelector('.status');
+    const choice = new FormData(form).get('choice');
+    if (!choice) { status.className = 'status error'; status.textContent = 'Choose an answer first.'; return; }
+    const button = form.querySelector('button'); button.disabled = true;
+    try {
+      const decision = {id: form.dataset.id, choice, note: new FormData(form).get('note')};
+      const response = await fetch('/api/decision', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(decision)});
+      if (!response.ok) throw new Error(await response.text());
+      decisions[decision.id] = decision; progress(); status.className = 'status'; status.textContent = 'Saved';
+    } catch (error) { status.className = 'status error'; status.textContent = error.message; }
+    finally { button.disabled = false; }
+  });
+}
+start().catch(error => document.getElementById('summary').textContent = error.message);
+</script>
+</body>
+</html>

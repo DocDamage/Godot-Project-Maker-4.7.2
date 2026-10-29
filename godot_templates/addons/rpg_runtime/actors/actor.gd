@@ -26,6 +26,7 @@ var _look := Vector2.ZERO
 ## The levels of the map the actor is on (T18.20), found once; null on a map without heights.
 var _levels: RpgLevels = null
 var _levels_known := false
+var _tile_hazards := RpgTileHazards.new()
 
 func _ready() -> void:
 	_cache_components()
@@ -91,6 +92,12 @@ func _set_facing_property(f: String) -> void:
 	facing_changed.emit(f)
 
 func _physics_process(_delta: float) -> void:
+	if is_in_group("player"):
+		_tile_hazards.tick(_delta)
+		var hazard := _tile_hazards.on_map(map_node(), RpgUtil.world_position(self))
+		var stats := component("Stats") as RpgStatsComponent
+		if stats != null and _tile_hazards.consume(hazard):
+			stats.take_damage(RpgUtil.to_int(hazard["damage"]))
 	_keep_level()
 	if animation_locked:
 		return

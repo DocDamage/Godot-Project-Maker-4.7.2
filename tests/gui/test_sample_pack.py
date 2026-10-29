@@ -898,6 +898,8 @@ def test_what_green_acre_is_made_of() -> None:
     assert len([a for a in cat.assets if catalog.effective(a)["role"] == "NPC"]) == 3
     rain = catalog.effective(cat.asset(f"{name}.weather.rain_64x64_3frames"))
     assert rain["role"] == "EFFECT" and "weather" in rain["tags"] and rain["frame"] == [64, 64]
+    rock = catalog.effective(cat.asset(f"{name}.props.rock"))
+    assert rock["collision"] == {"profile": "BOTTOM_HALF"}, "the village has an authored obstacle"
     # the three buildings are objects of a sheet, which is what the planner sees: the house is
     # the one a map takes, and it is as large as the plan takes a farmhouse to be
     buildings = {o.name: o for o in cat.objects if o.role == "BUILDING"}

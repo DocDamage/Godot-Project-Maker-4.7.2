@@ -203,6 +203,33 @@ def test_frames_of_several_sizes_share_the_largest_frame(tmp_path: Path) -> None
     assert strip[33, 20, 3] == 255 and strip[0, 20, 3] == 0, "a smaller frame stands on the bottom"
 
 
+def test_reviewed_effect_beside_an_actor_has_its_own_frames(tmp_path: Path, monkeypatch) -> None:
+    from rpggen.core import pack_readings
+
+    pack = tmp_path / "pack"
+    for action, size in (("Idle", (20, 30)), ("Attack", (40, 34)), ("Rays", (64, 224))):
+        folder = pack / "Hero" / "Sprites" / action
+        folder.mkdir(parents=True)
+        for number in (1, 2):
+            Image.new("RGBA", size, (100 + number, 60, 60, 255)).save(folder / f"frame{number}.png")
+    opened = archive.open_pack(pack, set())
+    inv = inventory.build_inventory(opened)
+    first = next(f for f in inv.files if f.path.endswith("Rays/frame1.png"))
+    monkeypatch.setattr(pack_readings, "readings", lambda: {first.sha256: {"": {"role": "EFFECT"}}})
+    (character,) = action_frames.find_characters(inv, set())
+    assert character.size == (40, 34)
+    assert [name for name, _action in character.actions] == ["attack", "idle"]
+    cat, _, generated = catalog.assemble([(opened, inv)], None, [], work_dir=tmp_path / "work")
+    effect = next(a for a in cat.assets if "effect_frames" in a.detected.get("tags", []))
+    assert effect.detected["role"] == "EFFECT" and effect.detected["frame"] == [64, 224]
+    assert set(effect.detected["animations"]) == {"idle_down"}
+    anim = effect.detected["animations"]["idle_down"]
+    assert len(anim["frames"]) == 2 and not anim["loop"]
+    assert Image.open(generated[anim["source"]]).size == (128, 224)
+    monkeypatch.setattr(pack_readings, "readings", lambda: {})
+    assert action_frames.find_effects(inv, set()) == []
+
+
 def test_files_named_by_actions_are_one_character(tmp_path: Path) -> None:
     pack = tmp_path / "pack" / "Players" / "Beige"
     pack.mkdir(parents=True)

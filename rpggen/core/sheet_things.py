@@ -497,6 +497,8 @@ def add(catalog: Any, roots: dict[str, Path], work_dir: Path | None = None) -> d
         if not _sheet_of(catalog, sheet):
             continue
         facets = catalog_mod.effective(sheet)
+        if "objects:manual" in (facets.get("tags") or []):
+            continue  # reviewed construction atlas; its captions/edges are not loose props
         grid = _grid(facets)
         root = pack_roots.get(sheet.pack_id, "")
         local = roots.get(sheet.pack_id)

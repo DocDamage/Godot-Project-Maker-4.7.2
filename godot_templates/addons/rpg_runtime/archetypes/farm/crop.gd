@@ -32,7 +32,13 @@ func show_stage(index: int, count: int, is_ripe: bool, is_withered: bool) -> voi
 	withered = is_withered
 	var sprite := get_node_or_null("Visual") as Sprite2D
 	if sprite != null:
-		sprite.frame = clampi(stage, 0, maxi(1, sprite.hframes * sprite.vframes) - 1)
+		# A reviewed strip may gain a missing stage while a saved/user-authored crop
+		# keeps its original stage count. Map progress across the available art.
+		var last := maxi(1, sprite.hframes * sprite.vframes) - 1
+		if count == last + 1:
+			sprite.frame = stage
+		else:
+			sprite.frame = last if ripe else roundi(float(stage) * last / maxi(1, count - 1))
 	var stem := get_node_or_null("Visual/Stem") as Node2D
 	if stem != null:
 		stem.scale = Vector2(1.0, lerpf(0.25, 1.0, float(stage) / maxf(1.0, float(count - 1))))

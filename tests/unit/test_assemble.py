@@ -407,11 +407,37 @@ def test_the_catalog_is_the_same_with_and_without_the_parallel_prewarm(
     from rpggen.core import analyzer
 
     with_prewarm = jsonio.dumps(_assemble(pack)[0].to_json())  # the serial path (a small pack)
-    monkeypatch.setattr(analyzer, "POOL_THRESHOLD", 2)  # the process pool, even for this pack
+    monkeypatch.setattr(analyzer, "POOL_THRESHOLD", 2)  # a pool, even for this pack
     pooled = jsonio.dumps(_assemble(pack)[0].to_json())
     monkeypatch.setattr(analyzer, "prewarm", lambda *a, **k: {})
     without = jsonio.dumps(_assemble(pack)[0].to_json())
     assert with_prewarm == pooled == without
+
+
+def test_windows_prewarm_shares_imports_and_bounds_decoded_images(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from rpggen.core import analyzer
+
+    opened = archive.open_pack(_many_images(tmp_path, 40), set())
+    inv = inventory.build_inventory(opened)
+    monkeypatch.setattr(analyzer.sys, "platform", "win32")
+    monkeypatch.setattr(analyzer, "POOL_THRESHOLD", 2)
+    calls = []
+    original = analyzer.concurrent.futures.ThreadPoolExecutor
+
+    def threads(*, max_workers):
+        calls.append(max_workers)
+        return original(max_workers=max_workers)
+
+    def processes(**_kwargs):
+        pytest.fail("Windows prewarm must not reload the application in spawned workers")
+
+    monkeypatch.setattr(analyzer.concurrent.futures, "ThreadPoolExecutor", threads)
+    monkeypatch.setattr(analyzer.concurrent.futures, "ProcessPoolExecutor", processes)
+    results = analyzer.prewarm(inv, opened.root, use_cache=False)
+    assert len(results) == 40 and calls and 1 <= calls[-1] <= 2
 
 
 def test_prewarm_analyzes_only_what_the_cache_lacks_and_the_workers_fill_the_cache(
@@ -460,6 +486,7 @@ def test_a_huge_image_is_analyzed_in_this_process_one_at_a_time(
         raise AssertionError("a pool was started for huge images")
 
     monkeypatch.setattr(concurrent.futures, "ProcessPoolExecutor", no_pool)
+    monkeypatch.setattr(concurrent.futures, "ThreadPoolExecutor", no_pool)
     assert len(analyzer.prewarm(inv, opened.root, use_cache=False)) == 40
 
 

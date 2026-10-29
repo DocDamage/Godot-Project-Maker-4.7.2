@@ -264,13 +264,15 @@ def trees(catalog: Any, farm_ids: set[str], roots: dict[str, Path]) -> None:
     instead of drawing one. A picture of one tree is one already."""
     import re
 
-    from rpggen.core.catalog import SheetObject
+    from rpggen.core.catalog import SheetObject, effective
 
     pack_roots = {p.pack_id: p.root for p in catalog.packs}
     have = {o.id for o in catalog.objects}
     for asset in sorted(catalog.assets, key=lambda a: a.id):
         if asset.pack_id not in farm_ids or "#" in asset.id or asset.kind != "image":
             continue
+        if effective(asset).get("role") == "CROP":
+            continue  # an orchard sheet is not a source of scenery trees
         said = {w for w in re.split(r"[^a-z]+", asset.path.casefold()) if w}
         if not said & TREE_WORDS or said & NOT_A_TREE or asset.detected.get("animations"):
             continue

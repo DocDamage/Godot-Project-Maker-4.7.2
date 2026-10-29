@@ -4,6 +4,7 @@ their pictures beside food icons, farm animals, layered characters and previews.
 from __future__ import annotations
 
 import copy
+import dataclasses
 from pathlib import Path
 
 import numpy as np
@@ -42,6 +43,66 @@ def _reason(asset: catalog.Asset) -> str:
 
 
 # --------------------------------------------------------------------------- growth
+
+
+def test_reviewed_orchard_uses_only_selected_cells_and_rejects_changed_art(tmp_path, monkeypatch):
+    from rpggen.core.adapters import orchard
+    from rpggen.core.adapters.base import AdapterResult
+
+    root = tmp_path / "Farm"
+    root.mkdir()
+    sheet = np.zeros((96, 96, 4), dtype=np.uint8)
+    for index in range(6):
+        sheet[index // 3 * 48 : (index // 3 + 1) * 48, index % 3 * 32 : (index % 3 + 1) * 32] = [
+            index * 30,
+            80,
+            30,
+            255,
+        ]
+    Image.fromarray(sheet).save(root / "Tree.png")
+    inv = inventory.build_inventory(archive.open_pack(root, set()))
+    source = inv.files[0]
+    layout = {
+        "name": "apple",
+        "frame": [32, 48],
+        "cells": [3, 1, 5],
+        "mature_stage": 1,
+        "season": "autumn",
+    }
+    layouts = {source.sha256: layout}
+    monkeypatch.setattr(orchard, "layouts", lambda: layouts)
+    adapter = farm.FarmPackAdapter()
+    result = AdapterResult("test")
+    assert adapter._orchard(root, source, tmp_path / "work", result)
+    image = np.array(Image.open(next(iter(result.generated.values()))))
+    assert image.shape == (48, 96, 4)
+    assert [image[20, i * 32, 0] for i in range(3)] == [90, 30, 150]
+    assert result.assets[0].facets["stages"] == 3
+    source = dataclasses.replace(source, sha256="f" * 64)
+    assert not adapter._orchard(root, source, tmp_path / "work", result)
+
+
+def test_reviewed_orchard_sheet_is_not_made_into_a_scenery_tree(
+    tmp_path: Path, monkeypatch
+) -> None:
+    from rpggen.core import pack_readings
+
+    root = tmp_path / "Farm Tileset"
+    folder = root / "Crops" / "Fruit Trees"
+    folder.mkdir(parents=True)
+    image = Image.new("RGBA", (96, 48))
+    for column in range(3):
+        image.paste((40, 160, 60, 255), (column * 32 + 8, 8, column * 32 + 24, 48))
+    image.save(folder / "Apple Tree.png")
+    opened = archive.open_pack(root, set())
+    inv = inventory.build_inventory(opened)
+    source = next(f for f in inv.files if f.path.endswith("Apple Tree.png"))
+    monkeypatch.setattr(pack_readings, "readings", lambda: {source.sha256: {"": {"role": "CROP"}}})
+    cat, _, _ = catalog.assemble([(opened, inv)], None, [], use_cache=False)
+    tree = _by_rel(cat, "Crops/Fruit Trees/Apple Tree.png")
+    assert catalog.effective(tree)["role"] == "CROP"
+    assert not any(o.sheet == tree.id for o in cat.objects)
+    assert tree.status != "CONFIRMED", "a role choice does not certify growth metadata"
 
 
 def test_stages_grow_from_the_seed_to_the_ripe_plant_and_stop_at_the_produce() -> None:

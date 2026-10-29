@@ -37,12 +37,14 @@ class ProfileAdapter:
             f = files.get(path)
             if f is None or f.kind not in ("image", "audio", "font"):
                 continue
-            expected = fingerprinted.get(path)
-            if expected is not None and expected != f.sha256:
+            expected = [fingerprinted.get(path), profile.get("asset_hashes", {}).get(path)]
+            if any(digest is not None and digest != f.sha256 for digest in expected):
                 continue  # the file changed: normal detection decides
             result.assets.append(
                 AssetFragment(path, copy.deepcopy(facets), PROFILE_CONFIDENCE, "full", variant)
             )
+            if key in profile.get("rendered_assets", []):
+                result.recreate.add(path)
             if not variant:
                 emitted.add(path)
         for obj in profile["objects"]:

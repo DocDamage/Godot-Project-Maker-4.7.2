@@ -19,7 +19,7 @@ const IsoHouse := preload("iso_house.gd")
 
 const SPRITE_ROLES := ["DECORATION", "BUILDING", "INTERIOR", "ITEM"]
 ## What else the dock places in an assets-only project: what flies and what bursts (2026-10-26).
-const ASSETS_ONLY_ROLES := ["PROJECTILE", "EFFECT"]
+const ASSETS_ONLY_ROLES := ["PROJECTILE", "EFFECT", "TOOL", "WEAPON", "GROUND", "WATER", "WALL", "ROAD", "CLIFF"]
 const SPRITE_FRAMES_DIR := "res://generated/sprite_frames/"
 ## The pieces of a stack that are painted on a height layer and never placed alone: what hangs on
 ## a storey's face or a wall, and what lies over another tile (2026-10-26). A thing for a roof is
@@ -118,7 +118,7 @@ static func entries(ctx: BuildContext) -> Array[Dictionary]:
 			"origin": JsonUtil.to_array(eff.get("origin", _default_origin(region))).duplicate(),
 			"footprint": [],
 			"collision": JsonUtil.to_dict(eff.get("collision", _foot(region) if cut else NO_COLLISION)).duplicate(true),
-			"door": [],
+			"door": JsonUtil.to_array(eff.get("door", [])).duplicate(),
 			"sha256": a.get("sha256", ""),
 			"open_region": open_region(eff, region),
 		})
@@ -273,6 +273,10 @@ static func chest_entry(ctx: BuildContext) -> Dictionary:
 			if e["id"] == wanted:
 				var tags: Array = e["tags"]
 				return _with_fallback(e, not tags.has("chest") and not JsonUtil.to_str(e["id"]).contains("chest"))
+	# A game can substitute an item icon for its demo chest. An assets-only project has no
+	# demo interaction: preserve a reviewed item's ordinary, non-blocking placement.
+	if JsonUtil.to_str(ctx.config.get("archetype", "")) == "assets":
+		return {}
 	for e in all:
 		var tags: Array = e["tags"]
 		if tags.has("chest"):

@@ -52,6 +52,30 @@ func _data(ts: TileSet, iso: IsoTileset, asset_id: String, turn: int = 0) -> Til
 	var coords: Vector2i = tile["coords"]
 	return (ts.get_source(source) as TileSetAtlasSource).get_tile_data(coords, 0)
 
+func test_hazard_settings_follow_the_original_tile_through_packing_and_rebuild(t) -> void:
+	_cleanup()
+	var cat := _catalog()
+	for asset: Dictionary in cat["assets"]:
+		if asset["id"] == WATER:
+			asset["overrides"] = {"tile_overrides": {"0,0": {"custom": {"hazard": true, "hazard_damage": 9, "hazard_cooldown": 2.25}}}}
+	var ctx := _context(cat)
+	var before := Recipe.new().input_hash(ctx)
+	t.eq(_build(cat), [])
+	var ts := _load()
+	var iso := IsoTileset.new(CatalogReader.new(cat, "isometric"))
+	var td := _data(ts, iso, WATER)
+	t.eq(td.get_custom_data("hazard_damage"), 9)
+	t.eq(td.get_custom_data("hazard_cooldown"), 2.25)
+	t.ok(td.get_custom_data("hazard"))
+	t.ok(not _data(ts, iso, GRASS).get_custom_data("hazard"), "only the selected tile hurts")
+	for asset: Dictionary in cat["assets"]:
+		if asset["id"] == WATER:
+			asset["overrides"] = {}
+	t.ok(before != Recipe.new().input_hash(_context(cat)), "undoing the setting invalidates the build")
+	t.eq(_build(cat), [])
+	t.ok(not _data(_load(), iso, WATER).get_custom_data("hazard"))
+	_cleanup()
+
 func test_the_tile_set_of_the_iso_pack_has_the_shape_the_size_and_the_origins(t) -> void:
 	_cleanup()
 	var cat := _catalog()

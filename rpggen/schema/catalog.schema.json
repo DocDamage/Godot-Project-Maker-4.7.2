@@ -442,6 +442,7 @@
         "collision": {
           "$ref": "#/$defs/CollisionSpec"
         },
+        "door": {"type": "array", "items": {"type": "integer", "minimum": 0}, "minItems": 2, "maxItems": 2},
         "tile_overrides": {
           "type": "object",
           "additionalProperties": {
@@ -751,6 +752,7 @@
             }
           ]
         },
+        "door": {"anyOf": [{"type": "null"}, {"type": "array", "items": {"type": "integer", "minimum": 0}, "minItems": 2, "maxItems": 2}]},
         "tile_overrides": {
           "anyOf": [
             {
@@ -1051,6 +1053,10 @@
         },
         "renamed_from": {
           "type": "string"
+        },
+        "metadata_review": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
         }
       },
       "additionalProperties": false,
@@ -1542,6 +1548,7 @@
         "collision": {
           "$ref": "#/$defs/CollisionSpec"
         },
+        "door": {"type": "array", "items": {"type": "integer", "minimum": 0}, "minItems": 2, "maxItems": 2},
         "tile_overrides": {
           "type": "object",
           "additionalProperties": {

@@ -129,7 +129,7 @@ def run_private_corpus(corpus: Path, packs: Path | list[Path]) -> dict[str, Any]
             if name in reports or accuracy.match(entry, inv) < accuracy.MIN_MATCH:
                 continue
             cat, _issues, _generated = catalog.assemble([(opened, inv)], None, [])
-            reports[name] = accuracy.score_private(cat, entry, inv.pack_id)
+            reports[name] = accuracy.score_private(cat, entry, inv.pack_id, inv)
     missing = [name for name in entries if name not in reports]
     publishers = {n: str(e.get("publisher", "?")) for n, e in entries.items()}
     return accuracy.private_summary(reports, missing, publishers)
