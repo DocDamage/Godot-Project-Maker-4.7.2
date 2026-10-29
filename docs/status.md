@@ -36,6 +36,15 @@ The [2026-10-29 validation pass](metadata_validation_2026-10-29.md) checks 13,61
 explicit field provenance, unchanged source hashes and held-out source support; the current
 draft corpus cannot increase confidence. The owner's four saved choices remain unchanged.
 
+The [semantic certification and candidate validation pass](semantic_heldout_2026-10-29.md)
+adds 25 guarded static-art decisions (22 animal poses and three battlers), with two further
+partial corrections left unconfirmed. The earlier metadata ledger now has 2,488 unresolved
+entries by disposition, without claiming a fresh 30-pack import. Four native-project failures
+are fixed; all ten candidate archetype runs and both known Goblin regressions pass on frozen
+code, with clean final snapshots. These are engineering checks, not a semantic accuracy rate.
+Independent calibration labels, commercial/Tiled sample qualification and human release
+measurements remain pending; the saved answers and calibration table are unchanged.
+
 The owner's words: "the whole purpose is for me to be able to make my own levels without having
 to add all the underlying logic to my assets as I import them." Generated starter maps, villages
 and stages are examples; the product is a pack's assets carrying their logic into Godot. Work is

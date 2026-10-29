@@ -76,6 +76,16 @@ defaults. The repeated 30-pack analysis has 6,070 CONFIRMED, 4,061 AUTO_DETECTED
 NEEDS_REVIEW active entries. This does not certify functional doors, actors, crops, terrain
 topology or ambiguous extractions; the per-entry ledger records what remains unresolved.
 
+The [2026-10-29 semantic follow-up](semantic_heldout_2026-10-29.md) adds 25 complete static-art
+decisions and records two partial corrections, leaving 2,488 unresolved entries in that ledger
+by disposition. Its five engineering candidate inputs have zero image-byte overlap with the
+recorded development evidence. All ten final archetype runs pass after four fixes, and both
+known Goblin regression runs pass separately. Failed trials are preserved; all final trials
+use the same frozen code and clean snapshots. Missing-role and skipped-terrain warnings remain
+visible. These runs do not qualify the release sample: commercial provenance and Tiled coverage
+are unverified, and first-paint timings and manual audit edits remain unmeasured. See the
+[JSON record](semantic_heldout_2026-10-29.json) for all 42 native trial outcomes and measurements.
+
 *Pending (human).* The maintainer picks **5 packs not used during development**: at least 2
 commercial, 1 in RPG Maker format, 1 with Tiled metadata and 1 "messy" pack (inconsistent names,
 mixed sizes, nested folders). For each pack and each archetype run
