@@ -77,7 +77,17 @@ class PackLayoutsAdapter:
             stem = Path(f.path).stem
             w, h = int(f.image["w"]), int(f.image["h"])  # type: ignore[index]
             checked = pack_readings.region_facts(f.sha256, "")
-            if checked:
+            # A role-only review must leave frame grouping to the normal readers.
+            # Claim the image here only when its layout or exclusion is explicit.
+            if checked and (
+                checked.get("role") == "NONE"
+                or checked.get("usage") == "tiles"
+                and "grid" in checked
+                or "frame" in checked
+                and "animations" in checked
+                or checked.get("usage") in ("object", "portrait", "ui", "background")
+                and "frame" in checked
+            ):
                 facts = {"usage": "sprite", "frame": [w, h], "size": [w, h]}
                 pack_readings.apply_facts(facts, checked)
                 result.assets.append(AssetFragment(f.path, facts, 0.5, "full"))

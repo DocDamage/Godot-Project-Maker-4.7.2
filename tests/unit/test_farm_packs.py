@@ -44,6 +44,29 @@ def _reason(asset: catalog.Asset) -> str:
 # --------------------------------------------------------------------------- growth
 
 
+def test_reviewed_orchard_sheet_is_not_made_into_a_scenery_tree(
+    tmp_path: Path, monkeypatch
+) -> None:
+    from rpggen.core import pack_readings
+
+    root = tmp_path / "Farm Tileset"
+    folder = root / "Crops" / "Fruit Trees"
+    folder.mkdir(parents=True)
+    image = Image.new("RGBA", (96, 48))
+    for column in range(3):
+        image.paste((40, 160, 60, 255), (column * 32 + 8, 8, column * 32 + 24, 48))
+    image.save(folder / "Apple Tree.png")
+    opened = archive.open_pack(root, set())
+    inv = inventory.build_inventory(opened)
+    source = next(f for f in inv.files if f.path.endswith("Apple Tree.png"))
+    monkeypatch.setattr(pack_readings, "readings", lambda: {source.sha256: {"": {"role": "CROP"}}})
+    cat, _, _ = catalog.assemble([(opened, inv)], None, [], use_cache=False)
+    tree = _by_rel(cat, "Crops/Fruit Trees/Apple Tree.png")
+    assert catalog.effective(tree)["role"] == "CROP"
+    assert not any(o.sheet == tree.id for o in cat.objects)
+    assert tree.status != "CONFIRMED", "a role choice does not certify growth metadata"
+
+
 def test_stages_grow_from_the_seed_to_the_ripe_plant_and_stop_at_the_produce() -> None:
     # seeds, a sprout, two larger stages, an empty cell and the produce harvested
     counts = [(20, 4, 0.0), (12, 4, 0.9), (30, 8, 0.9), (60, 12, 0.8), (0, 0, 0.0), (50, 10, 0.0)]

@@ -1,13 +1,14 @@
 # Answer-key review, 2026-10-28
 
 The owner's review list contained 26,408 image entries in 1,670 groups across 25 packs.
-The systematic pass now leaves four grouped game-design choices covering 44 entries:
+The systematic pass reduced it to four grouped choices covering 44 entries. The owner has
+answered all four; the selections recovered from the open review form are authoritative:
 
-| Choice | Entries | Suggested interpretation |
+| Choice | Entries | Accepted interpretation |
 | --- | ---: | --- |
 | Soil-attached vegetables: harvested items or planted crops | 2 | Items |
-| Fruit-tree stage sheets: scenery or orchard crops | 23 | Scenery |
-| Elemental floors: ordinary ground or gameplay hazards | 18 | Ordinary ground |
+| Fruit-tree stage sheets: scenery or orchard crops | 23 | Orchard crops (CROP) |
+| Elemental floors: ordinary ground or gameplay hazards | 18 | Define hazards in the target game |
 | Boss beam: visual effect, projectile or stationary hazard | 1 | Visual effect |
 
 The local review opens at <http://127.0.0.1:8765/>. Start it with:
@@ -19,8 +20,17 @@ The local review opens at <http://127.0.0.1:8765/>. Start it with:
 The page displays these four choices first. The complete group browser remains available
 under **Browse the full answer key**. Choices and optional notes save separately in
 `review_decisions.json`; suggestions are not selected or submitted automatically. Saving a
-choice records the owner's intent for subsequent corrections; it does not change game
-behavior or fit calibration immediately.
+choice records the owner's intent for subsequent corrections; it does not fit calibration
+or assign damage parameters automatically. Changed answers also retain their previous value
+and note in `review_decision_history.json`.
+
+The 23 fruit-tree sheets now receive source-hash-bound partial CROP readings, and are excluded
+from automatic scenery-tree extraction. Their growth stages and harvest timing still require
+verification. The elemental palette keeps its base GROUND classification while the requested
+per-game hazard selection is recorded; accepting this choice does not make every mud, slime
+or lava-like tile damaging. The harvested-item decision corrects one previously confirmed
+decoration, retaining its measured static placement and non-blocking collision. The beam is
+read separately as a visual effect, with its own frame size instead of a shared boss canvas.
 
 ## Applied work
 
@@ -36,7 +46,7 @@ Every original entry has a recorded disposition:
 | --- | ---: |
 | Family screened; reference retained | 21,231 |
 | Technical issue or catalog convention resolved | 5,103 |
-| Game-design choice | 44 |
+| Owner semantic choices recorded | 44 |
 | Changed or retired generated reference archived | 30 |
 
 26,378 original entries match the current catalog by decoded picture pixels and source/variant
@@ -45,8 +55,9 @@ differences remain documented in the agent's technical ledger, outside the owner
 One inventory fingerprint difference is a text-file name encoding change; no image source
 fingerprint changed.
 
-A separate current-key corpus contains 26,334 entries, excluding the 44 choices and 30 changed
-references. This corpus retains inherited draft fields as well as explicit corrections. It
+A separate current-key corpus now contains 26,378 entries, excluding the 30 changed references.
+The 44 newly accepted entries record only the owner-reviewed role field. This corpus retains
+inherited draft fields as well as explicit corrections. It
 is not independently certified ground truth and has not been used to raise confidence or fit
 calibration. New catalog entries outside the original review set are not covered by this pass.
 Native frame, collision and terrain certification, held-out validation, and the rest of T17.34
@@ -65,8 +76,11 @@ afterward, with matching pixels and coordinates in 100 additional deterministic 
 Modern Farm import completed in 151.88 seconds: 8,077 source files, 9,464 catalog assets,
 1,686 generated files, and 5.71 GiB peak worker private memory. No Windows settings changed.
 
-Validation: 2,575 unit tests passed and three skipped; Ruff, formatting (497 files), and mypy
-(214 source files) passed. All 26,334 current-corpus keys resolve to current catalog assets.
+Follow-up validation: 2,578 unit tests passed and three skipped; the Godot suite passed
+1,101 tests. Ruff, formatting (497 files), and mypy (214 source files) passed. All 44 accepted
+roles match four reanalyzed real packs; all 13 ray/thrust effect frames preserve source pixels.
+The earlier 26,334 corpus keys were validated, and the 44 accepted role-only entries bring the
+current corpus to 26,378 entries.
 Browser checks covered the four image sheets, the full-key link, explicit choice/note saving
 and reload persistence on an isolated fixture; the live queue starts with no choices submitted
 by the agent. The review page had no browser console errors.

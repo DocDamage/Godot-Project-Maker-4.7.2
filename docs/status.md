@@ -21,7 +21,8 @@ rows (T14.13), below.
 ## The aim (2026-10-15)
 
 **Answer-key review update (2026-10-28):** the 26,408-entry owner review has been reduced to
-four grouped game-design choices covering 44 entries. Corrections, technical reference
+four grouped game-design choices covering 44 entries, now answered by the owner. The accepted
+choices include orchard crops and per-game hazard authoring. Corrections, technical reference
 differences and the original owner marks are recorded separately. See
 [the review report](answer_key_review_2026-10-28.md). This does not close T17.34's native
 metadata, calibration or held-out validation work.

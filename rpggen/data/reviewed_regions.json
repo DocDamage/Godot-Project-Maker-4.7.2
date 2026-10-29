@@ -104,6 +104,11 @@
       "role": "WEAPON"
     }
   },
+  "0475eef9b08b17ab25e77ad072765bd3269c618cb274fe21de1d9fca04a4614c": {
+    "": {
+      "role": "CROP"
+    }
+  },
   "069885d582428bd2238eaa333e84d72469c3ca3b5ef303df188b5f09ceb0474b": {
     "": {
       "role": "DECORATION",
@@ -114,9 +119,29 @@
       ]
     }
   },
+  "06a8b8792b67fe82adb8acdbcbbd64a0970b1c7c571c0c01605af5bf0248f9d5": {
+    "": {
+      "role": "EFFECT"
+    }
+  },
   "075a53be91222bf1d5a9ede1d575cf95da6bb4b6f8d01d45d3d496005fc839c3": {
     "o0_0": {
       "role": "BUILDING"
+    }
+  },
+  "08d7426a41183b9f02409fd57feefa900ad46c599efc3568fee2bf4350cbe102": {
+    "": {
+      "role": "CROP"
+    }
+  },
+  "0a8f8bb9871578f64a847d0b5bc2cac732293e8ba2dbf8e3ca488ff858d42c4a": {
+    "": {
+      "role": "EFFECT"
+    }
+  },
+  "0b925b1b7a4848b118a0faed81142c2a44cc85a76361184246e9d372e9200ab4": {
+    "": {
+      "role": "CROP"
     }
   },
   "0c4d91615b2a1666e656dc4fcea1803c01cc4a34c3d2e77eb2583ac061e6b1ea": {
@@ -834,6 +859,11 @@
       "role": "ITEM"
     }
   },
+  "1c5052aa7f114c7ede544cbbfdbfb4c0907ce24b677d52a8ef83c993040a6331": {
+    "": {
+      "role": "CROP"
+    }
+  },
   "256283058ce28f5a828b3b8724889c54e33ff475dca63a208f20ba129cd1993f": {
     "": {
       "grid": {
@@ -879,6 +909,11 @@
         "terrain:manual"
       ],
       "usage": "tiles"
+    }
+  },
+  "2a4981a2606231bc495b0f99637823cc136af954b7e7a40b8c2f6a4c11b22ca3": {
+    "": {
+      "role": "CROP"
     }
   },
   "2a5ab8becbb521814bd42db7a2de6b97972a0af94dcb807fc51e5652154e2ac5": {
@@ -1480,6 +1515,11 @@
       "usage": "tiles"
     }
   },
+  "331a657cb5e33204ce48fc83acaa8c1f32d91109c9fed4cb3f10f8211b77b418": {
+    "": {
+      "role": "CROP"
+    }
+  },
   "3677a8f090fd5139f8b8304cdc1c71d4086cdc62740c0cdf522c9333694f0e3f": {
     "o845_451": {
       "role": "DECORATION"
@@ -1802,6 +1842,16 @@
       "usage": "tiles"
     }
   },
+  "425628ebc4e3f66396bd1e7c6bc51d4aabb0427c2308e33728edc9cc70946761": {
+    "": {
+      "role": "CROP"
+    }
+  },
+  "467e6a1dd3851aa591726e71503e9d4a5e1201da6ba51b10bdf0495293a74e2f": {
+    "": {
+      "role": "CROP"
+    }
+  },
   "4799775495ef030683ec49266e36ffbe570471fd18aa5698a5a1fd19908cb976": {
     "": {
       "grid": {
@@ -1859,6 +1909,11 @@
       },
       "role": "ENEMY",
       "usage": "sprite"
+    }
+  },
+  "4ad3db880d5fa710b9323f2c25856a974a0807814b3e680b7077237412303490": {
+    "": {
+      "role": "CROP"
     }
   },
   "4b186ffc9d57ed5e6aaff02190caca42d27cc69a7447f278ff1ee3c6d24f6bf1": {
@@ -2004,6 +2059,16 @@
   "4b74ecc956b5ff56596f51998a560a0de7dff0c675c7ed352608b30b3effb313": {
     "o0_384": {
       "role": "CLIFF"
+    }
+  },
+  "4d3dc5559567142cf63284a69781d8604008395541193f1839e3d04343b1c7f6": {
+    "": {
+      "role": "CROP"
+    }
+  },
+  "522f40a6077d9c7a8425522eaf492cf39d62981c289c8990a953842454bb98b9": {
+    "": {
+      "role": "CROP"
     }
   },
   "52d43f8ea7953741ded08238bb8df4b8d25b95182684398c513457884246b762": {
@@ -2410,6 +2475,16 @@
       "usage": "sprite"
     }
   },
+  "5cf3244fe00994b25f26b054361476c76f80cf47ff02062dc65d524590eb735e": {
+    "": {
+      "role": "CROP"
+    }
+  },
+  "5d66d7c0c7ed2754af7f8499807e85c28904c6933ebbaf6d24165ea9c4e0b73c": {
+    "": {
+      "role": "CROP"
+    }
+  },
   "5f766f5d7711a36b3ccbacad82f2e4c91c3687647c1be67d756c7ed2225703de": {
     "": {
       "grid": {
@@ -2432,6 +2507,11 @@
         "objects:manual"
       ],
       "usage": "tiles"
+    }
+  },
+  "62e2fc6d8c3e37ad9c5ad17763a19b101bae695caed49231006ffc6b68bb59ef": {
+    "": {
+      "role": "CROP"
     }
   },
   "649ec8c75f0feae311e7740a4361306c1ca27ec1c55037ed2b87671db86e56b4": {
@@ -2806,6 +2886,11 @@
         "objects:manual"
       ],
       "usage": "sprite"
+    }
+  },
+  "6ee4fb8fa30f23ebee70dd958cc853b445b65e6160c1a994b6e781afc5dc89de": {
+    "": {
+      "role": "CROP"
     }
   },
   "6f2d079ff04aa4e0c184ebbbe2c6ac99b2636cd6692663a4af1cb21125c798f2": {
@@ -3337,6 +3422,11 @@
       "role": "ITEM"
     }
   },
+  "7ee2c8e722aba10971c6dd067ca80742395441bdccce10fba20564bc1cafe56c": {
+    "": {
+      "role": "CROP"
+    }
+  },
   "838865b88e2fe065d5d29fcddf27d58503478dbc45893c7a04d5c757685c1ec8": {
     "o201_673": {
       "role": "BUILDING"
@@ -3381,6 +3471,11 @@
         "objects:manual"
       ],
       "usage": "tiles"
+    }
+  },
+  "8dc1587dd0e5eeac052574360240107829ba219164dfd432693c6a77f82907fd": {
+    "": {
+      "role": "CROP"
     }
   },
   "8fb5f0415055976f3f3ba8c3ae91c0eb7aa8c2c7ab5f57c043ef58110c27643f": {
@@ -4357,6 +4452,16 @@
       "role": "TOOL"
     }
   },
+  "a6cf082735c4ab5680a1ae115305561383ed8f7abd58602d78c7966d90e28ef2": {
+    "": {
+      "role": "CROP"
+    }
+  },
+  "aa14b24b0451ada51714a48f70dda76f18fe3dbca3b3bd0f3c70e5e6a6c888e7": {
+    "": {
+      "role": "CROP"
+    }
+  },
   "aa7d015ac92fe825a2e393403689a4f6b9869c5d0375a61c6c6d497068e42979": {
     "o1080_32": {
       "role": "NONE",
@@ -4598,6 +4703,16 @@
       "tags": [
         "unused_because:sheet_caption"
       ]
+    }
+  },
+  "b28031c1679a960ea4b7590dba4bba8146c7ed9e01cb8a328bf09ddf9b034188": {
+    "": {
+      "role": "CROP"
+    }
+  },
+  "b4088833b35f9ca4fa0f1917b76f08a2314d2a00817c00c90e1fd9ea017b7f90": {
+    "": {
+      "role": "CROP"
     }
   },
   "b578b3f0e03ad29916955169080f2e692458d36ec31c641f2f97719758d2f2bf": {
@@ -5522,6 +5637,11 @@
       "role": "TOOL"
     }
   },
+  "dad6d21d92c2782d2b3ae6a953d84ac52f9f971b6337aa6f422aeb5a62e7f854": {
+    "": {
+      "role": "CROP"
+    }
+  },
   "db3a1e05c9d068ac74c7ebda99f62a08daa5f807d759caab3f27b784756a1af9": {
     "": {
       "animations": {
@@ -5717,6 +5837,9 @@
       "role": "ITEM"
     },
     "o199_55": {
+      "role": "ITEM"
+    },
+    "o4_448": {
       "role": "ITEM"
     },
     "o578_336": {
@@ -6122,6 +6245,11 @@
     },
     "o987_379": {
       "role": "DECORATION"
+    }
+  },
+  "f6b75bc9e950a5468bfddaa77aeb47cdec6fdab832c5dbdfb56d3f74b57370af": {
+    "": {
+      "role": "CROP"
     }
   },
   "fae09e6eb67e06bf37c22e59a3bfd5d7fb0d5dec59250c8fefce21071d2f6855": {

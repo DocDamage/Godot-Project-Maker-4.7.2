@@ -307,9 +307,15 @@ def save_review_decision(out: Path, data: dict[str, Any]) -> None:
     if not isinstance(note, str) or len(note) > 2000:
         raise ValueError("Notes must be text of at most 2,000 characters.")
     marks = read_json(out / "review_decisions.json", {})
-    marks[question["id"]] = {"choice": data["choice"], "note": note}
+    decision = {"choice": data["choice"], "note": note}
     from rpggen import jsonio
 
+    previous = marks.get(question["id"])
+    if previous != decision:
+        history = read_json(out / "review_decision_history.json", [])
+        history.append({"id": question["id"], "before": previous, "after": decision})
+        jsonio.write(out / "review_decision_history.json", history)
+    marks[question["id"]] = decision
     jsonio.write(out / "review_decisions.json", marks)
 
 

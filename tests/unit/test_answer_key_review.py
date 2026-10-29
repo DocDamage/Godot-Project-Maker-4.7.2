@@ -43,3 +43,18 @@ def test_invalid_decision_cannot_create_marks(review: Path, data: dict) -> None:
     with pytest.raises(ValueError):
         answer_key.save_review_decision(review, data)
     assert not (review / "review_decisions.json").exists()
+    assert not (review / "review_decision_history.json").exists()
+
+
+def test_changed_choice_preserves_previous_answer_and_note(review: Path) -> None:
+    first = {"id": "H1", "choice": "Crop", "note": "Fruit trees"}
+    answer_key.save_review_decision(review, first)
+    answer_key.save_review_decision(review, {"id": "H1", "choice": "Item"})
+    history = json.loads((review / "review_decision_history.json").read_text())
+    assert history[-1] == {
+        "id": "H1",
+        "before": {"choice": "Crop", "note": "Fruit trees"},
+        "after": {"choice": "Item", "note": ""},
+    }
+    answer_key.save_review_decision(review, {"id": "H1", "choice": "Item"})
+    assert json.loads((review / "review_decision_history.json").read_text()) == history

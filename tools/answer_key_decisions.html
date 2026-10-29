@@ -23,6 +23,7 @@ a { color: light-dark(#155c8c, #8ccaff); }
 <p id="summary">Loading the review…</p>
 <p class="muted">Technical corrections have been handled in the answer key. These choices depend on the game you want to make. Nothing is selected automatically. You can leave a choice open and keep the suggested interpretation.</p>
 <p><span id="progress"></span> · <a href="/?all=1">Browse the full answer key</a></p>
+<ul id="saved-summary"></ul>
 <main id="questions"></main>
 <script>
 const esc = s => String(s).replace(/[&<>"']/g, c => ({"&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;"}[c]));
@@ -31,8 +32,14 @@ async function start() {
   if (!response.ok) throw new Error('Could not load the review.');
   const data = await response.json();
   const decisions = data.decisions || {};
-  const progress = () => document.getElementById('progress').textContent = `${Object.keys(decisions).filter(id => data.questions.some(q => q.id === id)).length} of ${data.questions.length} choices saved`;
-  document.getElementById('summary').textContent = `${data.entries.toLocaleString()} entries across ${data.packs} packs screened. ${data.questions.length} grouped choices remain, covering ${data.questions.reduce((n, q) => n + q.count, 0)} entries.`;
+  const progress = () => {
+    const saved = data.questions.filter(q => q.choices.includes(decisions[q.id]?.choice)).length;
+    const pending = data.questions.length - saved;
+    document.getElementById('progress').textContent = `${saved} of ${data.questions.length} choices saved`;
+    document.querySelector('h1').textContent = pending ? 'A few choices about your assets' : 'Your asset choices are saved';
+    document.getElementById('summary').textContent = `${data.entries.toLocaleString()} entries across ${data.packs} packs screened. ` + (pending ? `${pending} grouped choices remain.` : 'All choices are saved. You can change them below at any time.');
+    document.getElementById('saved-summary').innerHTML = data.questions.filter(q => q.choices.includes(decisions[q.id]?.choice)).map(q => `<li><b>${esc(q.title)}</b>: ${esc(decisions[q.id].choice)}</li>`).join('');
+  };
   document.getElementById('questions').innerHTML = data.questions.map((q, n) => {
     const saved = decisions[q.id] || {};
     return `<section class="question" aria-labelledby="title-${esc(q.id)}"><h2 id="title-${esc(q.id)}">${n + 1}. ${esc(q.title)}</h2>` +

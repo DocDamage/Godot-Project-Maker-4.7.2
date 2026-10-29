@@ -134,7 +134,7 @@
             20,
             31
           ],
-          "role": "DECORATION",
+          "role": "ITEM",
           "size": [
             40,
             32
@@ -150,7 +150,7 @@
             20,
             31
           ],
-          "role": "DECORATION",
+          "role": "ITEM",
           "size": [
             40,
             32
@@ -162,7 +162,7 @@
           }
         },
         "pixel_sha256": "ad5e81e6ede43159e2f34e38f08b8d7688f5a49895b738397a1a76299860c40a",
-        "review": "2026-10-28 static placement; visual page 1"
+        "review": "2026-10-28 static placement; visual page 1; owner selected harvested produce on 2026-10-28"
       },
       "o578_336": {
         "input": {
@@ -282,7 +282,7 @@
           }
         },
         "pixel_sha256": "27cb433689d43bddd024691105d1b2e6a5f7d36c17d4e792d8cf5cc0f0f92aa7",
-        "review": "2026-10-28 static placement; visual page 1"
+        "review": "2026-10-28 static placement; visual page 1; owner selected harvested produce on 2026-10-28"
       }
     },
     "9dfe6c667d8ce600a939496f9db0e387057e11db59842d474ae1624598fa23b1": {
