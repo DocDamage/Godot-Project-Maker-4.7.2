@@ -54,6 +54,8 @@ def complete(facets: dict[str, Any], kind: str = "static_object") -> bool:
         return complete_static(facets)
     if kind == "static_battler":
         return complete_static_battler(facets)
+    if kind == "static_animal":
+        return _complete_static_sprite(facets, "ANIMAL", "static_animal")
     return False
 
 
@@ -63,11 +65,15 @@ def complete_static_battler(facets: dict[str, Any]) -> bool:
     One-frame idle is a presentation default. Collision and attack/movement behavior are
     not inferred from the illustration and must remain absent from this kind of record.
     """
+    return _complete_static_sprite(facets, "ENEMY", "static_battler")
+
+
+def _complete_static_sprite(facets: dict[str, Any], role: str, tag: str) -> bool:
     size, origin = facets.get("size"), facets.get("origin")
     return bool(
         facets.get("usage") == "sprite"
-        and facets.get("role") == "ENEMY"
-        and facets.get("tags") == ["static_battler"]
+        and facets.get("role") == role
+        and facets.get("tags") == [tag]
         and isinstance(size, list)
         and len(size) == 2
         and all(isinstance(v, int) and v > 0 for v in size)

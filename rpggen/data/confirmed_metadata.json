@@ -1,7 +1,7 @@
 {
   "review_version": 1,
   "reviewed_on": "2026-10-28",
-  "scope": "Visually reviewed single-frame scenery, inventory art and static effect stamps. Origin is a measured base pivot. Collision NONE is an authored non-blocking default, not a source-supplied gameplay claim. Animation is empty for these individual static images. Functional doors/traps, terrain, stage grids, partial/composite sheets and unclear crops remain unconfirmed. The 2026-10-29 static_battler records certify whole single-frame enemy illustrations and their presentation only; they do not certify movement or combat behavior.",
+  "scope": "Visually reviewed single-frame scenery, inventory art and static effect stamps. Origin is a measured base pivot. Collision NONE is an authored non-blocking default, not a source-supplied gameplay claim. Animation is empty for these individual static images. Functional doors/traps, terrain, stage grids, partial/composite sheets and unclear crops remain unconfirmed. The 2026-10-29 static_battler records certify whole single-frame enemy illustrations and their presentation only; they do not certify movement or combat behavior. The 2026-10-29 static_animal records certify individual whole poses with idle presentation only, without certifying walking or production behavior.",
   "assets": {
     "df333ba9f08d137f17715e4b60ac35f9824d3bd0e20677fbf459de8ee791800a": {
       "o194_148": {
@@ -28869,6 +28869,794 @@
         },
         "pixel_sha256": "6d707c5ac06fac904569e2c8bc8a045b983490d50c4790f0e42cfc9aa3b4baa6",
         "review": "2026-10-28 static placement; visual page 11"
+      },
+      "o196_630": {
+        "kind": "static_animal",
+        "input": {
+          "animations": {
+            "idle_down": {
+              "fps": 1.0,
+              "frames": [
+                [
+                  0,
+                  0
+                ]
+              ],
+              "loop": true
+            },
+            "walk_down": {
+              "fps": 1.0,
+              "frames": [
+                [
+                  0,
+                  0
+                ]
+              ],
+              "loop": true
+            }
+          },
+          "frame": [
+            19,
+            20
+          ],
+          "grid": {
+            "cell": [
+              19,
+              20
+            ],
+            "margin": [
+              0,
+              0
+            ],
+            "separation": [
+              0,
+              0
+            ]
+          },
+          "origin": [
+            9,
+            19
+          ],
+          "role": "ANIMAL",
+          "size": [
+            19,
+            20
+          ],
+          "usage": "sprite"
+        },
+        "approved": {
+          "animations": {
+            "idle_down": {
+              "fps": 1.0,
+              "frames": [
+                [
+                  0,
+                  0
+                ]
+              ],
+              "loop": true
+            }
+          },
+          "frame": [
+            19,
+            20
+          ],
+          "grid": {
+            "cell": [
+              19,
+              20
+            ],
+            "margin": [
+              0,
+              0
+            ],
+            "separation": [
+              0,
+              0
+            ]
+          },
+          "origin": [
+            9,
+            19
+          ],
+          "role": "ANIMAL",
+          "size": [
+            19,
+            20
+          ],
+          "usage": "sprite",
+          "tags": [
+            "static_animal"
+          ]
+        },
+        "pixel_sha256": "10c942e0b768dbc0d3dc7a304525d52e22005978aba5fe459450e3fb4b4ea943",
+        "reviewed_on": "2026-10-29",
+        "scope": "Complete static animal pose. Idle is a one-frame presentation default; no walking sequence, production or behavior certified."
+      },
+      "o218_653": {
+        "kind": "static_animal",
+        "input": {
+          "animations": {
+            "idle_down": {
+              "fps": 1.0,
+              "frames": [
+                [
+                  0,
+                  0
+                ]
+              ],
+              "loop": true
+            },
+            "walk_down": {
+              "fps": 1.0,
+              "frames": [
+                [
+                  0,
+                  0
+                ]
+              ],
+              "loop": true
+            }
+          },
+          "frame": [
+            21,
+            17
+          ],
+          "grid": {
+            "cell": [
+              21,
+              17
+            ],
+            "margin": [
+              0,
+              0
+            ],
+            "separation": [
+              0,
+              0
+            ]
+          },
+          "origin": [
+            10,
+            16
+          ],
+          "role": "ANIMAL",
+          "size": [
+            21,
+            17
+          ],
+          "usage": "sprite"
+        },
+        "approved": {
+          "animations": {
+            "idle_down": {
+              "fps": 1.0,
+              "frames": [
+                [
+                  0,
+                  0
+                ]
+              ],
+              "loop": true
+            }
+          },
+          "frame": [
+            21,
+            17
+          ],
+          "grid": {
+            "cell": [
+              21,
+              17
+            ],
+            "margin": [
+              0,
+              0
+            ],
+            "separation": [
+              0,
+              0
+            ]
+          },
+          "origin": [
+            10,
+            16
+          ],
+          "role": "ANIMAL",
+          "size": [
+            21,
+            17
+          ],
+          "usage": "sprite",
+          "tags": [
+            "static_animal"
+          ]
+        },
+        "pixel_sha256": "b09aec5669c86f871656296ba33f589af0b78f7ace43bcd179f2290f0a7a0526",
+        "reviewed_on": "2026-10-29",
+        "scope": "Complete static animal pose. Idle is a one-frame presentation default; no walking sequence, production or behavior certified."
+      },
+      "o265_585": {
+        "kind": "static_animal",
+        "input": {
+          "animations": {
+            "idle_down": {
+              "fps": 1.0,
+              "frames": [
+                [
+                  0,
+                  0
+                ]
+              ],
+              "loop": true
+            },
+            "walk_down": {
+              "fps": 1.0,
+              "frames": [
+                [
+                  0,
+                  0
+                ]
+              ],
+              "loop": true
+            }
+          },
+          "frame": [
+            19,
+            21
+          ],
+          "grid": {
+            "cell": [
+              19,
+              21
+            ],
+            "margin": [
+              0,
+              0
+            ],
+            "separation": [
+              0,
+              0
+            ]
+          },
+          "origin": [
+            9,
+            20
+          ],
+          "role": "ANIMAL",
+          "size": [
+            19,
+            21
+          ],
+          "usage": "sprite"
+        },
+        "approved": {
+          "animations": {
+            "idle_down": {
+              "fps": 1.0,
+              "frames": [
+                [
+                  0,
+                  0
+                ]
+              ],
+              "loop": true
+            }
+          },
+          "frame": [
+            19,
+            21
+          ],
+          "grid": {
+            "cell": [
+              19,
+              21
+            ],
+            "margin": [
+              0,
+              0
+            ],
+            "separation": [
+              0,
+              0
+            ]
+          },
+          "origin": [
+            9,
+            20
+          ],
+          "role": "ANIMAL",
+          "size": [
+            19,
+            21
+          ],
+          "usage": "sprite",
+          "tags": [
+            "static_animal"
+          ]
+        },
+        "pixel_sha256": "90a0cbb6d7cb5a75f32a59d4ddde65a8f134dbbe918b951deaedb542d08a914d",
+        "reviewed_on": "2026-10-29",
+        "scope": "Complete static animal pose. Idle is a one-frame presentation default; no walking sequence, production or behavior certified."
+      },
+      "o265_647": {
+        "kind": "static_animal",
+        "input": {
+          "frame": [
+            19,
+            21
+          ],
+          "origin": [
+            9,
+            20
+          ],
+          "role": "ANIMAL",
+          "size": [
+            19,
+            21
+          ],
+          "usage": "object"
+        },
+        "approved": {
+          "frame": [
+            19,
+            21
+          ],
+          "origin": [
+            9,
+            20
+          ],
+          "role": "ANIMAL",
+          "size": [
+            19,
+            21
+          ],
+          "usage": "sprite",
+          "animations": {
+            "idle_down": {
+              "fps": 1.0,
+              "frames": [
+                [
+                  0,
+                  0
+                ]
+              ],
+              "loop": true
+            }
+          },
+          "tags": [
+            "static_animal"
+          ],
+          "grid": {
+            "cell": [
+              19,
+              21
+            ],
+            "margin": [
+              0,
+              0
+            ],
+            "separation": [
+              0,
+              0
+            ]
+          }
+        },
+        "pixel_sha256": "8cae2d3602876e287d274e2f4b5ac3593af398bfc4e7f7938c0ca5e1afa8b0a3",
+        "reviewed_on": "2026-10-29",
+        "scope": "Complete static animal pose. Idle is a one-frame presentation default; no walking sequence, production or behavior certified."
+      },
+      "o401_642": {
+        "kind": "static_animal",
+        "input": {
+          "animations": {
+            "idle_down": {
+              "fps": 1.0,
+              "frames": [
+                [
+                  0,
+                  0
+                ]
+              ],
+              "loop": true
+            },
+            "walk_down": {
+              "fps": 1.0,
+              "frames": [
+                [
+                  0,
+                  0
+                ]
+              ],
+              "loop": true
+            }
+          },
+          "frame": [
+            21,
+            21
+          ],
+          "grid": {
+            "cell": [
+              21,
+              21
+            ],
+            "margin": [
+              0,
+              0
+            ],
+            "separation": [
+              0,
+              0
+            ]
+          },
+          "origin": [
+            10,
+            20
+          ],
+          "role": "ANIMAL",
+          "size": [
+            21,
+            21
+          ],
+          "usage": "sprite"
+        },
+        "approved": {
+          "animations": {
+            "idle_down": {
+              "fps": 1.0,
+              "frames": [
+                [
+                  0,
+                  0
+                ]
+              ],
+              "loop": true
+            }
+          },
+          "frame": [
+            21,
+            21
+          ],
+          "grid": {
+            "cell": [
+              21,
+              21
+            ],
+            "margin": [
+              0,
+              0
+            ],
+            "separation": [
+              0,
+              0
+            ]
+          },
+          "origin": [
+            10,
+            20
+          ],
+          "role": "ANIMAL",
+          "size": [
+            21,
+            21
+          ],
+          "usage": "sprite",
+          "tags": [
+            "static_animal"
+          ]
+        },
+        "pixel_sha256": "dee7c507cc6c2addfa027b166d9ee153f7606fa1fd5c819489a50bba63eed728",
+        "reviewed_on": "2026-10-29",
+        "scope": "Complete static animal pose. Idle is a one-frame presentation default; no walking sequence, production or behavior certified."
+      },
+      "o432_592": {
+        "kind": "static_animal",
+        "input": {
+          "animations": {
+            "idle_down": {
+              "fps": 1.0,
+              "frames": [
+                [
+                  0,
+                  0
+                ]
+              ],
+              "loop": true
+            },
+            "walk_down": {
+              "fps": 1.0,
+              "frames": [
+                [
+                  0,
+                  0
+                ]
+              ],
+              "loop": true
+            }
+          },
+          "frame": [
+            34,
+            23
+          ],
+          "grid": {
+            "cell": [
+              34,
+              23
+            ],
+            "margin": [
+              0,
+              0
+            ],
+            "separation": [
+              0,
+              0
+            ]
+          },
+          "origin": [
+            17,
+            22
+          ],
+          "role": "ANIMAL",
+          "size": [
+            34,
+            23
+          ],
+          "usage": "sprite"
+        },
+        "approved": {
+          "animations": {
+            "idle_down": {
+              "fps": 1.0,
+              "frames": [
+                [
+                  0,
+                  0
+                ]
+              ],
+              "loop": true
+            }
+          },
+          "frame": [
+            34,
+            23
+          ],
+          "grid": {
+            "cell": [
+              34,
+              23
+            ],
+            "margin": [
+              0,
+              0
+            ],
+            "separation": [
+              0,
+              0
+            ]
+          },
+          "origin": [
+            17,
+            22
+          ],
+          "role": "ANIMAL",
+          "size": [
+            34,
+            23
+          ],
+          "usage": "sprite",
+          "tags": [
+            "static_animal"
+          ]
+        },
+        "pixel_sha256": "90ce054821d3303934c99fda84a9850da58e3e6753e23c89721cfe60156ac020",
+        "reviewed_on": "2026-10-29",
+        "scope": "Complete static animal pose. Idle is a one-frame presentation default; no walking sequence, production or behavior certified."
+      },
+      "o435_631": {
+        "kind": "static_animal",
+        "input": {
+          "animations": {
+            "idle_down": {
+              "fps": 1.0,
+              "frames": [
+                [
+                  0,
+                  0
+                ]
+              ],
+              "loop": true
+            },
+            "walk_down": {
+              "fps": 1.0,
+              "frames": [
+                [
+                  0,
+                  0
+                ]
+              ],
+              "loop": true
+            }
+          },
+          "frame": [
+            19,
+            25
+          ],
+          "grid": {
+            "cell": [
+              19,
+              25
+            ],
+            "margin": [
+              0,
+              0
+            ],
+            "separation": [
+              0,
+              0
+            ]
+          },
+          "origin": [
+            9,
+            24
+          ],
+          "role": "ANIMAL",
+          "size": [
+            19,
+            25
+          ],
+          "usage": "sprite"
+        },
+        "approved": {
+          "animations": {
+            "idle_down": {
+              "fps": 1.0,
+              "frames": [
+                [
+                  0,
+                  0
+                ]
+              ],
+              "loop": true
+            }
+          },
+          "frame": [
+            19,
+            25
+          ],
+          "grid": {
+            "cell": [
+              19,
+              25
+            ],
+            "margin": [
+              0,
+              0
+            ],
+            "separation": [
+              0,
+              0
+            ]
+          },
+          "origin": [
+            9,
+            24
+          ],
+          "role": "ANIMAL",
+          "size": [
+            19,
+            25
+          ],
+          "usage": "sprite",
+          "tags": [
+            "static_animal"
+          ]
+        },
+        "pixel_sha256": "b3700223ea8a3688932c9a7f2afcec15f970cfc53a50c2df611cbab9fec8c98f",
+        "reviewed_on": "2026-10-29",
+        "scope": "Complete static animal pose. Idle is a one-frame presentation default; no walking sequence, production or behavior certified."
+      },
+      "o684_495": {
+        "kind": "static_animal",
+        "input": {
+          "animations": {
+            "idle_down": {
+              "fps": 1.0,
+              "frames": [
+                [
+                  0,
+                  0
+                ]
+              ],
+              "loop": true
+            },
+            "walk_down": {
+              "fps": 1.0,
+              "frames": [
+                [
+                  0,
+                  0
+                ]
+              ],
+              "loop": true
+            }
+          },
+          "frame": [
+            25,
+            24
+          ],
+          "grid": {
+            "cell": [
+              25,
+              24
+            ],
+            "margin": [
+              0,
+              0
+            ],
+            "separation": [
+              0,
+              0
+            ]
+          },
+          "origin": [
+            12,
+            23
+          ],
+          "role": "ANIMAL",
+          "size": [
+            25,
+            24
+          ],
+          "usage": "sprite"
+        },
+        "approved": {
+          "animations": {
+            "idle_down": {
+              "fps": 1.0,
+              "frames": [
+                [
+                  0,
+                  0
+                ]
+              ],
+              "loop": true
+            }
+          },
+          "frame": [
+            25,
+            24
+          ],
+          "grid": {
+            "cell": [
+              25,
+              24
+            ],
+            "margin": [
+              0,
+              0
+            ],
+            "separation": [
+              0,
+              0
+            ]
+          },
+          "origin": [
+            12,
+            23
+          ],
+          "role": "ANIMAL",
+          "size": [
+            25,
+            24
+          ],
+          "usage": "sprite",
+          "tags": [
+            "static_animal"
+          ]
+        },
+        "pixel_sha256": "c829e413aa4cf6e1fde119bc2fbfe802121985d6c505ead7a920fa8589872e67",
+        "reviewed_on": "2026-10-29",
+        "scope": "Complete static animal pose. Idle is a one-frame presentation default; no walking sequence, production or behavior certified."
       }
     },
     "5fc8cf4b6e7e2b2e5c8e8cf27cd8bc7a215e2ac41b65ce82a31d36889d702444": {
@@ -192517,6 +193305,212 @@
         },
         "pixel_sha256": "8a8dfbc8179270acad1aa448442b52367fb2fdd269d38e9b7c389f46674f8ddb",
         "review": "2026-10-28 static placement; visual page 76"
+      },
+      "o673_579": {
+        "kind": "static_animal",
+        "input": {
+          "animations": {
+            "idle_down": {
+              "fps": 1.0,
+              "frames": [
+                [
+                  0,
+                  0
+                ]
+              ],
+              "loop": true
+            },
+            "walk_down": {
+              "fps": 1.0,
+              "frames": [
+                [
+                  0,
+                  0
+                ]
+              ],
+              "loop": true
+            }
+          },
+          "frame": [
+            47,
+            42
+          ],
+          "grid": {
+            "cell": [
+              47,
+              42
+            ],
+            "margin": [
+              0,
+              0
+            ],
+            "separation": [
+              0,
+              0
+            ]
+          },
+          "origin": [
+            23,
+            41
+          ],
+          "role": "ANIMAL",
+          "size": [
+            47,
+            42
+          ],
+          "usage": "sprite"
+        },
+        "approved": {
+          "animations": {
+            "idle_down": {
+              "fps": 1.0,
+              "frames": [
+                [
+                  0,
+                  0
+                ]
+              ],
+              "loop": true
+            }
+          },
+          "frame": [
+            47,
+            42
+          ],
+          "grid": {
+            "cell": [
+              47,
+              42
+            ],
+            "margin": [
+              0,
+              0
+            ],
+            "separation": [
+              0,
+              0
+            ]
+          },
+          "origin": [
+            23,
+            41
+          ],
+          "role": "ANIMAL",
+          "size": [
+            47,
+            42
+          ],
+          "usage": "sprite",
+          "tags": [
+            "static_animal"
+          ]
+        },
+        "pixel_sha256": "b06664a98be4af1f6d66766d2864fb739d3c7d8b9d110c66eb3dbc7cfe7a0321",
+        "reviewed_on": "2026-10-29",
+        "scope": "Complete static animal pose. Idle is a one-frame presentation default; no walking sequence, production or behavior certified."
+      },
+      "o674_633": {
+        "kind": "static_animal",
+        "input": {
+          "animations": {
+            "idle_down": {
+              "fps": 1.0,
+              "frames": [
+                [
+                  0,
+                  0
+                ]
+              ],
+              "loop": true
+            },
+            "walk_down": {
+              "fps": 1.0,
+              "frames": [
+                [
+                  0,
+                  0
+                ]
+              ],
+              "loop": true
+            }
+          },
+          "frame": [
+            46,
+            38
+          ],
+          "grid": {
+            "cell": [
+              46,
+              38
+            ],
+            "margin": [
+              0,
+              0
+            ],
+            "separation": [
+              0,
+              0
+            ]
+          },
+          "origin": [
+            23,
+            37
+          ],
+          "role": "ANIMAL",
+          "size": [
+            46,
+            38
+          ],
+          "usage": "sprite"
+        },
+        "approved": {
+          "animations": {
+            "idle_down": {
+              "fps": 1.0,
+              "frames": [
+                [
+                  0,
+                  0
+                ]
+              ],
+              "loop": true
+            }
+          },
+          "frame": [
+            46,
+            38
+          ],
+          "grid": {
+            "cell": [
+              46,
+              38
+            ],
+            "margin": [
+              0,
+              0
+            ],
+            "separation": [
+              0,
+              0
+            ]
+          },
+          "origin": [
+            23,
+            37
+          ],
+          "role": "ANIMAL",
+          "size": [
+            46,
+            38
+          ],
+          "usage": "sprite",
+          "tags": [
+            "static_animal"
+          ]
+        },
+        "pixel_sha256": "f2104966d56fffd5a7dba8ed8087a8e97fb15c3b58b081f5d10ba3a65d9197c2",
+        "reviewed_on": "2026-10-29",
+        "scope": "Complete static animal pose. Idle is a one-frame presentation default; no walking sequence, production or behavior certified."
       }
     },
     "b578b3f0e03ad29916955169080f2e692458d36ec31c641f2f97719758d2f2bf": {
@@ -198245,6 +199239,315 @@
         },
         "pixel_sha256": "86fcda45433b7f837e670bb297d2ee5338d9230c8feb528cad464023f4f3c492",
         "review": "2026-10-28 static placement; visual page 78"
+      },
+      "o388_300": {
+        "kind": "static_animal",
+        "input": {
+          "animations": {
+            "idle_down": {
+              "fps": 1.0,
+              "frames": [
+                [
+                  0,
+                  0
+                ]
+              ],
+              "loop": true
+            },
+            "walk_down": {
+              "fps": 1.0,
+              "frames": [
+                [
+                  0,
+                  0
+                ]
+              ],
+              "loop": true
+            }
+          },
+          "frame": [
+            88,
+            78
+          ],
+          "grid": {
+            "cell": [
+              88,
+              78
+            ],
+            "margin": [
+              0,
+              0
+            ],
+            "separation": [
+              0,
+              0
+            ]
+          },
+          "origin": [
+            44,
+            77
+          ],
+          "role": "ANIMAL",
+          "size": [
+            88,
+            78
+          ],
+          "usage": "sprite"
+        },
+        "approved": {
+          "animations": {
+            "idle_down": {
+              "fps": 1.0,
+              "frames": [
+                [
+                  0,
+                  0
+                ]
+              ],
+              "loop": true
+            }
+          },
+          "frame": [
+            88,
+            78
+          ],
+          "grid": {
+            "cell": [
+              88,
+              78
+            ],
+            "margin": [
+              0,
+              0
+            ],
+            "separation": [
+              0,
+              0
+            ]
+          },
+          "origin": [
+            44,
+            77
+          ],
+          "role": "ANIMAL",
+          "size": [
+            88,
+            78
+          ],
+          "usage": "sprite",
+          "tags": [
+            "static_animal"
+          ]
+        },
+        "pixel_sha256": "4615956e4aa31d804cc02e4927854794ed0250c1918c4c6cf3ccd0726b1faf5d",
+        "reviewed_on": "2026-10-29",
+        "scope": "Complete static animal pose. Idle is a one-frame presentation default; no walking sequence, production or behavior certified."
+      },
+      "o484_295": {
+        "kind": "static_animal",
+        "input": {
+          "animations": {
+            "idle_down": {
+              "fps": 1.0,
+              "frames": [
+                [
+                  0,
+                  0
+                ]
+              ],
+              "loop": true
+            },
+            "walk_down": {
+              "fps": 1.0,
+              "frames": [
+                [
+                  0,
+                  0
+                ]
+              ],
+              "loop": true
+            }
+          },
+          "frame": [
+            88,
+            83
+          ],
+          "grid": {
+            "cell": [
+              88,
+              83
+            ],
+            "margin": [
+              0,
+              0
+            ],
+            "separation": [
+              0,
+              0
+            ]
+          },
+          "origin": [
+            44,
+            82
+          ],
+          "role": "ANIMAL",
+          "size": [
+            88,
+            83
+          ],
+          "usage": "sprite"
+        },
+        "approved": {
+          "animations": {
+            "idle_down": {
+              "fps": 1.0,
+              "frames": [
+                [
+                  0,
+                  0
+                ]
+              ],
+              "loop": true
+            }
+          },
+          "frame": [
+            88,
+            83
+          ],
+          "grid": {
+            "cell": [
+              88,
+              83
+            ],
+            "margin": [
+              0,
+              0
+            ],
+            "separation": [
+              0,
+              0
+            ]
+          },
+          "origin": [
+            44,
+            82
+          ],
+          "role": "ANIMAL",
+          "size": [
+            88,
+            83
+          ],
+          "usage": "sprite",
+          "tags": [
+            "static_animal"
+          ]
+        },
+        "pixel_sha256": "61500f3f92b1cb5a1dadb7cdf17eb1d9bae99d17cb4fe4ed2da60a50bbed19cc",
+        "reviewed_on": "2026-10-29",
+        "scope": "Complete static animal pose. Idle is a one-frame presentation default; no walking sequence, production or behavior certified."
+      },
+      "o579_301": {
+        "kind": "static_animal",
+        "input": {
+          "animations": {
+            "idle_down": {
+              "fps": 1.0,
+              "frames": [
+                [
+                  0,
+                  0
+                ]
+              ],
+              "loop": true
+            },
+            "walk_down": {
+              "fps": 1.0,
+              "frames": [
+                [
+                  0,
+                  0
+                ]
+              ],
+              "loop": true
+            }
+          },
+          "frame": [
+            90,
+            71
+          ],
+          "grid": {
+            "cell": [
+              90,
+              71
+            ],
+            "margin": [
+              0,
+              0
+            ],
+            "separation": [
+              0,
+              0
+            ]
+          },
+          "origin": [
+            45,
+            70
+          ],
+          "role": "ANIMAL",
+          "size": [
+            90,
+            71
+          ],
+          "usage": "sprite"
+        },
+        "approved": {
+          "animations": {
+            "idle_down": {
+              "fps": 1.0,
+              "frames": [
+                [
+                  0,
+                  0
+                ]
+              ],
+              "loop": true
+            }
+          },
+          "frame": [
+            90,
+            71
+          ],
+          "grid": {
+            "cell": [
+              90,
+              71
+            ],
+            "margin": [
+              0,
+              0
+            ],
+            "separation": [
+              0,
+              0
+            ]
+          },
+          "origin": [
+            45,
+            70
+          ],
+          "role": "ANIMAL",
+          "size": [
+            90,
+            71
+          ],
+          "usage": "sprite",
+          "tags": [
+            "static_animal"
+          ]
+        },
+        "pixel_sha256": "53c2276c6c22106308c4118cc1f79dd5e1779299e1a92dca5feb4fbfe9edd655",
+        "reviewed_on": "2026-10-29",
+        "scope": "Complete static animal pose. Idle is a one-frame presentation default; no walking sequence, production or behavior certified."
       }
     },
     "42c2fbe8929964d6aaba1aa15298e51619042dfe072a4ee389811a8ea4dbcd84": {
@@ -202613,6 +203916,418 @@
         },
         "pixel_sha256": "168a8184ba285bf0771e1e4d4659be1da1879dce84e1ee112c278f401bdbb549",
         "review": "2026-10-28 static placement; visual page 80"
+      },
+      "o1164_811": {
+        "kind": "static_animal",
+        "input": {
+          "animations": {
+            "idle_down": {
+              "fps": 1.0,
+              "frames": [
+                [
+                  0,
+                  0
+                ]
+              ],
+              "loop": true
+            },
+            "walk_down": {
+              "fps": 1.0,
+              "frames": [
+                [
+                  0,
+                  0
+                ]
+              ],
+              "loop": true
+            }
+          },
+          "frame": [
+            44,
+            46
+          ],
+          "grid": {
+            "cell": [
+              44,
+              46
+            ],
+            "margin": [
+              0,
+              0
+            ],
+            "separation": [
+              0,
+              0
+            ]
+          },
+          "origin": [
+            22,
+            45
+          ],
+          "role": "ANIMAL",
+          "size": [
+            44,
+            46
+          ],
+          "usage": "sprite"
+        },
+        "approved": {
+          "animations": {
+            "idle_down": {
+              "fps": 1.0,
+              "frames": [
+                [
+                  0,
+                  0
+                ]
+              ],
+              "loop": true
+            }
+          },
+          "frame": [
+            44,
+            46
+          ],
+          "grid": {
+            "cell": [
+              44,
+              46
+            ],
+            "margin": [
+              0,
+              0
+            ],
+            "separation": [
+              0,
+              0
+            ]
+          },
+          "origin": [
+            22,
+            45
+          ],
+          "role": "ANIMAL",
+          "size": [
+            44,
+            46
+          ],
+          "usage": "sprite",
+          "tags": [
+            "static_animal"
+          ]
+        },
+        "pixel_sha256": "d526f9daecd7ac72cbf60cdd813e17645ce5d31e18b408e05c4352e475ad7fa7",
+        "reviewed_on": "2026-10-29",
+        "scope": "Complete static animal pose. Idle is a one-frame presentation default; no walking sequence, production or behavior certified."
+      },
+      "o1170_691": {
+        "kind": "static_animal",
+        "input": {
+          "animations": {
+            "idle_down": {
+              "fps": 1.0,
+              "frames": [
+                [
+                  0,
+                  0
+                ]
+              ],
+              "loop": true
+            },
+            "walk_down": {
+              "fps": 1.0,
+              "frames": [
+                [
+                  0,
+                  0
+                ]
+              ],
+              "loop": true
+            }
+          },
+          "frame": [
+            145,
+            150
+          ],
+          "grid": {
+            "cell": [
+              145,
+              150
+            ],
+            "margin": [
+              0,
+              0
+            ],
+            "separation": [
+              0,
+              0
+            ]
+          },
+          "origin": [
+            72,
+            149
+          ],
+          "role": "ANIMAL",
+          "size": [
+            145,
+            150
+          ],
+          "usage": "sprite"
+        },
+        "approved": {
+          "animations": {
+            "idle_down": {
+              "fps": 1.0,
+              "frames": [
+                [
+                  0,
+                  0
+                ]
+              ],
+              "loop": true
+            }
+          },
+          "frame": [
+            145,
+            150
+          ],
+          "grid": {
+            "cell": [
+              145,
+              150
+            ],
+            "margin": [
+              0,
+              0
+            ],
+            "separation": [
+              0,
+              0
+            ]
+          },
+          "origin": [
+            72,
+            149
+          ],
+          "role": "ANIMAL",
+          "size": [
+            145,
+            150
+          ],
+          "usage": "sprite",
+          "tags": [
+            "static_animal"
+          ]
+        },
+        "pixel_sha256": "99f35e7b066e25e3343553560736a14b89bfb613406daca3736e53ef6fc41c76",
+        "reviewed_on": "2026-10-29",
+        "scope": "Complete static animal pose. Idle is a one-frame presentation default; no walking sequence, production or behavior certified."
+      },
+      "o1290_811": {
+        "kind": "static_animal",
+        "input": {
+          "animations": {
+            "idle_down": {
+              "fps": 1.0,
+              "frames": [
+                [
+                  0,
+                  0
+                ]
+              ],
+              "loop": true
+            },
+            "walk_down": {
+              "fps": 1.0,
+              "frames": [
+                [
+                  0,
+                  0
+                ]
+              ],
+              "loop": true
+            }
+          },
+          "frame": [
+            42,
+            46
+          ],
+          "grid": {
+            "cell": [
+              42,
+              46
+            ],
+            "margin": [
+              0,
+              0
+            ],
+            "separation": [
+              0,
+              0
+            ]
+          },
+          "origin": [
+            21,
+            45
+          ],
+          "role": "ANIMAL",
+          "size": [
+            42,
+            46
+          ],
+          "usage": "sprite"
+        },
+        "approved": {
+          "animations": {
+            "idle_down": {
+              "fps": 1.0,
+              "frames": [
+                [
+                  0,
+                  0
+                ]
+              ],
+              "loop": true
+            }
+          },
+          "frame": [
+            42,
+            46
+          ],
+          "grid": {
+            "cell": [
+              42,
+              46
+            ],
+            "margin": [
+              0,
+              0
+            ],
+            "separation": [
+              0,
+              0
+            ]
+          },
+          "origin": [
+            21,
+            45
+          ],
+          "role": "ANIMAL",
+          "size": [
+            42,
+            46
+          ],
+          "usage": "sprite",
+          "tags": [
+            "static_animal"
+          ]
+        },
+        "pixel_sha256": "d782c503f5298e68b6d4ad4618c9a86aaf90fe0a74ff6d12e0ec42ea0967b9ae",
+        "reviewed_on": "2026-10-29",
+        "scope": "Complete static animal pose. Idle is a one-frame presentation default; no walking sequence, production or behavior certified."
+      },
+      "o1344_802": {
+        "kind": "static_animal",
+        "input": {
+          "animations": {
+            "idle_down": {
+              "fps": 1.0,
+              "frames": [
+                [
+                  0,
+                  0
+                ]
+              ],
+              "loop": true
+            },
+            "walk_down": {
+              "fps": 1.0,
+              "frames": [
+                [
+                  0,
+                  0
+                ]
+              ],
+              "loop": true
+            }
+          },
+          "frame": [
+            42,
+            46
+          ],
+          "grid": {
+            "cell": [
+              42,
+              46
+            ],
+            "margin": [
+              0,
+              0
+            ],
+            "separation": [
+              0,
+              0
+            ]
+          },
+          "origin": [
+            21,
+            45
+          ],
+          "role": "ANIMAL",
+          "size": [
+            42,
+            46
+          ],
+          "usage": "sprite"
+        },
+        "approved": {
+          "animations": {
+            "idle_down": {
+              "fps": 1.0,
+              "frames": [
+                [
+                  0,
+                  0
+                ]
+              ],
+              "loop": true
+            }
+          },
+          "frame": [
+            42,
+            46
+          ],
+          "grid": {
+            "cell": [
+              42,
+              46
+            ],
+            "margin": [
+              0,
+              0
+            ],
+            "separation": [
+              0,
+              0
+            ]
+          },
+          "origin": [
+            21,
+            45
+          ],
+          "role": "ANIMAL",
+          "size": [
+            42,
+            46
+          ],
+          "usage": "sprite",
+          "tags": [
+            "static_animal"
+          ]
+        },
+        "pixel_sha256": "3b8715f3279a1601d8c816777b71a0c174e2a3dff81ce7728c9dba6d283b55a5",
+        "reviewed_on": "2026-10-29",
+        "scope": "Complete static animal pose. Idle is a one-frame presentation default; no walking sequence, production or behavior certified."
       }
     },
     "53261fb210c7fd3ad08a79c87016d9d2ca081fa702056b14b641be1b4bc2fd7b": {
@@ -203633,6 +205348,521 @@
         },
         "pixel_sha256": "796d50773ad4c5521e63042ca9824922dfa4b7a9c3d8e221db3f12765169a076",
         "review": "2026-10-28 static placement; visual page 80"
+      },
+      "o1173_900": {
+        "kind": "static_animal",
+        "input": {
+          "animations": {
+            "idle_down": {
+              "fps": 1.0,
+              "frames": [
+                [
+                  0,
+                  0
+                ]
+              ],
+              "loop": true
+            },
+            "walk_down": {
+              "fps": 1.0,
+              "frames": [
+                [
+                  0,
+                  0
+                ]
+              ],
+              "loop": true
+            }
+          },
+          "frame": [
+            119,
+            106
+          ],
+          "grid": {
+            "cell": [
+              119,
+              106
+            ],
+            "margin": [
+              0,
+              0
+            ],
+            "separation": [
+              0,
+              0
+            ]
+          },
+          "origin": [
+            59,
+            105
+          ],
+          "role": "ANIMAL",
+          "size": [
+            119,
+            106
+          ],
+          "usage": "sprite"
+        },
+        "approved": {
+          "animations": {
+            "idle_down": {
+              "fps": 1.0,
+              "frames": [
+                [
+                  0,
+                  0
+                ]
+              ],
+              "loop": true
+            }
+          },
+          "frame": [
+            119,
+            106
+          ],
+          "grid": {
+            "cell": [
+              119,
+              106
+            ],
+            "margin": [
+              0,
+              0
+            ],
+            "separation": [
+              0,
+              0
+            ]
+          },
+          "origin": [
+            59,
+            105
+          ],
+          "role": "ANIMAL",
+          "size": [
+            119,
+            106
+          ],
+          "usage": "sprite",
+          "tags": [
+            "static_animal"
+          ]
+        },
+        "pixel_sha256": "031b2ba4fd25f76881c3a2e3b7904162ad5222c7727b4e0d0e709f1761bce8b2",
+        "reviewed_on": "2026-10-29",
+        "scope": "Complete static animal pose. Idle is a one-frame presentation default; no walking sequence, production or behavior certified."
+      },
+      "o127_904": {
+        "kind": "static_animal",
+        "input": {
+          "animations": {
+            "idle_down": {
+              "fps": 1.0,
+              "frames": [
+                [
+                  0,
+                  0
+                ]
+              ],
+              "loop": true
+            },
+            "walk_down": {
+              "fps": 1.0,
+              "frames": [
+                [
+                  0,
+                  0
+                ]
+              ],
+              "loop": true
+            }
+          },
+          "frame": [
+            77,
+            92
+          ],
+          "grid": {
+            "cell": [
+              77,
+              92
+            ],
+            "margin": [
+              0,
+              0
+            ],
+            "separation": [
+              0,
+              0
+            ]
+          },
+          "origin": [
+            38,
+            91
+          ],
+          "role": "ANIMAL",
+          "size": [
+            77,
+            92
+          ],
+          "usage": "sprite"
+        },
+        "approved": {
+          "animations": {
+            "idle_down": {
+              "fps": 1.0,
+              "frames": [
+                [
+                  0,
+                  0
+                ]
+              ],
+              "loop": true
+            }
+          },
+          "frame": [
+            77,
+            92
+          ],
+          "grid": {
+            "cell": [
+              77,
+              92
+            ],
+            "margin": [
+              0,
+              0
+            ],
+            "separation": [
+              0,
+              0
+            ]
+          },
+          "origin": [
+            38,
+            91
+          ],
+          "role": "ANIMAL",
+          "size": [
+            77,
+            92
+          ],
+          "usage": "sprite",
+          "tags": [
+            "static_animal"
+          ]
+        },
+        "pixel_sha256": "12a156de9ba68e4e3ab748526ae6a9d031ce72346f63792eeb7f4b9c00ee5194",
+        "reviewed_on": "2026-10-29",
+        "scope": "Complete static animal pose. Idle is a one-frame presentation default; no walking sequence, production or behavior certified."
+      },
+      "o402_889": {
+        "kind": "static_animal",
+        "input": {
+          "animations": {
+            "idle_down": {
+              "fps": 1.0,
+              "frames": [
+                [
+                  0,
+                  0
+                ]
+              ],
+              "loop": true
+            },
+            "walk_down": {
+              "fps": 1.0,
+              "frames": [
+                [
+                  0,
+                  0
+                ]
+              ],
+              "loop": true
+            }
+          },
+          "frame": [
+            119,
+            114
+          ],
+          "grid": {
+            "cell": [
+              119,
+              114
+            ],
+            "margin": [
+              0,
+              0
+            ],
+            "separation": [
+              0,
+              0
+            ]
+          },
+          "origin": [
+            59,
+            113
+          ],
+          "role": "ANIMAL",
+          "size": [
+            119,
+            114
+          ],
+          "usage": "sprite"
+        },
+        "approved": {
+          "animations": {
+            "idle_down": {
+              "fps": 1.0,
+              "frames": [
+                [
+                  0,
+                  0
+                ]
+              ],
+              "loop": true
+            }
+          },
+          "frame": [
+            119,
+            114
+          ],
+          "grid": {
+            "cell": [
+              119,
+              114
+            ],
+            "margin": [
+              0,
+              0
+            ],
+            "separation": [
+              0,
+              0
+            ]
+          },
+          "origin": [
+            59,
+            113
+          ],
+          "role": "ANIMAL",
+          "size": [
+            119,
+            114
+          ],
+          "usage": "sprite",
+          "tags": [
+            "static_animal"
+          ]
+        },
+        "pixel_sha256": "985a6eb808948e962ed4615a052e9671310b09b58ced1e536a383a3296b4cef3",
+        "reviewed_on": "2026-10-29",
+        "scope": "Complete static animal pose. Idle is a one-frame presentation default; no walking sequence, production or behavior certified."
+      },
+      "o650_893": {
+        "kind": "static_animal",
+        "input": {
+          "animations": {
+            "idle_down": {
+              "fps": 1.0,
+              "frames": [
+                [
+                  0,
+                  0
+                ]
+              ],
+              "loop": true
+            },
+            "walk_down": {
+              "fps": 1.0,
+              "frames": [
+                [
+                  0,
+                  0
+                ]
+              ],
+              "loop": true
+            }
+          },
+          "frame": [
+            107,
+            110
+          ],
+          "grid": {
+            "cell": [
+              107,
+              110
+            ],
+            "margin": [
+              0,
+              0
+            ],
+            "separation": [
+              0,
+              0
+            ]
+          },
+          "origin": [
+            53,
+            109
+          ],
+          "role": "ANIMAL",
+          "size": [
+            107,
+            110
+          ],
+          "usage": "sprite"
+        },
+        "approved": {
+          "animations": {
+            "idle_down": {
+              "fps": 1.0,
+              "frames": [
+                [
+                  0,
+                  0
+                ]
+              ],
+              "loop": true
+            }
+          },
+          "frame": [
+            107,
+            110
+          ],
+          "grid": {
+            "cell": [
+              107,
+              110
+            ],
+            "margin": [
+              0,
+              0
+            ],
+            "separation": [
+              0,
+              0
+            ]
+          },
+          "origin": [
+            53,
+            109
+          ],
+          "role": "ANIMAL",
+          "size": [
+            107,
+            110
+          ],
+          "usage": "sprite",
+          "tags": [
+            "static_animal"
+          ]
+        },
+        "pixel_sha256": "ac271223328e702769470740f9d2c0a1c4935b9c12dbee44a3f16c22560b29e8",
+        "reviewed_on": "2026-10-29",
+        "scope": "Complete static animal pose. Idle is a one-frame presentation default; no walking sequence, production or behavior certified."
+      },
+      "o932_930": {
+        "kind": "static_animal",
+        "input": {
+          "animations": {
+            "idle_down": {
+              "fps": 1.0,
+              "frames": [
+                [
+                  0,
+                  0
+                ]
+              ],
+              "loop": true
+            },
+            "walk_down": {
+              "fps": 1.0,
+              "frames": [
+                [
+                  0,
+                  0
+                ]
+              ],
+              "loop": true
+            }
+          },
+          "frame": [
+            62,
+            68
+          ],
+          "grid": {
+            "cell": [
+              62,
+              68
+            ],
+            "margin": [
+              0,
+              0
+            ],
+            "separation": [
+              0,
+              0
+            ]
+          },
+          "origin": [
+            31,
+            67
+          ],
+          "role": "ANIMAL",
+          "size": [
+            62,
+            68
+          ],
+          "usage": "sprite"
+        },
+        "approved": {
+          "animations": {
+            "idle_down": {
+              "fps": 1.0,
+              "frames": [
+                [
+                  0,
+                  0
+                ]
+              ],
+              "loop": true
+            }
+          },
+          "frame": [
+            62,
+            68
+          ],
+          "grid": {
+            "cell": [
+              62,
+              68
+            ],
+            "margin": [
+              0,
+              0
+            ],
+            "separation": [
+              0,
+              0
+            ]
+          },
+          "origin": [
+            31,
+            67
+          ],
+          "role": "ANIMAL",
+          "size": [
+            62,
+            68
+          ],
+          "usage": "sprite",
+          "tags": [
+            "static_animal"
+          ]
+        },
+        "pixel_sha256": "9ac551af26dba0b2d3b71997eeee31e2b5779615e00b06f07852314e655336e0",
+        "reviewed_on": "2026-10-29",
+        "scope": "Complete static animal pose. Idle is a one-frame presentation default; no walking sequence, production or behavior certified."
       }
     },
     "eef7a7e5f080296bcc81a5a1cfb6df7e694bc3eba626d205481c7d920554a698": {

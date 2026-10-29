@@ -52,17 +52,26 @@ def test_confirmation_applies_without_inflating_confidence(reviewed) -> None:
     schema.validate("catalog", cat.to_json())
 
 
-def test_static_battler_confirmation_is_explicit_and_not_a_moving_actor_review(reviewed):
+@pytest.mark.parametrize(
+    "kind,role,tag",
+    [
+        ("static_battler", "ENEMY", "static_battler"),
+        ("static_animal", "ANIMAL", "static_animal"),
+    ],
+)
+def test_static_sprite_confirmation_is_explicit_and_not_a_moving_actor_review(
+    reviewed, kind, role, tag
+):
     opened, inv, before, old, path, record = reviewed
     approved = {k: copy.deepcopy(record["approved"][k]) for k in ("size", "frame", "origin")}
     approved.update(
         usage="sprite",
-        role="ENEMY",
-        tags=["static_battler"],
+        role=role,
+        tags=[tag],
         grid={"cell": approved["size"], "margin": [0, 0], "separation": [0, 0]},
         animations={"idle_down": {"fps": 1.0, "frames": [[0, 0]], "loop": True}},
     )
-    record.update(kind="static_battler", approved=approved)
+    record.update(kind=kind, approved=approved)
     cat, _, _ = catalog.assemble([(opened, inv)], None, [])
     assert cat.asset(old.id).status == "CONFIRMED"
     assert cat.asset(old.id).confidence == old.confidence

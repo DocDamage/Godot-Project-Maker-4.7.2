@@ -1116,44 +1116,9 @@
   },
   "300e9cc9050cbabbd8f9135054f821a25cba780fe006fa8a220d6e1888f7a579": {
     "o192_99": {
-      "animations": {
-        "idle_down": {
-          "fps": 1.0,
-          "frames": [
-            [
-              0,
-              0
-            ]
-          ],
-          "loop": true
-        },
-        "walk_down": {
-          "fps": 1.0,
-          "frames": [
-            [
-              0,
-              0
-            ]
-          ],
-          "loop": true
-        }
-      },
-      "grid": {
-        "cell": [
-          96,
-          333
-        ],
-        "margin": [
-          0,
-          0
-        ],
-        "separation": [
-          0,
-          0
-        ]
-      },
-      "role": "ANIMAL",
-      "usage": "sprite"
+      "animations": {},
+      "role": "BUILDING",
+      "usage": "object"
     },
     "o196_630": {
       "animations": {
@@ -1359,44 +1324,8 @@
       "usage": "sprite"
     },
     "o435_192": {
-      "animations": {
-        "idle_down": {
-          "fps": 1.0,
-          "frames": [
-            [
-              0,
-              0
-            ]
-          ],
-          "loop": true
-        },
-        "walk_down": {
-          "fps": 1.0,
-          "frames": [
-            [
-              0,
-              0
-            ]
-          ],
-          "loop": true
-        }
-      },
-      "grid": {
-        "cell": [
-          42,
-          45
-        ],
-        "margin": [
-          0,
-          0
-        ],
-        "separation": [
-          0,
-          0
-        ]
-      },
-      "role": "ANIMAL",
-      "usage": "sprite"
+      "animations": {},
+      "role": "ANIMAL"
     },
     "o435_631": {
       "animations": {

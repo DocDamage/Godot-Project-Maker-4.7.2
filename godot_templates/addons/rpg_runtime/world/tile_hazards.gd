@@ -42,6 +42,9 @@ func consume(spec: Dictionary) -> bool:
 func on_map(map: Node, point: Vector2) -> Dictionary:
 	if map != _map:
 		_map = map
-		_layers = RpgSideTiles.layers_of(map)
+		_layers.clear()
+		if map != null:
+			for node in map.find_children("*", "TileMapLayer", true, false):
+				_layers.append(node as TileMapLayer)
 	var points: Array[Vector2] = [point]
 	return at(_layers, points)
