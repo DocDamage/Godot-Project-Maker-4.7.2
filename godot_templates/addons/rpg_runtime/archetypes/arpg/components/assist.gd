@@ -178,7 +178,12 @@ func step(delta: float, player_at: Vector2, enemies: Array[Node2D]) -> void:
 	var side := me - enemy_at
 	if side.length() < 0.01:
 		side = player_at - enemy_at if player_at.distance_to(enemy_at) > 0.01 else Vector2.LEFT
-	var stand := leashed(enemy_at + side.normalized() * tile, player_at, LEASH_TILES * tile)
+	# Small sprites can share a map with larger native tiles. Stop within the actual
+	# swing area instead of assuming that one tile is always within reach.
+	var swing_shape := (hitbox.get_node("Shape") as CollisionShape2D).shape as RectangleShape2D
+	var swing_radius := minf(hitbox.reach.x + swing_shape.size.x * 0.5, hitbox.reach.y + swing_shape.size.y * 0.5)
+	var stand_distance := minf(tile, maxf(1.0, swing_radius - 0.5))
+	var stand := leashed(enemy_at + side.normalized() * stand_distance, player_at, LEASH_TILES * tile)
 	var moved := _move_toward(stand, delta)
 	var facing := RpgAnimationDriver.dir_to_facing(enemy_at - _at())
 	follower.set_meta("facing", facing)

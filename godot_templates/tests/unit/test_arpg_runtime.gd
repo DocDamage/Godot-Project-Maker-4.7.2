@@ -607,7 +607,7 @@ func test_heavy_hitbox_scales_damage_and_knockback(t) -> void:
 const STEP := 1.0 / 60.0
 
 ## A follower with the assist parts, not in the tree: {node, assist, stats}.
-func _helper(attack: int, hp: int) -> Dictionary:
+func _helper(attack: int, hp: int, tile: float = 16.0) -> Dictionary:
 	var player := Node2D.new()
 	var node := RpgFollowers.make_follower(null, player)
 	player.free()
@@ -615,12 +615,31 @@ func _helper(attack: int, hp: int) -> Dictionary:
 	stats.attack = attack
 	stats.max_hp = hp
 	stats.hp = hp
-	var assist := RpgAssist.attach(node, stats, 16.0)
+	var assist := RpgAssist.attach(node, stats, tile)
 	return {"node": node, "assist": assist, "stats": stats}
 
 func _steps(assist: RpgAssist, seconds: float, player_at: Vector2, enemies: Array[Node2D]) -> void:
 	for i in ceili(seconds / STEP):
 		assist.step(STEP, player_at, enemies)
+
+func test_small_followers_stand_within_their_swing_on_large_native_tiles(t) -> void:
+	var parts := _helper(7, 20, 48.0)
+	var node: Node2D = parts["node"]
+	var assist: RpgAssist = parts["assist"]
+	var enemy := _fighter("enemy", 3, 0, 100)
+	enemy.position = Vector2(96, 0)
+	var enemies: Array[Node2D] = [enemy]
+	_steps(assist, 1.0, Vector2.ZERO, enemies)
+	assist.cooldown_left = 0.0
+	assist.step(STEP, Vector2.ZERO, enemies)
+	var shape := (assist.hitbox.get_node("Shape") as CollisionShape2D).shape as RectangleShape2D
+	var swing_center := node.position + assist.hitbox.position
+	var enemy_size := ArpgBuild.body_size(Vector2i(16, 24), 48)
+	var enemy_center := enemy.position + ArpgBuild.body_center(Vector2i(16, 24))
+	t.ok(assist.hitbox.active)
+	t.ok(Rect2(swing_center - shape.size * 0.5, shape.size).intersects(Rect2(enemy_center - enemy_size * 0.5, enemy_size)), "a small follower can reach a small enemy on 48 px tiles")
+	node.free()
+	enemy.free()
 
 func test_a_follower_walks_to_an_enemy_near_the_player_and_hits_it(t) -> void:
 	var parts := _helper(7, 20)
