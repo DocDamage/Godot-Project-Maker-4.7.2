@@ -111,3 +111,6 @@ is promoted merely because a cut image or a build passes. Remaining ledger block
 133, segmentation/state 2,012 and terrain 310. This is a ledger delta, not a fresh import of all
 30 packs. Independent calibration labels, the remaining semantic metadata and qualified/human
 release requirements remain open; no confidence table is published.
+
+The subsequent [terrain, building and segmentation pass](terrain_building_segmentation_2026-10-29.md)
+records the next 12 ledger dispositions and the remaining 2,443 entries.

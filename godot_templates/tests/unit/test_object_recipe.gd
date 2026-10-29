@@ -3,8 +3,27 @@ extends RefCounted
 
 const Recipe := preload("res://builder/recipes/object_scenes_recipe.gd")
 const ObjectIndex := preload("res://builder/lib/object_index.gd")
+const ObjectEntries := preload("res://builder/lib/object_entries.gd")
+const BuildContext := preload("res://builder/lib/build_context.gd")
+const CatalogReader := preload("res://builder/lib/catalog_reader.gd")
 
 const OUT := "user://test_object_recipe.tscn"
+
+func test_extracted_building_door_survives_the_catalog_entry_and_scene(t) -> void:
+	var eff := {"usage": "object", "role": "BUILDING", "size": [80, 64], "frame": [80, 64], "origin": [40, 63], "door": [52, 54], "collision": {"profile": "CUSTOM", "polygon": [[10, 40], [70, 40], [70, 50], [10, 50]]}}
+	var ctx := BuildContext.new("res://builder")
+	ctx.config = {"archetype": "assets", "view": "top", "base_tile_size": 16}
+	ctx.catalog = CatalogReader.new({"assets": [{"id": "p.house", "path": "icon.svg", "kind": "image", "status": "CONFIRMED", "detected": eff, "overrides": {}}], "objects": [], "tilesets": []})
+	var entries := ObjectEntries.entries(ctx)
+	t.eq(entries.size(), 1)
+	t.eq(entries[0]["door"], [52, 54])
+	t.eq(Recipe.new()._build_scene(entries[0], OUT, 16), OK)
+	var scene := (load(OUT) as PackedScene).instantiate()
+	t.eq((scene.get_node("Entrance") as Area2D).position, Vector2(12, -5))
+	t.eq((scene.get_node("ExitSpawn") as Marker2D).position, Vector2(12, 7))
+	t.ok(not (scene.get_meta("tags") as Array).has("door_assumed"))
+	scene.free()
+	DirAccess.remove_absolute(OUT)
 
 # The house of the sample pack: a 80 x 64 region, default origin (40, 63), door (40, 63).
 func _house() -> Dictionary:

@@ -122,6 +122,7 @@ class Asset:
     confidence: float = 0.0
     rule: dict[str, Any] = field(default_factory=dict)  # facets written by folder rules
     renamed_from: str | None = None  # path the vendor's earlier release used (T5.05)
+    metadata_review: str | None = None  # automatic decision; recheck its guards on every analysis
 
     def to_json(self) -> dict[str, Any]:
         out = {
@@ -140,6 +141,8 @@ class Asset:
             out["rule"] = copy.deepcopy(self.rule)
         if self.renamed_from:
             out["renamed_from"] = self.renamed_from
+        if self.metadata_review:
+            out["metadata_review"] = self.metadata_review
         return out
 
     @classmethod
@@ -157,6 +160,7 @@ class Asset:
             d["confidence"],
             copy.deepcopy(d.get("rule", {})),
             d.get("renamed_from"),
+            d.get("metadata_review"),
         )
 
 
@@ -2220,11 +2224,36 @@ def assemble(
             if asset.path in generated
             else (root_path / asset.path.split("/", 3)[-1])
         )
+
+        def metadata_context(a: Asset = asset) -> dict[str, Any]:
+            names = {
+                value.get("terrain", {}).get("set")
+                for value in (effective(a).get("tile_overrides") or {}).values()
+                if isinstance(value, dict) and isinstance(value.get("terrain"), dict)
+            }
+            return {
+                "terrain_sets": [
+                    terrain
+                    for t in catalog.tilesets
+                    if any(s["asset"] == a.id for s in t.sources)
+                    for terrain in t.terrain_sets
+                    if terrain["name"] in names
+                ]
+            }
+
         approved = metadata_reviews.decision(
-            asset.sha256, asset.id.partition("#")[2], effective(asset), reviewed_picture
+            asset.sha256,
+            asset.id.partition("#")[2],
+            effective(asset),
+            reviewed_picture,
+            source_root=root_path,
+            metadata_context=metadata_context,
         )
         if approved is not None:
             asset.detected = approved
+            asset.metadata_review = metadata_reviews.record_hash(
+                asset.sha256, asset.id.partition("#")[2]
+            )
             reviewed.add(asset.id)
     publisher_of = {p.pack_id: calibration.publisher_id(p.license) for p in catalog.packs}
     for asset in catalog.assets:
@@ -2592,12 +2621,20 @@ def _carry_previous(
         if old_pack is not None and old_pack.license_overrides:  # the Audit page's stay
             pack.license_overrides = dict(old_pack.license_overrides)
     prev_tile_assets = {src["asset"] for tdef in previous.tilesets for src in tdef.sources}
+    from rpggen.core import metadata_reviews
+
     for asset in catalog.assets:
         old = previous.asset(asset.id)
         if old is None:
             continue
         asset.overrides = copy.deepcopy(old.overrides)
-        if old.status == "CONFIRMED":
+        automatic = old.metadata_review is not None or (
+            not old.overrides
+            and not old.rule
+            and old.detected_by not in ("profile", "learned")
+            and metadata_reviews.has_record(old.sha256, _variant(old.id))
+        )
+        if old.status == "CONFIRMED" and not automatic:
             asset.status = "CONFIRMED"
         old_facets, new_facets = effective(old), effective(asset)
         layout_changed = old_facets.get("grid") != new_facets.get("grid") or old_facets.get(

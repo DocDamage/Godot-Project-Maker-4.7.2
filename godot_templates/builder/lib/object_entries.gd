@@ -118,7 +118,7 @@ static func entries(ctx: BuildContext) -> Array[Dictionary]:
 			"origin": JsonUtil.to_array(eff.get("origin", _default_origin(region))).duplicate(),
 			"footprint": [],
 			"collision": JsonUtil.to_dict(eff.get("collision", _foot(region) if cut else NO_COLLISION)).duplicate(true),
-			"door": [],
+			"door": JsonUtil.to_array(eff.get("door", [])).duplicate(),
 			"sha256": a.get("sha256", ""),
 			"open_region": open_region(eff, region),
 		})

@@ -1,0 +1,1453 @@
+{
+  "date": "2026-10-29",
+  "scope": "Source-bound terrain, building and segmentation art/placement metadata; not independent accuracy labels or artist-authored gameplay/physics",
+  "baseline_revision": "726c1853d98371e1b1b0535f68642f666244cb5b",
+  "tested_files_sha256": {
+    "rpggen/core/adapters/reviewed_segments.py": "3cc7f34aa08afcda7cd188e1b1ad8f6b1c27f6a6938dcb09bf57013bf3e04f91",
+    "rpggen/core/adapters/sheet_parts.py": "b10bb6f75e6ff0f09c7ab6587be08447bdfcce163604e1ec29d58cd4bfd25b76",
+    "rpggen/core/catalog.py": "53a555cce6ae2ce8ed5cefc543bc5fe2ddbafb3bbc6b05379580be5b8f200ab8",
+    "rpggen/core/metadata_reviews.py": "88dff3b9c73040b1ad8142f6bd0326fcca49d8f58f219fd16ed9e56008c2dbad",
+    "rpggen/core/inventory.py": "7c054bbe50dedc434cd8772217a66ba867cafd0d5df33cd1f016a95e8e100824",
+    "rpggen/core/analyzer/__init__.py": "6eec2eebcc2d96c7c2155729db73143d2277db546d834eb9bf13a224f5240b77",
+    "rpggen/data/confirmed_metadata.json": "24247d1f78d91f520134c086f31c68cec627d0831c977e48b5d0f01164c42d82",
+    "rpggen/data/reviewed_regions.json": "0445e58d5c35d5a111a95a9095aa1fe3b457dabe5880ab97fa3d37f9f9386afc",
+    "rpggen/data/reviewed_segments.json": "8624163833c34d306ebfee2cd416cf48689c084475841c732fa34f84d8802b1d",
+    "rpggen/schema/catalog.schema.json": "c432b9bf0083a4627247b3bb3a0985f9f534519637d7f7dcc023907fbe1704dd",
+    "godot_templates/builder/lib/object_entries.gd": "176bf636e969cb1741feeb2e6f191cd2f0790691895b8f4b021f7521655f3ff2",
+    "godot_templates/builder/recipes/object_scenes_recipe.gd": "5b2097a1f0499ac6f39e2da496e7adae94f4d250313b24fb498c65e2a4f9784e",
+    "godot_templates/tests/unit/test_object_recipe.gd": "8e1b7a1a8c012c43df523d34070828faa29493a8895f5fbe3482922933869bba",
+    "tests/unit/test_metadata_reviews.py": "5cfae9c1af9dae4c3dabc767a1ad96fb255c3c5d16cd1eaf53cef494e00ef925",
+    "tests/unit/test_building_terrain_reviews.py": "71ab65d6ccd25098f658eb1d6982fb1fdea6f43f7f9a041d5c114df947ed41a1",
+    "tests/unit/test_inventory.py": "90201e7e38cc13d3b923f94a5d74e5b259963d978974d58e7b4639e0a3c516c6",
+    "tests/unit/test_assemble.py": "79064f09a5cc79ac0b94ab2c348e0599f36b8c5aa5545458bef8ae3e524d3ab8"
+  },
+  "private_evidence_root": "D:\\rpggen_terrain_building_20261029",
+  "certifications": [
+    {
+      "pack": "p10",
+      "id": "fantasy_houses_tileset.fantasy_houses_tileset#o159_584",
+      "variant": "o159_584",
+      "confidence": 0.5,
+      "sha256": "02bd8c62eae65da94cc2a88f3e0f6264985d581794d4d81ca0d2c337120a3bbb",
+      "kind": "building_art",
+      "pixel_sha256": "898fcd65f0d11ceb72e0f3c19d11ddf07625338aec5e1c8242a71e3621e121f9",
+      "record_sha256": "a4f21a134ed06442c91ae54321519334b6acfe6385929b86b461cb7d0376c045",
+      "size": [
+        109,
+        136
+      ],
+      "origin": [
+        54,
+        135
+      ],
+      "scope": "Whole building art with visually located front entrance. Bottom-center pivot and rectangular main-body collision are explicit editable placement defaults, not artist-authored physics. No destination map or interior behavior certified.",
+      "door": [
+        51,
+        122
+      ],
+      "collision": {
+        "profile": "CUSTOM",
+        "polygon": [
+          [
+            24,
+            88
+          ],
+          [
+            88,
+            88
+          ],
+          [
+            88,
+            118
+          ],
+          [
+            24,
+            118
+          ]
+        ]
+      }
+    },
+    {
+      "pack": "p10",
+      "id": "fantasy_houses_tileset.fantasy_houses_tileset#o18_576",
+      "variant": "o18_576",
+      "confidence": 0.5,
+      "sha256": "02bd8c62eae65da94cc2a88f3e0f6264985d581794d4d81ca0d2c337120a3bbb",
+      "kind": "building_art",
+      "pixel_sha256": "e1ab792d7933da116ae7717cc5ffba6e61106ae3978ce3aea0526541a4c85990",
+      "record_sha256": "368d39a6bfbc3618fcc87c72ed35ba6e8ba381ef8fb8600c14f51f02024740dd",
+      "size": [
+        106,
+        158
+      ],
+      "origin": [
+        53,
+        157
+      ],
+      "scope": "Whole building art with visually located front entrance. Bottom-center pivot and rectangular main-body collision are explicit editable placement defaults, not artist-authored physics. No destination map or interior behavior certified.",
+      "door": [
+        54,
+        144
+      ],
+      "collision": {
+        "profile": "CUSTOM",
+        "polygon": [
+          [
+            14,
+            100
+          ],
+          [
+            95,
+            100
+          ],
+          [
+            95,
+            140
+          ],
+          [
+            14,
+            140
+          ]
+        ]
+      }
+    },
+    {
+      "pack": "p10",
+      "id": "fantasy_houses_tileset.fantasy_houses_tileset#o293_14",
+      "variant": "o293_14",
+      "confidence": 0.5,
+      "sha256": "02bd8c62eae65da94cc2a88f3e0f6264985d581794d4d81ca0d2c337120a3bbb",
+      "kind": "building_art",
+      "pixel_sha256": "6947162c1680776331512a728d3749b40fe0a2b6c681cdd671f9718436396c9e",
+      "record_sha256": "ec4ff3b3e1066adf5038074b5b75d67ebd60ee883d25eced8d73f7631e8e3f12",
+      "size": [
+        226,
+        246
+      ],
+      "origin": [
+        113,
+        245
+      ],
+      "scope": "Whole building art with visually located front entrance. Bottom-center pivot and rectangular main-body collision are explicit editable placement defaults, not artist-authored physics. No destination map or interior behavior certified.",
+      "door": [
+        113,
+        207
+      ],
+      "collision": {
+        "profile": "CUSTOM",
+        "polygon": [
+          [
+            40,
+            150
+          ],
+          [
+            217,
+            150
+          ],
+          [
+            217,
+            203
+          ],
+          [
+            40,
+            203
+          ]
+        ]
+      }
+    },
+    {
+      "pack": "p10",
+      "id": "fantasy_houses_tileset.fantasy_houses_tileset#o293_591",
+      "variant": "o293_591",
+      "confidence": 0.5,
+      "sha256": "02bd8c62eae65da94cc2a88f3e0f6264985d581794d4d81ca0d2c337120a3bbb",
+      "kind": "building_art",
+      "pixel_sha256": "7637f9a3506a09ff6cb1342600cfd5af73a333221a4ce6de10bd5710a129278e",
+      "record_sha256": "2baf071267941d550526995fc9737cb0e603fd748c9fe86c09490d780050bf21",
+      "size": [
+        111,
+        129
+      ],
+      "origin": [
+        55,
+        128
+      ],
+      "scope": "Whole building art with visually located front entrance. Bottom-center pivot and rectangular main-body collision are explicit editable placement defaults, not artist-authored physics. No destination map or interior behavior certified.",
+      "door": [
+        65,
+        116
+      ],
+      "collision": {
+        "profile": "CUSTOM",
+        "polygon": [
+          [
+            10,
+            85
+          ],
+          [
+            104,
+            85
+          ],
+          [
+            104,
+            112
+          ],
+          [
+            10,
+            112
+          ]
+        ]
+      }
+    },
+    {
+      "pack": "p10",
+      "id": "fantasy_houses_tileset.fantasy_houses_tileset#o303_314",
+      "variant": "o303_314",
+      "confidence": 0.5,
+      "sha256": "02bd8c62eae65da94cc2a88f3e0f6264985d581794d4d81ca0d2c337120a3bbb",
+      "kind": "building_art",
+      "pixel_sha256": "234d753eb12b0896741ae9876d1fbea25eae47a2eb51ac58a810131d397a2050",
+      "record_sha256": "699125e0409fe64d2219c24b2929c1fe685e256157cd20780eafc9f7de9c83c7",
+      "size": [
+        210,
+        228
+      ],
+      "origin": [
+        105,
+        227
+      ],
+      "scope": "Whole building art with visually located front entrance. Bottom-center pivot and rectangular main-body collision are explicit editable placement defaults, not artist-authored physics. No destination map or interior behavior certified.",
+      "door": [
+        103,
+        208
+      ],
+      "collision": {
+        "profile": "CUSTOM",
+        "polygon": [
+          [
+            19,
+            156
+          ],
+          [
+            192,
+            156
+          ],
+          [
+            192,
+            204
+          ],
+          [
+            19,
+            204
+          ]
+        ]
+      }
+    },
+    {
+      "pack": "p10",
+      "id": "fantasy_houses_tileset.fantasy_houses_tileset#o453_528",
+      "variant": "o453_528",
+      "confidence": 0.5,
+      "sha256": "02bd8c62eae65da94cc2a88f3e0f6264985d581794d4d81ca0d2c337120a3bbb",
+      "kind": "building_art",
+      "pixel_sha256": "65dac1a4cc9a8c8d7e09706c2113d17f5700b84fd22b756a1e2c07b6a27d7c24",
+      "record_sha256": "33cfb290d36bb581296eea4699bedd381cb23bb232c871ab745244844fc49121",
+      "size": [
+        111,
+        192
+      ],
+      "origin": [
+        55,
+        191
+      ],
+      "scope": "Whole building art with visually located front entrance. Bottom-center pivot and rectangular main-body collision are explicit editable placement defaults, not artist-authored physics. No destination map or interior behavior certified.",
+      "door": [
+        53,
+        178
+      ],
+      "collision": {
+        "profile": "CUSTOM",
+        "polygon": [
+          [
+            17,
+            143
+          ],
+          [
+            98,
+            143
+          ],
+          [
+            98,
+            174
+          ],
+          [
+            17,
+            174
+          ]
+        ]
+      }
+    },
+    {
+      "pack": "p10",
+      "id": "fantasy_houses_tileset.fantasy_houses_tileset#o48_20",
+      "variant": "o48_20",
+      "confidence": 0.5,
+      "sha256": "02bd8c62eae65da94cc2a88f3e0f6264985d581794d4d81ca0d2c337120a3bbb",
+      "kind": "building_art",
+      "pixel_sha256": "55dbc66ffe22b9b8305fcdae7d2896289ed724baa75d5ec72b19b79f178d156f",
+      "record_sha256": "7c94d8e9891b4ef51aede48109c7d025482c2f0ce3d304b833e893e428231977",
+      "size": [
+        240,
+        249
+      ],
+      "origin": [
+        120,
+        248
+      ],
+      "scope": "Whole building art with visually located front entrance. Bottom-center pivot and rectangular main-body collision are explicit editable placement defaults, not artist-authored physics. No destination map or interior behavior certified.",
+      "door": [
+        119,
+        201
+      ],
+      "collision": {
+        "profile": "CUSTOM",
+        "polygon": [
+          [
+            41,
+            151
+          ],
+          [
+            197,
+            151
+          ],
+          [
+            197,
+            197
+          ],
+          [
+            41,
+            197
+          ]
+        ]
+      }
+    },
+    {
+      "pack": "p10",
+      "id": "fantasy_houses_tileset.fantasy_houses_tileset#o534_30",
+      "variant": "o534_30",
+      "confidence": 0.5,
+      "sha256": "02bd8c62eae65da94cc2a88f3e0f6264985d581794d4d81ca0d2c337120a3bbb",
+      "kind": "building_art",
+      "pixel_sha256": "a2dbbeb6e528efbe612cdf197258149ea4d6e43f23a507110d4f29e36a5bffde",
+      "record_sha256": "d25186c234c0a0ebf2981865db945d02ef3d8853383c43e5c770c84c3e3a54b5",
+      "size": [
+        228,
+        244
+      ],
+      "origin": [
+        114,
+        243
+      ],
+      "scope": "Whole building art with visually located front entrance. Bottom-center pivot and rectangular main-body collision are explicit editable placement defaults, not artist-authored physics. No destination map or interior behavior certified.",
+      "door": [
+        114,
+        202
+      ],
+      "collision": {
+        "profile": "CUSTOM",
+        "polygon": [
+          [
+            35,
+            156
+          ],
+          [
+            216,
+            156
+          ],
+          [
+            216,
+            198
+          ],
+          [
+            35,
+            198
+          ]
+        ]
+      }
+    },
+    {
+      "pack": "p10",
+      "id": "fantasy_houses_tileset.fantasy_houses_tileset#o543_314",
+      "variant": "o543_314",
+      "confidence": 0.5,
+      "sha256": "02bd8c62eae65da94cc2a88f3e0f6264985d581794d4d81ca0d2c337120a3bbb",
+      "kind": "building_art",
+      "pixel_sha256": "b6f0c484b3860f49b1293d588597bb16281a85813ee16e1c310522cd1b7a89f3",
+      "record_sha256": "694de2cff6bd8384458aed87e0f63f88524944c16139518cd23513b98d726eda",
+      "size": [
+        210,
+        246
+      ],
+      "origin": [
+        105,
+        245
+      ],
+      "scope": "Whole building art with visually located front entrance. Bottom-center pivot and rectangular main-body collision are explicit editable placement defaults, not artist-authored physics. No destination map or interior behavior certified.",
+      "door": [
+        104,
+        209
+      ],
+      "collision": {
+        "profile": "CUSTOM",
+        "polygon": [
+          [
+            19,
+            158
+          ],
+          [
+            192,
+            158
+          ],
+          [
+            192,
+            205
+          ],
+          [
+            19,
+            205
+          ]
+        ]
+      }
+    },
+    {
+      "pack": "p10",
+      "id": "fantasy_houses_tileset.fantasy_houses_tileset#o63_314",
+      "variant": "o63_314",
+      "confidence": 0.5,
+      "sha256": "02bd8c62eae65da94cc2a88f3e0f6264985d581794d4d81ca0d2c337120a3bbb",
+      "kind": "building_art",
+      "pixel_sha256": "9f3b5b14c350afb039eef41a22565db2d665d3b6adc6c13dc9e0ea567435f500",
+      "record_sha256": "d4ac8fddc87a2a500751f52849212939b5517af15ae65d1ac143266f4daaf8a1",
+      "size": [
+        210,
+        246
+      ],
+      "origin": [
+        105,
+        245
+      ],
+      "scope": "Whole building art with visually located front entrance. Bottom-center pivot and rectangular main-body collision are explicit editable placement defaults, not artist-authored physics. No destination map or interior behavior certified.",
+      "door": [
+        106,
+        209
+      ],
+      "collision": {
+        "profile": "CUSTOM",
+        "polygon": [
+          [
+            19,
+            160
+          ],
+          [
+            190,
+            160
+          ],
+          [
+            190,
+            205
+          ],
+          [
+            19,
+            205
+          ]
+        ]
+      }
+    },
+    {
+      "pack": "p02",
+      "id": "medieval_fantasy_town_pixel_art_tileset_.n18#o435_192_cat0",
+      "variant": "o435_192_cat0",
+      "confidence": 0.5,
+      "sha256": "300e9cc9050cbabbd8f9135054f821a25cba780fe006fa8a220d6e1888f7a579",
+      "kind": "static_animal",
+      "pixel_sha256": "9030d8cdd95141be2671318c2708f2539a4fc449fa64ad238269ac335b0ba7c6",
+      "record_sha256": "4a0104c19863658843f3cc5c0651cbb2fc810e62fe4a46ec66c5bd6a82bc2119",
+      "size": [
+        24,
+        26
+      ],
+      "origin": [
+        12,
+        25
+      ],
+      "scope": "Exact disjoint static cat pose; bottom-center pivot and one-frame idle are presentation defaults. No walking, production or combat behavior certified."
+    },
+    {
+      "pack": "p02",
+      "id": "medieval_fantasy_town_pixel_art_tileset_.n18#o435_192_cat1",
+      "variant": "o435_192_cat1",
+      "confidence": 0.5,
+      "sha256": "300e9cc9050cbabbd8f9135054f821a25cba780fe006fa8a220d6e1888f7a579",
+      "kind": "static_animal",
+      "pixel_sha256": "de0d630690501386c8fdcb37ae37ddfb98051e560a6f81b84397d866dc15abf1",
+      "record_sha256": "f014ff5eddb4a243c433030c0099b627e8c7aa120f33ac224d33fde5f601e721",
+      "size": [
+        33,
+        18
+      ],
+      "origin": [
+        16,
+        17
+      ],
+      "scope": "Exact disjoint static cat pose; bottom-center pivot and one-frame idle are presentation defaults. No walking, production or combat behavior certified."
+    },
+    {
+      "pack": "p20",
+      "id": "lpc_floors.lpc_floors.floors",
+      "variant": "",
+      "confidence": 0.461538,
+      "sha256": "02c0a5bdf0c881148a9f65f4c82b63c9bb0ddca2c1546470aac897118e9cc030",
+      "kind": "tiled_atlas",
+      "pixel_sha256": "d632ede9929c7711dba57e22fcbdbf2d6d49c2eeaaf65cea3b9912d87ce69f02",
+      "record_sha256": "9db03765332632047e557a1f6e1e8995fdf6eb40d7c2e580cb7b75e7b7c6e473",
+      "size": [
+        1024,
+        2048
+      ],
+      "origin": null,
+      "scope": "Native atlas grid and source-authored Tiled rug terrain mappings. Non-blocking floor collision is an explicit placement default. Unsupported checkerboard corner patterns are not synthesized.",
+      "dependencies": [
+        {
+          "path": "lpc-floors/floors.tsx",
+          "sha256": "32d1d958f4345767c1042c0fcec509ee6d30da99df7b3742cc4971c5a45dd90d"
+        }
+      ],
+      "grid": {
+        "cell": [
+          32,
+          32
+        ],
+        "margin": [
+          0,
+          0
+        ],
+        "separation": [
+          0,
+          0
+        ]
+      },
+      "terrain_styles": 40,
+      "source_declared_tiles": 520,
+      "patterns_per_style": 13,
+      "unsupported_checkerboard_masks": [
+        5,
+        10
+      ]
+    }
+  ],
+  "integrity": {
+    "packs": [
+      {
+        "pack": "p10",
+        "certified": 10,
+        "source_images_rehashed": 1,
+        "metadata_validation": {
+          "images": 35,
+          "animations": 0,
+          "frames": 0,
+          "image_headers": 35,
+          "failures": [],
+          "passed": true
+        },
+        "old_ids_and_paths_preserved": 36,
+        "new_ids": [],
+        "changed_old_ids": [
+          "fantasy_houses_tileset.fantasy_houses_tileset#o159_584",
+          "fantasy_houses_tileset.fantasy_houses_tileset#o18_576",
+          "fantasy_houses_tileset.fantasy_houses_tileset#o293_14",
+          "fantasy_houses_tileset.fantasy_houses_tileset#o293_591",
+          "fantasy_houses_tileset.fantasy_houses_tileset#o303_314",
+          "fantasy_houses_tileset.fantasy_houses_tileset#o453_528",
+          "fantasy_houses_tileset.fantasy_houses_tileset#o48_20",
+          "fantasy_houses_tileset.fantasy_houses_tileset#o534_30",
+          "fantasy_houses_tileset.fantasy_houses_tileset#o543_314",
+          "fantasy_houses_tileset.fantasy_houses_tileset#o63_314"
+        ],
+        "pre_change_source_keys_resolved": 36,
+        "owner_queue_source_entries": 0,
+        "current_source_keys_resolved": 36
+      },
+      {
+        "pack": "p02",
+        "certified": 2,
+        "source_images_rehashed": 1,
+        "metadata_validation": {
+          "images": 688,
+          "animations": 10,
+          "frames": 10,
+          "image_headers": 688,
+          "failures": [],
+          "passed": true
+        },
+        "old_ids_and_paths_preserved": 700,
+        "new_ids": [
+          "medieval_fantasy_town_pixel_art_tileset_.n18#o435_192_cat0",
+          "medieval_fantasy_town_pixel_art_tileset_.n18#o435_192_cat1"
+        ],
+        "changed_old_ids": [
+          "medieval_fantasy_town_pixel_art_tileset_.n18#o435_192"
+        ],
+        "pre_change_source_keys_resolved": 700,
+        "owner_queue_source_entries": 0,
+        "current_source_keys_resolved": 702
+      },
+      {
+        "pack": "p20",
+        "certified": 1,
+        "source_images_rehashed": 1,
+        "metadata_validation": {
+          "images": 1,
+          "animations": 0,
+          "frames": 0,
+          "image_headers": 1,
+          "failures": [],
+          "passed": true
+        },
+        "old_ids_and_paths_preserved": 1,
+        "new_ids": [],
+        "changed_old_ids": [
+          "lpc_floors.lpc_floors.floors"
+        ],
+        "pre_change_source_keys_resolved": 1,
+        "owner_queue_source_entries": 0,
+        "current_source_keys_resolved": 1
+      }
+    ],
+    "owner_entries": 44,
+    "new_source_overlap_with_owner_choices": 0,
+    "saved_choices_sha256": "52294b9655fb46c2165751c05cb0d2245baf5f798d3dbcd3965a224458901128",
+    "calibration_sha256": "73abface1d895568205ddc41c917dbfb0558daf7e6ca95e0ca2fcaf1a269b588",
+    "house_orphan_pixels_removed": 23,
+    "cats": {
+      "parent_status": "UNUSED",
+      "component_painted_pixels": [
+        322,
+        376
+      ],
+      "painted_pixels_assigned": 698,
+      "overlap": 0,
+      "unassigned": 0
+    },
+    "companion_byte_drift": {
+      "regenerated_status": "NEEDS_REVIEW",
+      "status": "NEEDS_REVIEW",
+      "input_facets_unchanged": true,
+      "certification_withheld": true
+    }
+  },
+  "native_validation": {
+    "p10": {
+      "buildings": [
+        {
+          "body_collision": true,
+          "front_approach_samples": 13,
+          "id": "fantasy_houses_tileset.fantasy_houses_tileset#o159_584",
+          "pixels": "898fcd65f0d11ceb72e0f3c19d11ddf07625338aec5e1c8242a71e3621e121f9"
+        },
+        {
+          "body_collision": true,
+          "front_approach_samples": 13,
+          "id": "fantasy_houses_tileset.fantasy_houses_tileset#o18_576",
+          "pixels": "e1ab792d7933da116ae7717cc5ffba6e61106ae3978ce3aea0526541a4c85990"
+        },
+        {
+          "body_collision": true,
+          "front_approach_samples": 13,
+          "id": "fantasy_houses_tileset.fantasy_houses_tileset#o293_14",
+          "pixels": "6947162c1680776331512a728d3749b40fe0a2b6c681cdd671f9718436396c9e"
+        },
+        {
+          "body_collision": true,
+          "front_approach_samples": 13,
+          "id": "fantasy_houses_tileset.fantasy_houses_tileset#o293_591",
+          "pixels": "7637f9a3506a09ff6cb1342600cfd5af73a333221a4ce6de10bd5710a129278e"
+        },
+        {
+          "body_collision": true,
+          "front_approach_samples": 13,
+          "id": "fantasy_houses_tileset.fantasy_houses_tileset#o303_314",
+          "pixels": "234d753eb12b0896741ae9876d1fbea25eae47a2eb51ac58a810131d397a2050"
+        },
+        {
+          "body_collision": true,
+          "front_approach_samples": 13,
+          "id": "fantasy_houses_tileset.fantasy_houses_tileset#o453_528",
+          "pixels": "65dac1a4cc9a8c8d7e09706c2113d17f5700b84fd22b756a1e2c07b6a27d7c24"
+        },
+        {
+          "body_collision": true,
+          "front_approach_samples": 13,
+          "id": "fantasy_houses_tileset.fantasy_houses_tileset#o48_20",
+          "pixels": "55dbc66ffe22b9b8305fcdae7d2896289ed724baa75d5ec72b19b79f178d156f"
+        },
+        {
+          "body_collision": true,
+          "front_approach_samples": 13,
+          "id": "fantasy_houses_tileset.fantasy_houses_tileset#o534_30",
+          "pixels": "a2dbbeb6e528efbe612cdf197258149ea4d6e43f23a507110d4f29e36a5bffde"
+        },
+        {
+          "body_collision": true,
+          "front_approach_samples": 13,
+          "id": "fantasy_houses_tileset.fantasy_houses_tileset#o543_314",
+          "pixels": "b6f0c484b3860f49b1293d588597bb16281a85813ee16e1c310522cd1b7a89f3"
+        },
+        {
+          "body_collision": true,
+          "front_approach_samples": 13,
+          "id": "fantasy_houses_tileset.fantasy_houses_tileset#o63_314",
+          "pixels": "9f3b5b14c350afb039eef41a22565db2d665d3b6adc6c13dc9e0ea567435f500"
+        }
+      ],
+      "failures": [],
+      "pack": "p10"
+    },
+    "p20": {
+      "failures": [],
+      "pack": "p20",
+      "terrain": {
+        "pixel_sha256": "d632ede9929c7711dba57e22fcbdbf2d6d49c2eeaaf65cea3b9912d87ce69f02",
+        "source_tiles": 520,
+        "styles": [
+          {
+            "painted": 25,
+            "requested_cells": 25,
+            "terrain": 0
+          },
+          {
+            "painted": 25,
+            "requested_cells": 25,
+            "terrain": 1
+          },
+          {
+            "painted": 25,
+            "requested_cells": 25,
+            "terrain": 2
+          },
+          {
+            "painted": 25,
+            "requested_cells": 25,
+            "terrain": 3
+          },
+          {
+            "painted": 25,
+            "requested_cells": 25,
+            "terrain": 4
+          },
+          {
+            "painted": 25,
+            "requested_cells": 25,
+            "terrain": 5
+          },
+          {
+            "painted": 25,
+            "requested_cells": 25,
+            "terrain": 6
+          },
+          {
+            "painted": 25,
+            "requested_cells": 25,
+            "terrain": 7
+          },
+          {
+            "painted": 25,
+            "requested_cells": 25,
+            "terrain": 8
+          },
+          {
+            "painted": 25,
+            "requested_cells": 25,
+            "terrain": 9
+          },
+          {
+            "painted": 25,
+            "requested_cells": 25,
+            "terrain": 10
+          },
+          {
+            "painted": 25,
+            "requested_cells": 25,
+            "terrain": 11
+          },
+          {
+            "painted": 25,
+            "requested_cells": 25,
+            "terrain": 12
+          },
+          {
+            "painted": 25,
+            "requested_cells": 25,
+            "terrain": 13
+          },
+          {
+            "painted": 25,
+            "requested_cells": 25,
+            "terrain": 14
+          },
+          {
+            "painted": 25,
+            "requested_cells": 25,
+            "terrain": 15
+          },
+          {
+            "painted": 25,
+            "requested_cells": 25,
+            "terrain": 16
+          },
+          {
+            "painted": 25,
+            "requested_cells": 25,
+            "terrain": 17
+          },
+          {
+            "painted": 25,
+            "requested_cells": 25,
+            "terrain": 18
+          },
+          {
+            "painted": 25,
+            "requested_cells": 25,
+            "terrain": 19
+          },
+          {
+            "painted": 25,
+            "requested_cells": 25,
+            "terrain": 20
+          },
+          {
+            "painted": 25,
+            "requested_cells": 25,
+            "terrain": 21
+          },
+          {
+            "painted": 25,
+            "requested_cells": 25,
+            "terrain": 22
+          },
+          {
+            "painted": 25,
+            "requested_cells": 25,
+            "terrain": 23
+          },
+          {
+            "painted": 25,
+            "requested_cells": 25,
+            "terrain": 24
+          },
+          {
+            "painted": 25,
+            "requested_cells": 25,
+            "terrain": 25
+          },
+          {
+            "painted": 25,
+            "requested_cells": 25,
+            "terrain": 26
+          },
+          {
+            "painted": 25,
+            "requested_cells": 25,
+            "terrain": 27
+          },
+          {
+            "painted": 25,
+            "requested_cells": 25,
+            "terrain": 28
+          },
+          {
+            "painted": 25,
+            "requested_cells": 25,
+            "terrain": 29
+          },
+          {
+            "painted": 25,
+            "requested_cells": 25,
+            "terrain": 30
+          },
+          {
+            "painted": 25,
+            "requested_cells": 25,
+            "terrain": 31
+          },
+          {
+            "painted": 25,
+            "requested_cells": 25,
+            "terrain": 32
+          },
+          {
+            "painted": 25,
+            "requested_cells": 25,
+            "terrain": 33
+          },
+          {
+            "painted": 25,
+            "requested_cells": 25,
+            "terrain": 34
+          },
+          {
+            "painted": 25,
+            "requested_cells": 25,
+            "terrain": 35
+          },
+          {
+            "painted": 25,
+            "requested_cells": 25,
+            "terrain": 36
+          },
+          {
+            "painted": 25,
+            "requested_cells": 25,
+            "terrain": 37
+          },
+          {
+            "painted": 25,
+            "requested_cells": 25,
+            "terrain": 38
+          },
+          {
+            "painted": 25,
+            "requested_cells": 25,
+            "terrain": 39
+          }
+        ],
+        "unassigned_existing_tiles": 1102
+      }
+    },
+    "p02": {
+      "cats": [
+        {
+          "id": "medieval_fantasy_town_pixel_art_tileset_.n18#o435_192_cat0",
+          "origin": [
+            12.0,
+            25.0
+          ],
+          "pixels": "9030d8cdd95141be2671318c2708f2539a4fc449fa64ad238269ac335b0ba7c6",
+          "size": [
+            24.0,
+            26.0
+          ]
+        },
+        {
+          "id": "medieval_fantasy_town_pixel_art_tileset_.n18#o435_192_cat1",
+          "origin": [
+            16.0,
+            17.0
+          ],
+          "pixels": "de0d630690501386c8fdcb37ae37ddfb98051e560a6f81b84397d866dc15abf1",
+          "size": [
+            33.0,
+            18.0
+          ]
+        }
+      ],
+      "failures": [],
+      "pack": "p02"
+    }
+  },
+  "analysis_resources": [
+    {
+      "pack": "p10",
+      "exit_code": 0,
+      "peak_private_bytes": 727506944,
+      "minimum_commit_headroom_bytes": 13951979520,
+      "seconds": 2.06,
+      "stopped": ""
+    },
+    {
+      "pack": "p20",
+      "exit_code": 0,
+      "peak_private_bytes": 711979008,
+      "minimum_commit_headroom_bytes": 14152523776,
+      "seconds": 1.55,
+      "stopped": ""
+    },
+    {
+      "pack": "p02",
+      "exit_code": 0,
+      "peak_private_bytes": 776069120,
+      "minimum_commit_headroom_bytes": 12908314624,
+      "seconds": 10.25,
+      "stopped": ""
+    }
+  ],
+  "assets_resources": [
+    {
+      "pack": "p10",
+      "attempt": 1,
+      "exit_code": 0,
+      "peak_private_bytes": 1313386496,
+      "minimum_commit_headroom_bytes": 8147582976,
+      "seconds": 18.16,
+      "stopped": ""
+    },
+    {
+      "pack": "p20",
+      "attempt": 1,
+      "exit_code": 0,
+      "peak_private_bytes": 1311277056,
+      "minimum_commit_headroom_bytes": 2750111744,
+      "seconds": 14.53,
+      "stopped": ""
+    },
+    {
+      "pack": "p02",
+      "attempt": 1,
+      "exit_code": 0,
+      "peak_private_bytes": 1629454336,
+      "minimum_commit_headroom_bytes": 4709027840,
+      "seconds": 45.73,
+      "stopped": ""
+    }
+  ],
+  "assets_projects": [
+    {
+      "pack": "p10",
+      "ok": true,
+      "target": "D:\\rpggen_terrain_building_20261029\\projects_guarded_01\\p10",
+      "timings": {
+        "preflight": 0.23,
+        "stage": 0.0,
+        "install": 0.83,
+        "catalog": 1.02,
+        "import": 9.44,
+        "build": 1.56,
+        "validate": 3.8,
+        "smoke": 0.0,
+        "export": 0.0,
+        "promote": 0.25,
+        "report": 0.03
+      },
+      "issues": [
+        {
+          "code": "VAL-032",
+          "severity": "info",
+          "message": "An assets-only project has no game: it was not played and not test-exported."
+        }
+      ]
+    },
+    {
+      "pack": "p20",
+      "ok": true,
+      "target": "D:\\rpggen_terrain_building_20261029\\projects_guarded_01\\p20",
+      "timings": {
+        "preflight": 0.09,
+        "stage": 0.0,
+        "install": 0.45,
+        "catalog": 0.84,
+        "import": 6.88,
+        "build": 1.53,
+        "validate": 3.25,
+        "smoke": 0.0,
+        "export": 0.0,
+        "promote": 0.19,
+        "report": 0.09
+      },
+      "issues": [
+        {
+          "code": "ARCH-008",
+          "severity": "info",
+          "message": "Skipped OS junk file __MACOSX/._lpc-floors."
+        },
+        {
+          "code": "ARCH-008",
+          "severity": "info",
+          "message": "Skipped OS junk file __MACOSX/lpc-floors/._CREDITS-floors.txt."
+        },
+        {
+          "code": "ARCH-008",
+          "severity": "info",
+          "message": "Skipped OS junk file __MACOSX/lpc-floors/._floors.png."
+        },
+        {
+          "code": "ARCH-008",
+          "severity": "info",
+          "message": "Skipped OS junk file __MACOSX/lpc-floors/._floors.tsx."
+        },
+        {
+          "code": "ASSET-028",
+          "severity": "warning",
+          "message": "Pack lpc_floors needs attribution, but no author was found in its license files."
+        },
+        {
+          "code": "VAL-032",
+          "severity": "info",
+          "message": "An assets-only project has no game: it was not played and not test-exported."
+        }
+      ]
+    },
+    {
+      "pack": "p02",
+      "ok": true,
+      "target": "D:\\rpggen_terrain_building_20261029\\projects_guarded_01\\p02",
+      "timings": {
+        "preflight": 0.09,
+        "stage": 0.0,
+        "install": 0.36,
+        "catalog": 10.91,
+        "import": 14.98,
+        "build": 2.53,
+        "validate": 13.95,
+        "smoke": 0.0,
+        "export": 0.0,
+        "promote": 0.95,
+        "report": 0.08
+      },
+      "issues": [
+        {
+          "code": "ASSET-021",
+          "severity": "info",
+          "message": "Pack medieval_fantasy_town_pixel_art_tileset_ has no license file."
+        },
+        {
+          "code": "VAL-032",
+          "severity": "info",
+          "message": "An assets-only project has no game: it was not played and not test-exported."
+        }
+      ]
+    }
+  ],
+  "validation": {
+    "python": {
+      "expected_cases": 2641,
+      "passed": 2638,
+      "skipped": 3,
+      "failed": 0,
+      "attempts": [
+        {
+          "attempt": 1,
+          "exit_code": 125,
+          "peak_private_bytes": 866738176,
+          "minimum_commit_headroom_bytes": 774897664,
+          "seconds": 19.94,
+          "stopped": "system commit headroom guard",
+          "completed_cases": 10
+        },
+        {
+          "attempt": 2,
+          "exit_code": 125,
+          "peak_private_bytes": 880840704,
+          "minimum_commit_headroom_bytes": 620498944,
+          "seconds": 72.12,
+          "stopped": "system commit headroom guard",
+          "completed_cases": 12
+        },
+        {
+          "attempt": 3,
+          "exit_code": 125,
+          "peak_private_bytes": 922832896,
+          "minimum_commit_headroom_bytes": 652124160,
+          "seconds": 165.14,
+          "stopped": "system commit headroom guard",
+          "completed_cases": 490
+        },
+        {
+          "attempt": 4,
+          "exit_code": 125,
+          "peak_private_bytes": 871927808,
+          "minimum_commit_headroom_bytes": 739192832,
+          "seconds": 108.27,
+          "stopped": "system commit headroom guard",
+          "completed_cases": 818
+        },
+        {
+          "attempt": 5,
+          "exit_code": 125,
+          "peak_private_bytes": 983408640,
+          "minimum_commit_headroom_bytes": 774483968,
+          "seconds": 256.56,
+          "stopped": "system commit headroom guard",
+          "completed_cases": 2466
+        },
+        {
+          "attempt": 6,
+          "exit_code": 125,
+          "peak_private_bytes": 765526016,
+          "minimum_commit_headroom_bytes": 630730752,
+          "seconds": 39.23,
+          "stopped": "system commit headroom guard",
+          "completed_cases": 2471
+        },
+        {
+          "attempt": 7,
+          "exit_code": 0,
+          "peak_private_bytes": 820113408,
+          "minimum_commit_headroom_bytes": 13908594688,
+          "seconds": 38.89,
+          "stopped": "",
+          "completed_cases": 2641
+        }
+      ]
+    },
+    "focused_passed": 161,
+    "godot_passed": 1110,
+    "godot_failed": 0,
+    "godot_script_errors": 0,
+    "known_fixture_engine_diagnostics": 53,
+    "push_diagnostics": 28,
+    "ruff": "passed",
+    "formatting": "passed",
+    "mypy": "passed"
+  },
+  "final_validation_resources": [
+    {
+      "name": "verified-analysis",
+      "exit_code": 0,
+      "peak_private_bytes": 785899520,
+      "minimum_commit_headroom_bytes": 12930142208,
+      "seconds": 14.38,
+      "stopped": ""
+    },
+    {
+      "name": "integrity",
+      "exit_code": 0,
+      "peak_private_bytes": 799985664,
+      "minimum_commit_headroom_bytes": 13483343872,
+      "seconds": 3.61,
+      "stopped": ""
+    },
+    {
+      "name": "p10-native",
+      "exit_code": 0,
+      "peak_private_bytes": 83431424,
+      "minimum_commit_headroom_bytes": 14864908288,
+      "seconds": 1.53,
+      "stopped": ""
+    },
+    {
+      "name": "p20-native",
+      "exit_code": 0,
+      "peak_private_bytes": 96411648,
+      "minimum_commit_headroom_bytes": 13422374912,
+      "seconds": 3.64,
+      "stopped": ""
+    },
+    {
+      "name": "p02-native",
+      "exit_code": 0,
+      "peak_private_bytes": 80457728,
+      "minimum_commit_headroom_bytes": 14871396352,
+      "seconds": 1.02,
+      "stopped": ""
+    },
+    {
+      "name": "ruff",
+      "exit_code": 0,
+      "peak_private_bytes": 9289728,
+      "minimum_commit_headroom_bytes": 14883905536,
+      "seconds": 1.03,
+      "stopped": ""
+    },
+    {
+      "name": "format",
+      "exit_code": 0,
+      "peak_private_bytes": 1351680,
+      "minimum_commit_headroom_bytes": 14932885504,
+      "seconds": 0.53,
+      "stopped": ""
+    },
+    {
+      "name": "mypy",
+      "exit_code": 0,
+      "peak_private_bytes": 188293120,
+      "minimum_commit_headroom_bytes": 14748020736,
+      "seconds": 5.62,
+      "stopped": ""
+    }
+  ],
+  "validation_attempts": [
+    {
+      "name": "verified-analysis",
+      "attempt": 1,
+      "exit_code": 0,
+      "peak_private_bytes": 785899520,
+      "minimum_commit_headroom_bytes": 12930142208,
+      "seconds": 14.38,
+      "stopped": ""
+    },
+    {
+      "name": "integrity",
+      "attempt": 1,
+      "exit_code": 0,
+      "peak_private_bytes": 857907200,
+      "minimum_commit_headroom_bytes": 14044631040,
+      "seconds": 6.14,
+      "stopped": ""
+    },
+    {
+      "name": "p10-native",
+      "attempt": 1,
+      "exit_code": 0,
+      "peak_private_bytes": 83431424,
+      "minimum_commit_headroom_bytes": 14864908288,
+      "seconds": 1.53,
+      "stopped": ""
+    },
+    {
+      "name": "p20-native",
+      "attempt": 1,
+      "exit_code": 0,
+      "peak_private_bytes": 80855040,
+      "minimum_commit_headroom_bytes": 14885761024,
+      "seconds": 1.55,
+      "stopped": "",
+      "accepted": false,
+      "reason": "SCRIPT ERROR and incomplete terrain result; rejected during final log/output verification"
+    },
+    {
+      "name": "p02-native",
+      "attempt": 1,
+      "exit_code": 0,
+      "peak_private_bytes": 80457728,
+      "minimum_commit_headroom_bytes": 14871396352,
+      "seconds": 1.02,
+      "stopped": ""
+    },
+    {
+      "name": "ruff",
+      "attempt": 1,
+      "exit_code": 0,
+      "peak_private_bytes": 9289728,
+      "minimum_commit_headroom_bytes": 14883905536,
+      "seconds": 1.03,
+      "stopped": ""
+    },
+    {
+      "name": "format",
+      "attempt": 1,
+      "exit_code": 0,
+      "peak_private_bytes": 1351680,
+      "minimum_commit_headroom_bytes": 14932885504,
+      "seconds": 0.53,
+      "stopped": ""
+    },
+    {
+      "name": "mypy",
+      "attempt": 1,
+      "exit_code": 0,
+      "peak_private_bytes": 188293120,
+      "minimum_commit_headroom_bytes": 14748020736,
+      "seconds": 5.62,
+      "stopped": ""
+    },
+    {
+      "name": "integrity",
+      "attempt": 1,
+      "exit_code": 1,
+      "peak_private_bytes": 759664640,
+      "minimum_commit_headroom_bytes": 13710331904,
+      "seconds": 1.55,
+      "stopped": ""
+    },
+    {
+      "name": "p20-native",
+      "attempt": "final",
+      "accepted": true,
+      "exit_code": 0,
+      "peak_private_bytes": 96411648,
+      "minimum_commit_headroom_bytes": 13422374912,
+      "seconds": 3.64,
+      "stopped": ""
+    }
+  ],
+  "project_attempts": [
+    {
+      "pack": "p10",
+      "attempt": 1,
+      "exit_code": 0,
+      "peak_private_bytes": 1313386496,
+      "minimum_commit_headroom_bytes": 8147582976,
+      "seconds": 18.16,
+      "stopped": ""
+    },
+    {
+      "pack": "p20",
+      "attempt": 1,
+      "exit_code": 0,
+      "peak_private_bytes": 1311277056,
+      "minimum_commit_headroom_bytes": 2750111744,
+      "seconds": 14.53,
+      "stopped": ""
+    },
+    {
+      "pack": "p02",
+      "attempt": 1,
+      "exit_code": 0,
+      "peak_private_bytes": 1629454336,
+      "minimum_commit_headroom_bytes": 4709027840,
+      "seconds": 45.73,
+      "stopped": ""
+    }
+  ],
+  "private_harness_resume_correction": {
+    "issue": "An unnecessary resume reran the completed integrity harness; its no-overwrite guard refused the existing private companion fixture.",
+    "impact": "No source or saved-choice changes; original integrity.json and native results retained.",
+    "fix": "Resume skips completed validations, as it already skips completed project builds."
+  },
+  "compatibility_scope": "737 pre-change and 739 current source-relative review keys; selected sources are outside the separate 25-pack owner queue",
+  "final_integrity_log": "integrity-final-03.log",
+  "final_terrain_log": "p20-native-final.log",
+  "private_terrain_probe_correction": "An invalid TileSet method call produced a script error and incomplete output despite exit 0; rejected on log/output review, corrected to TileData, and rerun with complete 520-cell/40-style output and no script errors.",
+  "memory_failure_evidence": {
+    "first_monitor_failure": "WinError 1455 in psutil Process.children; failed logs retained",
+    "spawned_prewarm_peak_private_bytes": 6137925632,
+    "external_host_snapshot": {
+      "process": "UnrealEditor",
+      "private_gib": 24.62,
+      "system_committed_gib": 60.35,
+      "system_commit_limit_gib": 61.12
+    },
+    "production_fix": "Windows inventory threads and at most two prewarm threads; POSIX process pools unchanged",
+    "monitor_failure_control": {
+      "stats": {
+        "exit_code": 125,
+        "peak_private_bytes": 1359872,
+        "minimum_commit_headroom_bytes": 20118790144,
+        "seconds": 0.53,
+        "stopped": "monitor failed: OSError: [Errno 1455] injected monitor allocation failure"
+      },
+      "pids": [
+        51000,
+        22128,
+        47480
+      ],
+      "all_descendants_stopped": true
+    },
+    "initial_interrupted_unit_runs": [
+      "units.log",
+      "units-sequential.log",
+      "units-final.log",
+      "units-final-02.log"
+    ],
+    "checkpointed_validation": true
+  },
+  "ledger_delta": {
+    "previous_unresolved": 2455,
+    "building_dispositions": 10,
+    "segmentation_parent_dispositions": 1,
+    "terrain_atlas_dispositions": 1,
+    "new_complete_records": 13,
+    "remaining": 2443,
+    "fresh_all_30_pack_import": false,
+    "blockers": {
+      "building": 123,
+      "segmentation_or_state": 2011,
+      "terrain": 309
+    }
+  },
+  "remaining": [
+    "Other terrain, building and segmentation/state metadata",
+    "Independent held-out calibration labels",
+    "Qualified commercial/Tiled validation sample",
+    "Human first-paint timing, audit edit counts and release gates"
+  ]
+}

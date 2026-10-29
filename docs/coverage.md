@@ -99,6 +99,14 @@ All 590 current review keys for that pack still resolve; stable project paths ar
 from versioned physical render caches. A complete assets-only build validates. The ledger delta
 is now 2,455 unresolved entries. No terrain promotion or independent accuracy claim is added.
 
+The [terrain, building and segmentation pass](terrain_building_segmentation_2026-10-29.md)
+adds 13 guarded records: ten whole-building art/placement defaults, two disjoint static cat
+poses and the LPC floors atlas's 40 source-authored terrain styles. These resolve 12 earlier
+ledger entries, leaving 2,443 (building 123, segmentation/state 2,011, terrain 309). The old
+grouped-cat ID remains available as UNUSED. Companion-file bytes and terrain context now
+guard atlas certification, and automatic confirmations are rechecked on regeneration.
+This remains development evidence, not an independently qualified held-out accuracy sample.
+
 *Pending (human).* The maintainer picks **5 packs not used during development**: at least 2
 commercial, 1 in RPG Maker format, 1 with Tiled metadata and 1 "messy" pack (inconsistent names,
 mixed sizes, nested folders). For each pack and each archetype run

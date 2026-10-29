@@ -61,6 +61,14 @@ remain valid. The assets-only build and native crop checks pass. The ledger now 
 unresolved entries by disposition; terrain, building/segmentation metadata, independent
 calibration labels and qualified/human release checks remain open.
 
+The [terrain, building and segmentation follow-up](terrain_building_segmentation_2026-10-29.md)
+adds ten building placements, two separate static cat poses and one source-authored terrain
+atlas covering 40 styles. It fixes discarded building door points and prevents regeneration
+from inheriting an automatic confirmation after its guards fail. Windows inventory and image
+prewarm pools now share imports instead of spawning eight application copies. The earlier
+ledger has 2,443 unresolved entries by disposition; saved choices and calibration remain
+unchanged. Native validation and the host-memory interruptions are recorded in the report.
+
 The owner's words: "the whole purpose is for me to be able to make my own levels without having
 to add all the underlying logic to my assets as I import them." Generated starter maps, villages
 and stages are examples; the product is a pack's assets carrying their logic into Godot. Work is

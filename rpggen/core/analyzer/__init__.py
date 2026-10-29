@@ -3,6 +3,7 @@ from __future__ import annotations
 import concurrent.futures
 import logging
 import os
+import sys
 from collections.abc import Callable
 from pathlib import Path
 from typing import Any
@@ -124,7 +125,7 @@ def analyze_file(path: Path, sha256: str, *, use_cache: bool = True) -> dict[str
     return data
 
 
-POOL_THRESHOLD = 32  # use the process pool for at least this many images to analyze
+POOL_THRESHOLD = 32  # use a pool for at least this many images to analyze
 CHUNK = 4  # images per task of the pool
 HUGE_PIXELS = 64_000_000  # an image this large is analyzed in the parent, one at a time
 
@@ -153,7 +154,7 @@ def prewarm(
     on_progress: Progress | None = None,
 ) -> dict[str, dict[str, Any]]:
     """Analyze every image of a pack whose ``(sha256, ANALYZER_VERSION)`` is not cached, in a
-    process pool, and return ``{pack path: analysis}`` for those (it seeds ``analyzer_for``).
+    pool, and return ``{pack path: analysis}`` for those (it seeds ``analyzer_for``).
 
     Each worker writes the cache entry of its image. With ``use_cache=False`` nothing is read or
     written and the results stay in memory. Images over 64 megapixels are analyzed here, one at
@@ -184,8 +185,17 @@ def prewarm(
     huge = [f for f in todo if f.image and f.image["w"] * f.image["h"] > HUGE_PIXELS]
     pooled = [f for f in todo if f not in huge]
     if len(pooled) >= POOL_THRESHOLD:
-        workers = min(8, os.cpu_count() or 1)
-        pool = concurrent.futures.ProcessPoolExecutor(max_workers=workers)
+        # Spawned Windows workers each reload the application's imports. Share those
+        # imports, and limit simultaneous decoded images to two; eight spawned copies
+        # exhausted system commit during a real validation run. POSIX keeps its pool.
+        windows = sys.platform == "win32"
+        workers = min(2 if windows else 8, os.cpu_count() or 1)
+        pool_type = (
+            concurrent.futures.ThreadPoolExecutor
+            if windows
+            else concurrent.futures.ProcessPoolExecutor
+        )
+        pool = pool_type(max_workers=workers)
         try:
             futures = [
                 pool.submit(_analyze_chunk, [job(f) for f in pooled[i : i + CHUNK]])

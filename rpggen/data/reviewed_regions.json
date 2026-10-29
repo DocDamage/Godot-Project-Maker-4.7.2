@@ -1325,7 +1325,10 @@
     },
     "o435_192": {
       "animations": {},
-      "role": "ANIMAL"
+      "role": "NONE",
+      "tags": [
+        "unused_because:segmented"
+      ]
     },
     "o435_631": {
       "animations": {

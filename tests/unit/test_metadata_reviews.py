@@ -49,7 +49,40 @@ def test_confirmation_applies_without_inflating_confidence(reviewed) -> None:
     a = cat.asset(old.id)
     assert a.status == "CONFIRMED" and a.confidence == old.confidence
     assert catalog.effective(a) == record["approved"]
+    assert a.metadata_review == metadata_reviews.record_hash(a.sha256, a.id.partition("#")[2])
+    assert catalog.Catalog.from_json(cat.to_json()).asset(a.id).metadata_review == a.metadata_review
     schema.validate("catalog", cat.to_json())
+
+
+@pytest.mark.parametrize("legacy", [False, True])
+@pytest.mark.parametrize("changed_approval", [False, True])
+def test_regeneration_rechecks_automatic_confirmation_instead_of_carrying_status(
+    reviewed, legacy, changed_approval
+) -> None:
+    opened, inv, _, original, _, record = reviewed
+    previous, _, _ = catalog.assemble([(opened, inv)], None, [])
+    assert previous.asset(original.id).status == "CONFIRMED"
+    if legacy:
+        previous.asset(original.id).metadata_review = None
+    record["pixel_sha256"] = "0" * 64
+    if changed_approval:
+        record["approved"]["role"] = "TOOL"
+    current, _, _ = catalog.assemble([(opened, inv)], previous, [])
+    assert current.asset(original.id).status != "CONFIRMED"
+    assert current.asset(original.id).metadata_review is None
+
+
+def test_removed_automatic_record_does_not_survive_regeneration(reviewed, monkeypatch) -> None:
+    opened, inv, _, original, _, _ = reviewed
+    previous, _, _ = catalog.assemble([(opened, inv)], None, [])
+    monkeypatch.setattr(metadata_reviews, "readings", lambda: {"assets": {}})
+    current, _, _ = catalog.assemble([(opened, inv)], previous, [])
+    assert current.asset(original.id).status != "CONFIRMED"
+    # An explicit saved user override remains authoritative, even with the record gone.
+    previous.asset(original.id).overrides = {"role": "EFFECT"}
+    current, _, _ = catalog.assemble([(opened, inv)], previous, [])
+    assert current.asset(original.id).status == "CONFIRMED"
+    assert catalog.effective(current.asset(original.id))["role"] == "EFFECT"
 
 
 @pytest.mark.parametrize(

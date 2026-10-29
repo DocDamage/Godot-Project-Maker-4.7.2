@@ -1021,14 +1021,74 @@ def _render_name(f: InventoryFile, variant: str) -> str:
 
 
 def _cache_render_name(f: InventoryFile, variant: str) -> str:
-    from rpggen.core.adapters import reviewed_crops
+    from rpggen.core.adapters import reviewed_crops, reviewed_segments
 
     name = _render_name(f, variant)
     if key := reviewed_crops.layout_key(f.sha256, variant):
         # Review keys and project paths stay stable. The physical cache must change
         # when rectangles or masks change, even though the source image is unchanged.
-        return hashlib.sha256(f"{name}\nreviewed_crop/{key}".encode()).hexdigest() + ".png"
+        name = hashlib.sha256(f"{name}\nreviewed_crop/{key}".encode()).hexdigest() + ".png"
+    if key := reviewed_segments.layout_key(f.sha256, variant):
+        name = hashlib.sha256(f"{name}\nreviewed_segment/{key}".encode()).hexdigest() + ".png"
     return name
+
+
+def _reviewed_segments(f: InventoryFile, cut: _Cut) -> _Cut:
+    from rpggen.core.adapters import reviewed_segments
+
+    additions = []
+    for part in cut.parts:
+        record = reviewed_segments.reviewed(f.sha256).get(part.variant)
+        if record is None:
+            continue
+        for x, y, w, h in record.get("erase", []):
+            if (
+                x < 0
+                or y < 0
+                or w <= 0
+                or h <= 0
+                or x + w > part.picture.shape[1]
+                or y + h > part.picture.shape[0]
+            ):
+                raise ValueError("reviewed erase rectangle outside image")
+            part.picture = part.picture.copy()
+            part.picture[y : y + h, x : x + w] = 0
+        children = record.get("children", [])
+        if not children:
+            continue
+        owned = np.zeros(part.picture.shape[:2], dtype=bool)
+        for child in children:
+            x, y, w, h = child["rect"]
+            if (
+                x < 0
+                or y < 0
+                or w <= 0
+                or h <= 0
+                or x + w > part.picture.shape[1]
+                or y + h > part.picture.shape[0]
+            ):
+                raise ValueError("reviewed child rectangle outside image")
+            if owned[y : y + h, x : x + w].any():
+                raise ValueError("reviewed child rectangles overlap")
+            owned[y : y + h, x : x + w] = True
+            image = part.picture[y : y + h, x : x + w].copy()
+            facts = {
+                "usage": "sprite",
+                "role": "ANIMAL",
+                "size": [w, h],
+                "frame": [w, h],
+                "origin": [w // 2, h - 1],
+                "grid": {"cell": [w, h], "margin": [0, 0], "separation": [0, 0]},
+                "tags": ["static_animal"],
+                "animations": {"idle_down": {"fps": 1.0, "frames": [[0, 0]], "loop": True}},
+            }
+            additions.append(_Part(child["variant"], image, facts, UNNAMED_CONFIDENCE))
+        if ((part.picture[..., 3] > 0) & ~owned).any():
+            raise ValueError("reviewed segmentation leaves painted pixels unassigned")
+        part.facets["role"] = "NONE"
+        part.facets["tags"] = [classifier.UNUSED_TAG + "segmented"]
+    cut.parts.extend(additions)
+    return cut
 
 
 def _reviewed_crops(f: InventoryFile, a: np.ndarray, cut: _Cut) -> _Cut:
@@ -1105,6 +1165,7 @@ class SheetPartsAdapter:
                 return _Cut(reason="")
             cut = sort_cells(a, cell, farming) if cell else cut_objects(f, a)
             cut = _reviewed_crops(f, a, cut)
+            cut = _reviewed_segments(f, cut)
             return _saved(f, cut, work)
 
         cuts = iso_sheets.in_parallel(one, files, ctx)

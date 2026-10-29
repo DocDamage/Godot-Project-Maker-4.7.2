@@ -9,10 +9,12 @@ from __future__ import annotations
 
 import copy
 import hashlib
+import json
 import re
+from collections.abc import Callable
 from functools import lru_cache
 from pathlib import Path
-from typing import Any
+from typing import Any, TypeGuard
 
 import numpy as np
 from PIL import Image
@@ -25,6 +27,18 @@ def readings() -> dict[str, Any]:
     return jsonio.read(Path(__file__).parents[1] / "data" / "confirmed_metadata.json")
 
 
+def record_hash(source_sha256: str, variant: str) -> str | None:
+    record = readings().get("assets", {}).get(source_sha256, {}).get(variant)
+    if record is None:
+        return None
+    return hashlib.sha256(json.dumps(record, sort_keys=True).encode()).hexdigest()
+
+
+def has_record(source_sha256: str, variant: str) -> bool:
+    """Recheck legacy confirmations on sources covered by a built-in decision."""
+    return variant in readings().get("assets", {}).get(source_sha256, {})
+
+
 def pixel_hash(path: Path) -> str:
     """Hash decoded RGBA pixels, ignoring invisible RGB and image-file encoding."""
     with Image.open(path) as im:
@@ -34,7 +48,12 @@ def pixel_hash(path: Path) -> str:
 
 
 def decision(
-    source_sha256: str, variant: str, facets: dict[str, Any], picture: Path
+    source_sha256: str,
+    variant: str,
+    facets: dict[str, Any],
+    picture: Path,
+    source_root: Path | None = None,
+    metadata_context: Callable[[], dict[str, Any]] | None = None,
 ) -> dict[str, Any] | None:
     record = readings().get("assets", {}).get(source_sha256, {}).get(variant)
     if not record or facets != record["input"]:
@@ -42,6 +61,41 @@ def decision(
     approved = record.get("approved", {})
     if not complete(approved, record.get("kind", "static_object")):
         return None
+    dependencies = record.get("dependencies", [])
+    if record.get("kind") == "tiled_atlas" and (not dependencies or not record.get("context")):
+        return None
+    if dependencies:
+        if source_root is None or not isinstance(dependencies, list):
+            return None
+        root = source_root.resolve()
+        for dependency in dependencies:
+            if not isinstance(dependency, dict) or not isinstance(dependency.get("path"), str):
+                return None
+            if not re.fullmatch(r"[0-9a-f]{64}", str(dependency.get("sha256", ""))):
+                return None
+            if Path(dependency["path"]).is_absolute() or ":" in dependency["path"]:
+                return None
+            path = (root / dependency["path"]).resolve()
+            if not path.is_relative_to(root):
+                return None
+            try:
+                with path.open("rb") as handle:
+                    if hashlib.file_digest(handle, "sha256").hexdigest() != dependency["sha256"]:
+                        return None
+            except OSError:
+                return None
+    if "context" in record and (
+        metadata_context is None or metadata_context() != record["context"]
+    ):
+        return None
+    if record.get("kind") == "tiled_atlas":
+        sets = record["context"].get("terrain_sets", [])
+        counts = {s["name"]: len(s.get("terrains", [])) for s in sets if s.get("mode") == "corners"}
+        for override in approved["tile_overrides"].values():
+            terrain = override["terrain"]
+            count = counts.get(terrain["set"], 0)
+            if terrain["terrain"] >= count or any(v >= count for v in terrain["peering"].values()):
+                return None
     try:
         if pixel_hash(picture) != record["pixel_sha256"]:
             return None
@@ -61,7 +115,140 @@ def complete(facets: dict[str, Any], kind: str = "static_object") -> bool:
         return _complete_actor_art(facets)
     if kind == "crop_art":
         return _complete_crop_art(facets)
+    if kind == "building_art":
+        return _complete_building_art(facets)
+    if kind == "tiled_atlas":
+        return _complete_tiled_atlas(facets)
     return False
+
+
+def _positive_pair(pair: Any) -> TypeGuard[list[int]]:
+    return isinstance(pair, list) and len(pair) == 2 and all(type(v) is int and v > 0 for v in pair)
+
+
+def _complete_building_art(f: dict[str, Any]) -> bool:
+    if set(f) - {
+        "role",
+        "usage",
+        "frame",
+        "size",
+        "origin",
+        "grid",
+        "animations",
+        "tags",
+        "door",
+        "collision",
+    }:
+        return False
+    size = f.get("size")
+    if f.get("role") != "BUILDING" or f.get("usage") != "object" or not _positive_pair(size):
+        return False
+    if f.get("frame") != size or f.get("origin") != [size[0] // 2, size[1] - 1]:
+        return False
+    if f.get("animations") != {} or f.get("tags") != ["building_art"]:
+        return False
+    if f.get("grid") != {"cell": size, "margin": [0, 0], "separation": [0, 0]}:
+        return False
+    door = f.get("door")
+    if (
+        not isinstance(door, list)
+        or len(door) != 2
+        or any(type(v) is not int or not 0 <= v < size[i] for i, v in enumerate(door))
+    ):
+        return False
+    coll = f.get("collision", {})
+    if (
+        not isinstance(coll, dict)
+        or set(coll) != {"profile", "polygon"}
+        or coll["profile"] != "CUSTOM"
+    ):
+        return False
+    poly = coll["polygon"]
+    if (
+        not isinstance(poly, list)
+        or len(poly) != 4
+        or any(
+            not isinstance(p, list) or len(p) != 2 or any(type(v) is not int for v in p)
+            for p in poly
+        )
+    ):
+        return False
+    x, y = poly[0]
+    right, bottom = poly[2]
+    return bool(
+        poly == [[x, y], [right, y], [right, bottom], [x, bottom]]
+        and 0 <= x < right <= size[0]
+        and 0 <= y < bottom < door[1]
+        and x <= door[0] <= right
+    )
+
+
+def _complete_tiled_atlas(f: dict[str, Any]) -> bool:
+    if set(f) - {"role", "usage", "size", "grid", "tileset", "tile_overrides", "tags", "collision"}:
+        return False
+    if (
+        f.get("role") != "GROUND"
+        or f.get("usage") != "tiles"
+        or f.get("tags") != ["tiled_atlas"]
+        or f.get("collision") != {"profile": "NONE"}
+    ):
+        return False
+    size, grid = f.get("size"), f.get("grid", {})
+    if (
+        not _positive_pair(size)
+        or not isinstance(grid, dict)
+        or not _positive_pair(grid.get("cell"))
+    ):
+        return False
+    cell = grid["cell"]
+    if grid != {"cell": cell, "margin": [0, 0], "separation": [0, 0]} or any(
+        size[i] % cell[i] for i in range(2)
+    ):
+        return False
+    if not isinstance(f.get("tileset"), str) or not f["tileset"]:
+        return False
+    overrides = f.get("tile_overrides")
+    if not isinstance(overrides, dict) or not overrides:
+        return False
+    sides = {
+        "top_left_corner",
+        "top_side",
+        "top_right_corner",
+        "right_side",
+        "bottom_right_corner",
+        "bottom_side",
+        "bottom_left_corner",
+        "left_side",
+    }
+    for key, value in overrides.items():
+        if not re.fullmatch(r"[0-9]+,[0-9]+", key):
+            return False
+        col, row = map(int, key.split(","))
+        if (
+            col >= size[0] // cell[0]
+            or row >= size[1] // cell[1]
+            or not isinstance(value, dict)
+            or set(value) != {"terrain"}
+        ):
+            return False
+        t = value["terrain"]
+        if (
+            not isinstance(t, dict)
+            or set(t) != {"set", "terrain", "peering"}
+            or not isinstance(t["set"], str)
+            or not t["set"]
+            or type(t["terrain"]) is not int
+            or t["terrain"] < 0
+        ):
+            return False
+        peering = t["peering"]
+        if (
+            not isinstance(peering, dict)
+            or set(peering) != sides
+            or any(type(v) is not int or v < -1 for v in peering.values())
+        ):
+            return False
+    return True
 
 
 def _complete_crop_art(facets: dict[str, Any]) -> bool:

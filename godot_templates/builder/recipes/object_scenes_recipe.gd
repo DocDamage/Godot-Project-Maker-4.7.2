@@ -2,7 +2,7 @@ extends RefCounted
 ## Builds one scene per world object under res://generated/scenes/objects/ and the index
 ## res://rpggen/object_index.json (object id -> scene path).
 
-const RECIPE_VERSION := 5
+const RECIPE_VERSION := 6  # explicit door metadata on extracted building assets
 
 const Paths := preload("../lib/paths.gd")
 const SceneUtil := preload("../lib/scene_util.gd")
