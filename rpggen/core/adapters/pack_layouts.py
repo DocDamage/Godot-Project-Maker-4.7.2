@@ -173,7 +173,7 @@ class PackLayoutsAdapter:
                 ("_phone_16x16.png", (16, 32), ("down",)),
                 ("_sit_16x16.png", (32, 32), ("right", "left")),
                 ("_sit2_16x16.png", (32, 32), ("right", "left")),
-                ("_sit3_16x16.png", (16, 32), ("right", "left")),
+                ("_sit3_16x16.png", (16, 32), ("down", "up")),
             ):
                 source = by_path.get(prefix + suffix)
                 if source is None or (source.image or {}).get("h") != 32:

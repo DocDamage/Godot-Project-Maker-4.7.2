@@ -246103,6 +246103,5069 @@
         "reviewed_on": "2026-10-29",
         "scope": "Whole static enemy illustration; authored bottom-center placement and one-frame idle presentation. No movement, attack timing, collision or gameplay behavior certified."
       }
+    },
+    "4afc34e2a0edbaaa58349c7682e5390c06d6926323a8d38e0e04166f3049cfc5": {
+      "": {
+        "kind": "actor_art",
+        "input": {
+          "animations": {
+            "phone_down": {
+              "fps": 8.0,
+              "frames": [
+                [
+                  0,
+                  0
+                ],
+                [
+                  1,
+                  0
+                ],
+                [
+                  2,
+                  0
+                ],
+                [
+                  3,
+                  0
+                ],
+                [
+                  4,
+                  0
+                ],
+                [
+                  5,
+                  0
+                ],
+                [
+                  6,
+                  0
+                ],
+                [
+                  7,
+                  0
+                ],
+                [
+                  8,
+                  0
+                ]
+              ],
+              "loop": true
+            }
+          },
+          "frame": [
+            16,
+            32
+          ],
+          "grid": {
+            "cell": [
+              16,
+              32
+            ],
+            "margin": [
+              0,
+              0
+            ],
+            "separation": [
+              0,
+              0
+            ]
+          },
+          "origin": [
+            8,
+            31
+          ],
+          "role": "NPC",
+          "size": [
+            144,
+            32
+          ],
+          "tags": [
+            "size_form:16"
+          ],
+          "usage": "sprite"
+        },
+        "approved": {
+          "animations": {
+            "phone_down": {
+              "fps": 8.0,
+              "frames": [
+                [
+                  0,
+                  0
+                ],
+                [
+                  1,
+                  0
+                ],
+                [
+                  2,
+                  0
+                ],
+                [
+                  3,
+                  0
+                ],
+                [
+                  4,
+                  0
+                ],
+                [
+                  5,
+                  0
+                ],
+                [
+                  6,
+                  0
+                ],
+                [
+                  7,
+                  0
+                ],
+                [
+                  8,
+                  0
+                ]
+              ],
+              "loop": true
+            }
+          },
+          "frame": [
+            16,
+            32
+          ],
+          "grid": {
+            "cell": [
+              16,
+              32
+            ],
+            "margin": [
+              0,
+              0
+            ],
+            "separation": [
+              0,
+              0
+            ]
+          },
+          "origin": [
+            8,
+            31
+          ],
+          "role": "NPC",
+          "size": [
+            144,
+            32
+          ],
+          "tags": [
+            "size_form:16",
+            "actor_art"
+          ],
+          "usage": "sprite"
+        },
+        "pixel_sha256": "5c96a9e88cfb792bf4798f2650d14cce2d2692a88b87204c2b2395bc6ef3d855",
+        "reviewed_on": "2026-10-29",
+        "scope": "Visually reviewed NPC art frame cells, facing and sequence. Native frame size retained. Pivot, looping and 1/6/8 fps playback are editable importer defaults, not artist-authored timing. No collision, movement, interaction or gameplay behavior certified."
+      }
+    },
+    "d8a3a90afa5627b6ec94a996c1fa56ee9ad0cdfe58e79584faca7669301cd310": {
+      "": {
+        "kind": "actor_art",
+        "input": {
+          "animations": {
+            "sit2_left": {
+              "fps": 8.0,
+              "frames": [
+                [
+                  6,
+                  0
+                ],
+                [
+                  7,
+                  0
+                ],
+                [
+                  8,
+                  0
+                ],
+                [
+                  9,
+                  0
+                ],
+                [
+                  10,
+                  0
+                ],
+                [
+                  11,
+                  0
+                ]
+              ],
+              "loop": true
+            },
+            "sit2_right": {
+              "fps": 8.0,
+              "frames": [
+                [
+                  0,
+                  0
+                ],
+                [
+                  1,
+                  0
+                ],
+                [
+                  2,
+                  0
+                ],
+                [
+                  3,
+                  0
+                ],
+                [
+                  4,
+                  0
+                ],
+                [
+                  5,
+                  0
+                ]
+              ],
+              "loop": true
+            }
+          },
+          "frame": [
+            32,
+            32
+          ],
+          "grid": {
+            "cell": [
+              32,
+              32
+            ],
+            "margin": [
+              0,
+              0
+            ],
+            "separation": [
+              0,
+              0
+            ]
+          },
+          "origin": [
+            16,
+            31
+          ],
+          "role": "NPC",
+          "size": [
+            384,
+            32
+          ],
+          "tags": [
+            "size_form:16"
+          ],
+          "usage": "sprite"
+        },
+        "approved": {
+          "animations": {
+            "sit2_left": {
+              "fps": 8.0,
+              "frames": [
+                [
+                  6,
+                  0
+                ],
+                [
+                  7,
+                  0
+                ],
+                [
+                  8,
+                  0
+                ],
+                [
+                  9,
+                  0
+                ],
+                [
+                  10,
+                  0
+                ],
+                [
+                  11,
+                  0
+                ]
+              ],
+              "loop": true
+            },
+            "sit2_right": {
+              "fps": 8.0,
+              "frames": [
+                [
+                  0,
+                  0
+                ],
+                [
+                  1,
+                  0
+                ],
+                [
+                  2,
+                  0
+                ],
+                [
+                  3,
+                  0
+                ],
+                [
+                  4,
+                  0
+                ],
+                [
+                  5,
+                  0
+                ]
+              ],
+              "loop": true
+            }
+          },
+          "frame": [
+            32,
+            32
+          ],
+          "grid": {
+            "cell": [
+              32,
+              32
+            ],
+            "margin": [
+              0,
+              0
+            ],
+            "separation": [
+              0,
+              0
+            ]
+          },
+          "origin": [
+            16,
+            31
+          ],
+          "role": "NPC",
+          "size": [
+            384,
+            32
+          ],
+          "tags": [
+            "size_form:16",
+            "actor_art"
+          ],
+          "usage": "sprite"
+        },
+        "pixel_sha256": "dd00114be36d57b0efd85a389dcafe2e9e497a4efb2aff4af3d564d01d96a073",
+        "reviewed_on": "2026-10-29",
+        "scope": "Visually reviewed NPC art frame cells, facing and sequence. Native frame size retained. Pivot, looping and 1/6/8 fps playback are editable importer defaults, not artist-authored timing. No collision, movement, interaction or gameplay behavior certified."
+      }
+    },
+    "57040f8c1a17af8d2450b23e44d76ec9860408422e79f283ef3436993f8b3c15": {
+      "": {
+        "kind": "actor_art",
+        "input": {
+          "animations": {
+            "sit3_down": {
+              "fps": 8.0,
+              "frames": [
+                [
+                  0,
+                  0
+                ],
+                [
+                  1,
+                  0
+                ],
+                [
+                  2,
+                  0
+                ],
+                [
+                  3,
+                  0
+                ],
+                [
+                  4,
+                  0
+                ],
+                [
+                  5,
+                  0
+                ]
+              ],
+              "loop": true
+            },
+            "sit3_up": {
+              "fps": 8.0,
+              "frames": [
+                [
+                  6,
+                  0
+                ],
+                [
+                  7,
+                  0
+                ],
+                [
+                  8,
+                  0
+                ],
+                [
+                  9,
+                  0
+                ],
+                [
+                  10,
+                  0
+                ],
+                [
+                  11,
+                  0
+                ]
+              ],
+              "loop": true
+            }
+          },
+          "frame": [
+            16,
+            32
+          ],
+          "grid": {
+            "cell": [
+              16,
+              32
+            ],
+            "margin": [
+              0,
+              0
+            ],
+            "separation": [
+              0,
+              0
+            ]
+          },
+          "origin": [
+            8,
+            31
+          ],
+          "role": "NPC",
+          "size": [
+            192,
+            32
+          ],
+          "tags": [
+            "size_form:16"
+          ],
+          "usage": "sprite"
+        },
+        "approved": {
+          "animations": {
+            "sit3_down": {
+              "fps": 8.0,
+              "frames": [
+                [
+                  0,
+                  0
+                ],
+                [
+                  1,
+                  0
+                ],
+                [
+                  2,
+                  0
+                ],
+                [
+                  3,
+                  0
+                ],
+                [
+                  4,
+                  0
+                ],
+                [
+                  5,
+                  0
+                ]
+              ],
+              "loop": true
+            },
+            "sit3_up": {
+              "fps": 8.0,
+              "frames": [
+                [
+                  6,
+                  0
+                ],
+                [
+                  7,
+                  0
+                ],
+                [
+                  8,
+                  0
+                ],
+                [
+                  9,
+                  0
+                ],
+                [
+                  10,
+                  0
+                ],
+                [
+                  11,
+                  0
+                ]
+              ],
+              "loop": true
+            }
+          },
+          "frame": [
+            16,
+            32
+          ],
+          "grid": {
+            "cell": [
+              16,
+              32
+            ],
+            "margin": [
+              0,
+              0
+            ],
+            "separation": [
+              0,
+              0
+            ]
+          },
+          "origin": [
+            8,
+            31
+          ],
+          "role": "NPC",
+          "size": [
+            192,
+            32
+          ],
+          "tags": [
+            "size_form:16",
+            "actor_art"
+          ],
+          "usage": "sprite"
+        },
+        "pixel_sha256": "7f9edb79c8a181708acaa63637ab107b217d713fc62131c9b1f841a0027a357e",
+        "reviewed_on": "2026-10-29",
+        "scope": "Visually reviewed NPC art frame cells, facing and sequence. Native frame size retained. Pivot, looping and 1/6/8 fps playback are editable importer defaults, not artist-authored timing. No collision, movement, interaction or gameplay behavior certified."
+      }
+    },
+    "eac1744a9203f73544c0096dc1db7f335ae4efc23ca5f11d3be31db51a5f3e0c": {
+      "": {
+        "kind": "actor_art",
+        "input": {
+          "animations": {
+            "sit_left": {
+              "fps": 8.0,
+              "frames": [
+                [
+                  6,
+                  0
+                ],
+                [
+                  7,
+                  0
+                ],
+                [
+                  8,
+                  0
+                ],
+                [
+                  9,
+                  0
+                ],
+                [
+                  10,
+                  0
+                ],
+                [
+                  11,
+                  0
+                ]
+              ],
+              "loop": true
+            },
+            "sit_right": {
+              "fps": 8.0,
+              "frames": [
+                [
+                  0,
+                  0
+                ],
+                [
+                  1,
+                  0
+                ],
+                [
+                  2,
+                  0
+                ],
+                [
+                  3,
+                  0
+                ],
+                [
+                  4,
+                  0
+                ],
+                [
+                  5,
+                  0
+                ]
+              ],
+              "loop": true
+            }
+          },
+          "frame": [
+            32,
+            32
+          ],
+          "grid": {
+            "cell": [
+              32,
+              32
+            ],
+            "margin": [
+              0,
+              0
+            ],
+            "separation": [
+              0,
+              0
+            ]
+          },
+          "origin": [
+            16,
+            31
+          ],
+          "role": "NPC",
+          "size": [
+            384,
+            32
+          ],
+          "tags": [
+            "size_form:16"
+          ],
+          "usage": "sprite"
+        },
+        "approved": {
+          "animations": {
+            "sit_left": {
+              "fps": 8.0,
+              "frames": [
+                [
+                  6,
+                  0
+                ],
+                [
+                  7,
+                  0
+                ],
+                [
+                  8,
+                  0
+                ],
+                [
+                  9,
+                  0
+                ],
+                [
+                  10,
+                  0
+                ],
+                [
+                  11,
+                  0
+                ]
+              ],
+              "loop": true
+            },
+            "sit_right": {
+              "fps": 8.0,
+              "frames": [
+                [
+                  0,
+                  0
+                ],
+                [
+                  1,
+                  0
+                ],
+                [
+                  2,
+                  0
+                ],
+                [
+                  3,
+                  0
+                ],
+                [
+                  4,
+                  0
+                ],
+                [
+                  5,
+                  0
+                ]
+              ],
+              "loop": true
+            }
+          },
+          "frame": [
+            32,
+            32
+          ],
+          "grid": {
+            "cell": [
+              32,
+              32
+            ],
+            "margin": [
+              0,
+              0
+            ],
+            "separation": [
+              0,
+              0
+            ]
+          },
+          "origin": [
+            16,
+            31
+          ],
+          "role": "NPC",
+          "size": [
+            384,
+            32
+          ],
+          "tags": [
+            "size_form:16",
+            "actor_art"
+          ],
+          "usage": "sprite"
+        },
+        "pixel_sha256": "74479fb48fbe893a0e4241c6c688c206189332be9b8fca304e14e7218d2e5aca",
+        "reviewed_on": "2026-10-29",
+        "scope": "Visually reviewed NPC art frame cells, facing and sequence. Native frame size retained. Pivot, looping and 1/6/8 fps playback are editable importer defaults, not artist-authored timing. No collision, movement, interaction or gameplay behavior certified."
+      }
+    },
+    "feff00c8cf84b989ad1f64330586ef2a789ab7352f08d2a87713f474bcdea910": {
+      "": {
+        "kind": "actor_art",
+        "input": {
+          "animations": {
+            "phone_down": {
+              "fps": 8.0,
+              "frames": [
+                [
+                  0,
+                  0
+                ],
+                [
+                  1,
+                  0
+                ],
+                [
+                  2,
+                  0
+                ],
+                [
+                  3,
+                  0
+                ],
+                [
+                  4,
+                  0
+                ],
+                [
+                  5,
+                  0
+                ],
+                [
+                  6,
+                  0
+                ],
+                [
+                  7,
+                  0
+                ],
+                [
+                  8,
+                  0
+                ]
+              ],
+              "loop": true
+            }
+          },
+          "frame": [
+            16,
+            32
+          ],
+          "grid": {
+            "cell": [
+              16,
+              32
+            ],
+            "margin": [
+              0,
+              0
+            ],
+            "separation": [
+              0,
+              0
+            ]
+          },
+          "origin": [
+            8,
+            31
+          ],
+          "role": "NPC",
+          "size": [
+            144,
+            32
+          ],
+          "tags": [
+            "size_form:16"
+          ],
+          "usage": "sprite"
+        },
+        "approved": {
+          "animations": {
+            "phone_down": {
+              "fps": 8.0,
+              "frames": [
+                [
+                  0,
+                  0
+                ],
+                [
+                  1,
+                  0
+                ],
+                [
+                  2,
+                  0
+                ],
+                [
+                  3,
+                  0
+                ],
+                [
+                  4,
+                  0
+                ],
+                [
+                  5,
+                  0
+                ],
+                [
+                  6,
+                  0
+                ],
+                [
+                  7,
+                  0
+                ],
+                [
+                  8,
+                  0
+                ]
+              ],
+              "loop": true
+            }
+          },
+          "frame": [
+            16,
+            32
+          ],
+          "grid": {
+            "cell": [
+              16,
+              32
+            ],
+            "margin": [
+              0,
+              0
+            ],
+            "separation": [
+              0,
+              0
+            ]
+          },
+          "origin": [
+            8,
+            31
+          ],
+          "role": "NPC",
+          "size": [
+            144,
+            32
+          ],
+          "tags": [
+            "size_form:16",
+            "actor_art"
+          ],
+          "usage": "sprite"
+        },
+        "pixel_sha256": "12dfcd10474696932293472a931754f8778e33a45c050abae57b716140914ed6",
+        "reviewed_on": "2026-10-29",
+        "scope": "Visually reviewed NPC art frame cells, facing and sequence. Native frame size retained. Pivot, looping and 1/6/8 fps playback are editable importer defaults, not artist-authored timing. No collision, movement, interaction or gameplay behavior certified."
+      }
+    },
+    "f161f8895506daa9cdb54a17f716b1da68729b82f4d995c02fb35f7e7bcd87ac": {
+      "": {
+        "kind": "actor_art",
+        "input": {
+          "animations": {
+            "sit2_left": {
+              "fps": 8.0,
+              "frames": [
+                [
+                  6,
+                  0
+                ],
+                [
+                  7,
+                  0
+                ],
+                [
+                  8,
+                  0
+                ],
+                [
+                  9,
+                  0
+                ],
+                [
+                  10,
+                  0
+                ],
+                [
+                  11,
+                  0
+                ]
+              ],
+              "loop": true
+            },
+            "sit2_right": {
+              "fps": 8.0,
+              "frames": [
+                [
+                  0,
+                  0
+                ],
+                [
+                  1,
+                  0
+                ],
+                [
+                  2,
+                  0
+                ],
+                [
+                  3,
+                  0
+                ],
+                [
+                  4,
+                  0
+                ],
+                [
+                  5,
+                  0
+                ]
+              ],
+              "loop": true
+            }
+          },
+          "frame": [
+            32,
+            32
+          ],
+          "grid": {
+            "cell": [
+              32,
+              32
+            ],
+            "margin": [
+              0,
+              0
+            ],
+            "separation": [
+              0,
+              0
+            ]
+          },
+          "origin": [
+            16,
+            31
+          ],
+          "role": "NPC",
+          "size": [
+            384,
+            32
+          ],
+          "tags": [
+            "size_form:16"
+          ],
+          "usage": "sprite"
+        },
+        "approved": {
+          "animations": {
+            "sit2_left": {
+              "fps": 8.0,
+              "frames": [
+                [
+                  6,
+                  0
+                ],
+                [
+                  7,
+                  0
+                ],
+                [
+                  8,
+                  0
+                ],
+                [
+                  9,
+                  0
+                ],
+                [
+                  10,
+                  0
+                ],
+                [
+                  11,
+                  0
+                ]
+              ],
+              "loop": true
+            },
+            "sit2_right": {
+              "fps": 8.0,
+              "frames": [
+                [
+                  0,
+                  0
+                ],
+                [
+                  1,
+                  0
+                ],
+                [
+                  2,
+                  0
+                ],
+                [
+                  3,
+                  0
+                ],
+                [
+                  4,
+                  0
+                ],
+                [
+                  5,
+                  0
+                ]
+              ],
+              "loop": true
+            }
+          },
+          "frame": [
+            32,
+            32
+          ],
+          "grid": {
+            "cell": [
+              32,
+              32
+            ],
+            "margin": [
+              0,
+              0
+            ],
+            "separation": [
+              0,
+              0
+            ]
+          },
+          "origin": [
+            16,
+            31
+          ],
+          "role": "NPC",
+          "size": [
+            384,
+            32
+          ],
+          "tags": [
+            "size_form:16",
+            "actor_art"
+          ],
+          "usage": "sprite"
+        },
+        "pixel_sha256": "0537d868274c67c3ef089d7092e0584873ffabd9fd4ff2c4825a0dbda830e320",
+        "reviewed_on": "2026-10-29",
+        "scope": "Visually reviewed NPC art frame cells, facing and sequence. Native frame size retained. Pivot, looping and 1/6/8 fps playback are editable importer defaults, not artist-authored timing. No collision, movement, interaction or gameplay behavior certified."
+      }
+    },
+    "cf9fc90b4e66749f7b7fb4899a8c1c56aae2a46687f8b6f45c8511fe7ca39b6f": {
+      "": {
+        "kind": "actor_art",
+        "input": {
+          "animations": {
+            "sit3_down": {
+              "fps": 8.0,
+              "frames": [
+                [
+                  0,
+                  0
+                ],
+                [
+                  1,
+                  0
+                ],
+                [
+                  2,
+                  0
+                ],
+                [
+                  3,
+                  0
+                ],
+                [
+                  4,
+                  0
+                ],
+                [
+                  5,
+                  0
+                ]
+              ],
+              "loop": true
+            },
+            "sit3_up": {
+              "fps": 8.0,
+              "frames": [
+                [
+                  6,
+                  0
+                ],
+                [
+                  7,
+                  0
+                ],
+                [
+                  8,
+                  0
+                ],
+                [
+                  9,
+                  0
+                ],
+                [
+                  10,
+                  0
+                ],
+                [
+                  11,
+                  0
+                ]
+              ],
+              "loop": true
+            }
+          },
+          "frame": [
+            16,
+            32
+          ],
+          "grid": {
+            "cell": [
+              16,
+              32
+            ],
+            "margin": [
+              0,
+              0
+            ],
+            "separation": [
+              0,
+              0
+            ]
+          },
+          "origin": [
+            8,
+            31
+          ],
+          "role": "NPC",
+          "size": [
+            192,
+            32
+          ],
+          "tags": [
+            "size_form:16"
+          ],
+          "usage": "sprite"
+        },
+        "approved": {
+          "animations": {
+            "sit3_down": {
+              "fps": 8.0,
+              "frames": [
+                [
+                  0,
+                  0
+                ],
+                [
+                  1,
+                  0
+                ],
+                [
+                  2,
+                  0
+                ],
+                [
+                  3,
+                  0
+                ],
+                [
+                  4,
+                  0
+                ],
+                [
+                  5,
+                  0
+                ]
+              ],
+              "loop": true
+            },
+            "sit3_up": {
+              "fps": 8.0,
+              "frames": [
+                [
+                  6,
+                  0
+                ],
+                [
+                  7,
+                  0
+                ],
+                [
+                  8,
+                  0
+                ],
+                [
+                  9,
+                  0
+                ],
+                [
+                  10,
+                  0
+                ],
+                [
+                  11,
+                  0
+                ]
+              ],
+              "loop": true
+            }
+          },
+          "frame": [
+            16,
+            32
+          ],
+          "grid": {
+            "cell": [
+              16,
+              32
+            ],
+            "margin": [
+              0,
+              0
+            ],
+            "separation": [
+              0,
+              0
+            ]
+          },
+          "origin": [
+            8,
+            31
+          ],
+          "role": "NPC",
+          "size": [
+            192,
+            32
+          ],
+          "tags": [
+            "size_form:16",
+            "actor_art"
+          ],
+          "usage": "sprite"
+        },
+        "pixel_sha256": "4cf9cfbb8844603d997a0b5ae6658b4f89121f66e0f76d25f0b5a3ed126512af",
+        "reviewed_on": "2026-10-29",
+        "scope": "Visually reviewed NPC art frame cells, facing and sequence. Native frame size retained. Pivot, looping and 1/6/8 fps playback are editable importer defaults, not artist-authored timing. No collision, movement, interaction or gameplay behavior certified."
+      }
+    },
+    "b3fe12b70fbb3246ab677aee1b84593b4affb04d0d958518b42b15a6dc7a8ccd": {
+      "": {
+        "kind": "actor_art",
+        "input": {
+          "animations": {
+            "sit_left": {
+              "fps": 8.0,
+              "frames": [
+                [
+                  6,
+                  0
+                ],
+                [
+                  7,
+                  0
+                ],
+                [
+                  8,
+                  0
+                ],
+                [
+                  9,
+                  0
+                ],
+                [
+                  10,
+                  0
+                ],
+                [
+                  11,
+                  0
+                ]
+              ],
+              "loop": true
+            },
+            "sit_right": {
+              "fps": 8.0,
+              "frames": [
+                [
+                  0,
+                  0
+                ],
+                [
+                  1,
+                  0
+                ],
+                [
+                  2,
+                  0
+                ],
+                [
+                  3,
+                  0
+                ],
+                [
+                  4,
+                  0
+                ],
+                [
+                  5,
+                  0
+                ]
+              ],
+              "loop": true
+            }
+          },
+          "frame": [
+            32,
+            32
+          ],
+          "grid": {
+            "cell": [
+              32,
+              32
+            ],
+            "margin": [
+              0,
+              0
+            ],
+            "separation": [
+              0,
+              0
+            ]
+          },
+          "origin": [
+            16,
+            31
+          ],
+          "role": "NPC",
+          "size": [
+            384,
+            32
+          ],
+          "tags": [
+            "size_form:16"
+          ],
+          "usage": "sprite"
+        },
+        "approved": {
+          "animations": {
+            "sit_left": {
+              "fps": 8.0,
+              "frames": [
+                [
+                  6,
+                  0
+                ],
+                [
+                  7,
+                  0
+                ],
+                [
+                  8,
+                  0
+                ],
+                [
+                  9,
+                  0
+                ],
+                [
+                  10,
+                  0
+                ],
+                [
+                  11,
+                  0
+                ]
+              ],
+              "loop": true
+            },
+            "sit_right": {
+              "fps": 8.0,
+              "frames": [
+                [
+                  0,
+                  0
+                ],
+                [
+                  1,
+                  0
+                ],
+                [
+                  2,
+                  0
+                ],
+                [
+                  3,
+                  0
+                ],
+                [
+                  4,
+                  0
+                ],
+                [
+                  5,
+                  0
+                ]
+              ],
+              "loop": true
+            }
+          },
+          "frame": [
+            32,
+            32
+          ],
+          "grid": {
+            "cell": [
+              32,
+              32
+            ],
+            "margin": [
+              0,
+              0
+            ],
+            "separation": [
+              0,
+              0
+            ]
+          },
+          "origin": [
+            16,
+            31
+          ],
+          "role": "NPC",
+          "size": [
+            384,
+            32
+          ],
+          "tags": [
+            "size_form:16",
+            "actor_art"
+          ],
+          "usage": "sprite"
+        },
+        "pixel_sha256": "a00a2fb8c6bbfa7eb3046efb8f7f88731b81a48f6b42f8b719178595ddd953e7",
+        "reviewed_on": "2026-10-29",
+        "scope": "Visually reviewed NPC art frame cells, facing and sequence. Native frame size retained. Pivot, looping and 1/6/8 fps playback are editable importer defaults, not artist-authored timing. No collision, movement, interaction or gameplay behavior certified."
+      }
+    },
+    "83fb6ac1b033f54a669b820fcdb52bd9a2dfd3b6473fe7c2603c655fbd8c2b14": {
+      "": {
+        "kind": "actor_art",
+        "input": {
+          "animations": {
+            "phone_down": {
+              "fps": 8.0,
+              "frames": [
+                [
+                  0,
+                  0
+                ],
+                [
+                  1,
+                  0
+                ],
+                [
+                  2,
+                  0
+                ],
+                [
+                  3,
+                  0
+                ],
+                [
+                  4,
+                  0
+                ],
+                [
+                  5,
+                  0
+                ],
+                [
+                  6,
+                  0
+                ],
+                [
+                  7,
+                  0
+                ],
+                [
+                  8,
+                  0
+                ]
+              ],
+              "loop": true
+            }
+          },
+          "frame": [
+            16,
+            32
+          ],
+          "grid": {
+            "cell": [
+              16,
+              32
+            ],
+            "margin": [
+              0,
+              0
+            ],
+            "separation": [
+              0,
+              0
+            ]
+          },
+          "origin": [
+            8,
+            31
+          ],
+          "role": "NPC",
+          "size": [
+            144,
+            32
+          ],
+          "tags": [
+            "size_form:16"
+          ],
+          "usage": "sprite"
+        },
+        "approved": {
+          "animations": {
+            "phone_down": {
+              "fps": 8.0,
+              "frames": [
+                [
+                  0,
+                  0
+                ],
+                [
+                  1,
+                  0
+                ],
+                [
+                  2,
+                  0
+                ],
+                [
+                  3,
+                  0
+                ],
+                [
+                  4,
+                  0
+                ],
+                [
+                  5,
+                  0
+                ],
+                [
+                  6,
+                  0
+                ],
+                [
+                  7,
+                  0
+                ],
+                [
+                  8,
+                  0
+                ]
+              ],
+              "loop": true
+            }
+          },
+          "frame": [
+            16,
+            32
+          ],
+          "grid": {
+            "cell": [
+              16,
+              32
+            ],
+            "margin": [
+              0,
+              0
+            ],
+            "separation": [
+              0,
+              0
+            ]
+          },
+          "origin": [
+            8,
+            31
+          ],
+          "role": "NPC",
+          "size": [
+            144,
+            32
+          ],
+          "tags": [
+            "size_form:16",
+            "actor_art"
+          ],
+          "usage": "sprite"
+        },
+        "pixel_sha256": "e43bb96a7bb924ca81ae1c2da47f6a828ccebb68817e727eb891c2380a7bcf51",
+        "reviewed_on": "2026-10-29",
+        "scope": "Visually reviewed NPC art frame cells, facing and sequence. Native frame size retained. Pivot, looping and 1/6/8 fps playback are editable importer defaults, not artist-authored timing. No collision, movement, interaction or gameplay behavior certified."
+      }
+    },
+    "301b9263e7f77c0062f8502f1b99688d0118cdd32f82331da7173f014a93ac40": {
+      "": {
+        "kind": "actor_art",
+        "input": {
+          "animations": {
+            "sit2_left": {
+              "fps": 8.0,
+              "frames": [
+                [
+                  6,
+                  0
+                ],
+                [
+                  7,
+                  0
+                ],
+                [
+                  8,
+                  0
+                ],
+                [
+                  9,
+                  0
+                ],
+                [
+                  10,
+                  0
+                ],
+                [
+                  11,
+                  0
+                ]
+              ],
+              "loop": true
+            },
+            "sit2_right": {
+              "fps": 8.0,
+              "frames": [
+                [
+                  0,
+                  0
+                ],
+                [
+                  1,
+                  0
+                ],
+                [
+                  2,
+                  0
+                ],
+                [
+                  3,
+                  0
+                ],
+                [
+                  4,
+                  0
+                ],
+                [
+                  5,
+                  0
+                ]
+              ],
+              "loop": true
+            }
+          },
+          "frame": [
+            32,
+            32
+          ],
+          "grid": {
+            "cell": [
+              32,
+              32
+            ],
+            "margin": [
+              0,
+              0
+            ],
+            "separation": [
+              0,
+              0
+            ]
+          },
+          "origin": [
+            16,
+            31
+          ],
+          "role": "NPC",
+          "size": [
+            384,
+            32
+          ],
+          "tags": [
+            "size_form:16"
+          ],
+          "usage": "sprite"
+        },
+        "approved": {
+          "animations": {
+            "sit2_left": {
+              "fps": 8.0,
+              "frames": [
+                [
+                  6,
+                  0
+                ],
+                [
+                  7,
+                  0
+                ],
+                [
+                  8,
+                  0
+                ],
+                [
+                  9,
+                  0
+                ],
+                [
+                  10,
+                  0
+                ],
+                [
+                  11,
+                  0
+                ]
+              ],
+              "loop": true
+            },
+            "sit2_right": {
+              "fps": 8.0,
+              "frames": [
+                [
+                  0,
+                  0
+                ],
+                [
+                  1,
+                  0
+                ],
+                [
+                  2,
+                  0
+                ],
+                [
+                  3,
+                  0
+                ],
+                [
+                  4,
+                  0
+                ],
+                [
+                  5,
+                  0
+                ]
+              ],
+              "loop": true
+            }
+          },
+          "frame": [
+            32,
+            32
+          ],
+          "grid": {
+            "cell": [
+              32,
+              32
+            ],
+            "margin": [
+              0,
+              0
+            ],
+            "separation": [
+              0,
+              0
+            ]
+          },
+          "origin": [
+            16,
+            31
+          ],
+          "role": "NPC",
+          "size": [
+            384,
+            32
+          ],
+          "tags": [
+            "size_form:16",
+            "actor_art"
+          ],
+          "usage": "sprite"
+        },
+        "pixel_sha256": "c86695970271804d84f117829f2fee6c3d6cccfa89a090a31ff0dce9aef5345b",
+        "reviewed_on": "2026-10-29",
+        "scope": "Visually reviewed NPC art frame cells, facing and sequence. Native frame size retained. Pivot, looping and 1/6/8 fps playback are editable importer defaults, not artist-authored timing. No collision, movement, interaction or gameplay behavior certified."
+      }
+    },
+    "969adbe5a546f2d46f28973971e53bcc1272a18d2546cef4ef73d5b186ba4ada": {
+      "": {
+        "kind": "actor_art",
+        "input": {
+          "animations": {
+            "sit3_down": {
+              "fps": 8.0,
+              "frames": [
+                [
+                  0,
+                  0
+                ],
+                [
+                  1,
+                  0
+                ],
+                [
+                  2,
+                  0
+                ],
+                [
+                  3,
+                  0
+                ],
+                [
+                  4,
+                  0
+                ],
+                [
+                  5,
+                  0
+                ]
+              ],
+              "loop": true
+            },
+            "sit3_up": {
+              "fps": 8.0,
+              "frames": [
+                [
+                  6,
+                  0
+                ],
+                [
+                  7,
+                  0
+                ],
+                [
+                  8,
+                  0
+                ],
+                [
+                  9,
+                  0
+                ],
+                [
+                  10,
+                  0
+                ],
+                [
+                  11,
+                  0
+                ]
+              ],
+              "loop": true
+            }
+          },
+          "frame": [
+            16,
+            32
+          ],
+          "grid": {
+            "cell": [
+              16,
+              32
+            ],
+            "margin": [
+              0,
+              0
+            ],
+            "separation": [
+              0,
+              0
+            ]
+          },
+          "origin": [
+            8,
+            31
+          ],
+          "role": "NPC",
+          "size": [
+            192,
+            32
+          ],
+          "tags": [
+            "size_form:16"
+          ],
+          "usage": "sprite"
+        },
+        "approved": {
+          "animations": {
+            "sit3_down": {
+              "fps": 8.0,
+              "frames": [
+                [
+                  0,
+                  0
+                ],
+                [
+                  1,
+                  0
+                ],
+                [
+                  2,
+                  0
+                ],
+                [
+                  3,
+                  0
+                ],
+                [
+                  4,
+                  0
+                ],
+                [
+                  5,
+                  0
+                ]
+              ],
+              "loop": true
+            },
+            "sit3_up": {
+              "fps": 8.0,
+              "frames": [
+                [
+                  6,
+                  0
+                ],
+                [
+                  7,
+                  0
+                ],
+                [
+                  8,
+                  0
+                ],
+                [
+                  9,
+                  0
+                ],
+                [
+                  10,
+                  0
+                ],
+                [
+                  11,
+                  0
+                ]
+              ],
+              "loop": true
+            }
+          },
+          "frame": [
+            16,
+            32
+          ],
+          "grid": {
+            "cell": [
+              16,
+              32
+            ],
+            "margin": [
+              0,
+              0
+            ],
+            "separation": [
+              0,
+              0
+            ]
+          },
+          "origin": [
+            8,
+            31
+          ],
+          "role": "NPC",
+          "size": [
+            192,
+            32
+          ],
+          "tags": [
+            "size_form:16",
+            "actor_art"
+          ],
+          "usage": "sprite"
+        },
+        "pixel_sha256": "1dbede8dc9cd9d7dc966fd526d85d74eaaf840bc79eddd28a070e2244f31badf",
+        "reviewed_on": "2026-10-29",
+        "scope": "Visually reviewed NPC art frame cells, facing and sequence. Native frame size retained. Pivot, looping and 1/6/8 fps playback are editable importer defaults, not artist-authored timing. No collision, movement, interaction or gameplay behavior certified."
+      }
+    },
+    "63c1f9f983a6d7855d52ebbed658fdf78b1feda9f55ed908aed21fe602d93f2f": {
+      "": {
+        "kind": "actor_art",
+        "input": {
+          "animations": {
+            "sit_left": {
+              "fps": 8.0,
+              "frames": [
+                [
+                  6,
+                  0
+                ],
+                [
+                  7,
+                  0
+                ],
+                [
+                  8,
+                  0
+                ],
+                [
+                  9,
+                  0
+                ],
+                [
+                  10,
+                  0
+                ],
+                [
+                  11,
+                  0
+                ]
+              ],
+              "loop": true
+            },
+            "sit_right": {
+              "fps": 8.0,
+              "frames": [
+                [
+                  0,
+                  0
+                ],
+                [
+                  1,
+                  0
+                ],
+                [
+                  2,
+                  0
+                ],
+                [
+                  3,
+                  0
+                ],
+                [
+                  4,
+                  0
+                ],
+                [
+                  5,
+                  0
+                ]
+              ],
+              "loop": true
+            }
+          },
+          "frame": [
+            32,
+            32
+          ],
+          "grid": {
+            "cell": [
+              32,
+              32
+            ],
+            "margin": [
+              0,
+              0
+            ],
+            "separation": [
+              0,
+              0
+            ]
+          },
+          "origin": [
+            16,
+            31
+          ],
+          "role": "NPC",
+          "size": [
+            384,
+            32
+          ],
+          "tags": [
+            "size_form:16"
+          ],
+          "usage": "sprite"
+        },
+        "approved": {
+          "animations": {
+            "sit_left": {
+              "fps": 8.0,
+              "frames": [
+                [
+                  6,
+                  0
+                ],
+                [
+                  7,
+                  0
+                ],
+                [
+                  8,
+                  0
+                ],
+                [
+                  9,
+                  0
+                ],
+                [
+                  10,
+                  0
+                ],
+                [
+                  11,
+                  0
+                ]
+              ],
+              "loop": true
+            },
+            "sit_right": {
+              "fps": 8.0,
+              "frames": [
+                [
+                  0,
+                  0
+                ],
+                [
+                  1,
+                  0
+                ],
+                [
+                  2,
+                  0
+                ],
+                [
+                  3,
+                  0
+                ],
+                [
+                  4,
+                  0
+                ],
+                [
+                  5,
+                  0
+                ]
+              ],
+              "loop": true
+            }
+          },
+          "frame": [
+            32,
+            32
+          ],
+          "grid": {
+            "cell": [
+              32,
+              32
+            ],
+            "margin": [
+              0,
+              0
+            ],
+            "separation": [
+              0,
+              0
+            ]
+          },
+          "origin": [
+            16,
+            31
+          ],
+          "role": "NPC",
+          "size": [
+            384,
+            32
+          ],
+          "tags": [
+            "size_form:16",
+            "actor_art"
+          ],
+          "usage": "sprite"
+        },
+        "pixel_sha256": "bb8da5a22bbde42e937fdc1557005b957f6ae2a9552439ad644a34375b047e3d",
+        "reviewed_on": "2026-10-29",
+        "scope": "Visually reviewed NPC art frame cells, facing and sequence. Native frame size retained. Pivot, looping and 1/6/8 fps playback are editable importer defaults, not artist-authored timing. No collision, movement, interaction or gameplay behavior certified."
+      }
+    },
+    "30388da16c042ea2bb4472fbcb344e548f977313ff7bddf2550b5111c724307a": {
+      "": {
+        "kind": "actor_art",
+        "input": {
+          "animations": {
+            "phone_down": {
+              "fps": 8.0,
+              "frames": [
+                [
+                  0,
+                  0
+                ],
+                [
+                  1,
+                  0
+                ],
+                [
+                  2,
+                  0
+                ],
+                [
+                  3,
+                  0
+                ],
+                [
+                  4,
+                  0
+                ],
+                [
+                  5,
+                  0
+                ],
+                [
+                  6,
+                  0
+                ],
+                [
+                  7,
+                  0
+                ],
+                [
+                  8,
+                  0
+                ]
+              ],
+              "loop": true
+            }
+          },
+          "frame": [
+            16,
+            32
+          ],
+          "grid": {
+            "cell": [
+              16,
+              32
+            ],
+            "margin": [
+              0,
+              0
+            ],
+            "separation": [
+              0,
+              0
+            ]
+          },
+          "origin": [
+            8,
+            31
+          ],
+          "role": "NPC",
+          "size": [
+            144,
+            32
+          ],
+          "tags": [
+            "size_form:16"
+          ],
+          "usage": "sprite"
+        },
+        "approved": {
+          "animations": {
+            "phone_down": {
+              "fps": 8.0,
+              "frames": [
+                [
+                  0,
+                  0
+                ],
+                [
+                  1,
+                  0
+                ],
+                [
+                  2,
+                  0
+                ],
+                [
+                  3,
+                  0
+                ],
+                [
+                  4,
+                  0
+                ],
+                [
+                  5,
+                  0
+                ],
+                [
+                  6,
+                  0
+                ],
+                [
+                  7,
+                  0
+                ],
+                [
+                  8,
+                  0
+                ]
+              ],
+              "loop": true
+            }
+          },
+          "frame": [
+            16,
+            32
+          ],
+          "grid": {
+            "cell": [
+              16,
+              32
+            ],
+            "margin": [
+              0,
+              0
+            ],
+            "separation": [
+              0,
+              0
+            ]
+          },
+          "origin": [
+            8,
+            31
+          ],
+          "role": "NPC",
+          "size": [
+            144,
+            32
+          ],
+          "tags": [
+            "size_form:16",
+            "actor_art"
+          ],
+          "usage": "sprite"
+        },
+        "pixel_sha256": "f168910d46a0ff0729f5713cb94cadd70604eb5edfd3065e8c1b6609a8cddfa5",
+        "reviewed_on": "2026-10-29",
+        "scope": "Visually reviewed NPC art frame cells, facing and sequence. Native frame size retained. Pivot, looping and 1/6/8 fps playback are editable importer defaults, not artist-authored timing. No collision, movement, interaction or gameplay behavior certified."
+      }
+    },
+    "8c852792ae76bf032d111ea37193ff37313bd35df96a9a7a6c27c2fae7d22b65": {
+      "": {
+        "kind": "actor_art",
+        "input": {
+          "animations": {
+            "sit2_left": {
+              "fps": 8.0,
+              "frames": [
+                [
+                  6,
+                  0
+                ],
+                [
+                  7,
+                  0
+                ],
+                [
+                  8,
+                  0
+                ],
+                [
+                  9,
+                  0
+                ],
+                [
+                  10,
+                  0
+                ],
+                [
+                  11,
+                  0
+                ]
+              ],
+              "loop": true
+            },
+            "sit2_right": {
+              "fps": 8.0,
+              "frames": [
+                [
+                  0,
+                  0
+                ],
+                [
+                  1,
+                  0
+                ],
+                [
+                  2,
+                  0
+                ],
+                [
+                  3,
+                  0
+                ],
+                [
+                  4,
+                  0
+                ],
+                [
+                  5,
+                  0
+                ]
+              ],
+              "loop": true
+            }
+          },
+          "frame": [
+            32,
+            32
+          ],
+          "grid": {
+            "cell": [
+              32,
+              32
+            ],
+            "margin": [
+              0,
+              0
+            ],
+            "separation": [
+              0,
+              0
+            ]
+          },
+          "origin": [
+            16,
+            31
+          ],
+          "role": "NPC",
+          "size": [
+            384,
+            32
+          ],
+          "tags": [
+            "size_form:16"
+          ],
+          "usage": "sprite"
+        },
+        "approved": {
+          "animations": {
+            "sit2_left": {
+              "fps": 8.0,
+              "frames": [
+                [
+                  6,
+                  0
+                ],
+                [
+                  7,
+                  0
+                ],
+                [
+                  8,
+                  0
+                ],
+                [
+                  9,
+                  0
+                ],
+                [
+                  10,
+                  0
+                ],
+                [
+                  11,
+                  0
+                ]
+              ],
+              "loop": true
+            },
+            "sit2_right": {
+              "fps": 8.0,
+              "frames": [
+                [
+                  0,
+                  0
+                ],
+                [
+                  1,
+                  0
+                ],
+                [
+                  2,
+                  0
+                ],
+                [
+                  3,
+                  0
+                ],
+                [
+                  4,
+                  0
+                ],
+                [
+                  5,
+                  0
+                ]
+              ],
+              "loop": true
+            }
+          },
+          "frame": [
+            32,
+            32
+          ],
+          "grid": {
+            "cell": [
+              32,
+              32
+            ],
+            "margin": [
+              0,
+              0
+            ],
+            "separation": [
+              0,
+              0
+            ]
+          },
+          "origin": [
+            16,
+            31
+          ],
+          "role": "NPC",
+          "size": [
+            384,
+            32
+          ],
+          "tags": [
+            "size_form:16",
+            "actor_art"
+          ],
+          "usage": "sprite"
+        },
+        "pixel_sha256": "d9eefd52d1327d1b1de6a03128cbcc3632d815ba81105a05df93cc07b6ad930b",
+        "reviewed_on": "2026-10-29",
+        "scope": "Visually reviewed NPC art frame cells, facing and sequence. Native frame size retained. Pivot, looping and 1/6/8 fps playback are editable importer defaults, not artist-authored timing. No collision, movement, interaction or gameplay behavior certified."
+      }
+    },
+    "2ee54a3c15ad85abcd72774611cc92dddef56bad9c55b0ffe7c638a0072b70ce": {
+      "": {
+        "kind": "actor_art",
+        "input": {
+          "animations": {
+            "sit3_down": {
+              "fps": 8.0,
+              "frames": [
+                [
+                  0,
+                  0
+                ],
+                [
+                  1,
+                  0
+                ],
+                [
+                  2,
+                  0
+                ],
+                [
+                  3,
+                  0
+                ],
+                [
+                  4,
+                  0
+                ],
+                [
+                  5,
+                  0
+                ]
+              ],
+              "loop": true
+            },
+            "sit3_up": {
+              "fps": 8.0,
+              "frames": [
+                [
+                  6,
+                  0
+                ],
+                [
+                  7,
+                  0
+                ],
+                [
+                  8,
+                  0
+                ],
+                [
+                  9,
+                  0
+                ],
+                [
+                  10,
+                  0
+                ],
+                [
+                  11,
+                  0
+                ]
+              ],
+              "loop": true
+            }
+          },
+          "frame": [
+            16,
+            32
+          ],
+          "grid": {
+            "cell": [
+              16,
+              32
+            ],
+            "margin": [
+              0,
+              0
+            ],
+            "separation": [
+              0,
+              0
+            ]
+          },
+          "origin": [
+            8,
+            31
+          ],
+          "role": "NPC",
+          "size": [
+            192,
+            32
+          ],
+          "tags": [
+            "size_form:16"
+          ],
+          "usage": "sprite"
+        },
+        "approved": {
+          "animations": {
+            "sit3_down": {
+              "fps": 8.0,
+              "frames": [
+                [
+                  0,
+                  0
+                ],
+                [
+                  1,
+                  0
+                ],
+                [
+                  2,
+                  0
+                ],
+                [
+                  3,
+                  0
+                ],
+                [
+                  4,
+                  0
+                ],
+                [
+                  5,
+                  0
+                ]
+              ],
+              "loop": true
+            },
+            "sit3_up": {
+              "fps": 8.0,
+              "frames": [
+                [
+                  6,
+                  0
+                ],
+                [
+                  7,
+                  0
+                ],
+                [
+                  8,
+                  0
+                ],
+                [
+                  9,
+                  0
+                ],
+                [
+                  10,
+                  0
+                ],
+                [
+                  11,
+                  0
+                ]
+              ],
+              "loop": true
+            }
+          },
+          "frame": [
+            16,
+            32
+          ],
+          "grid": {
+            "cell": [
+              16,
+              32
+            ],
+            "margin": [
+              0,
+              0
+            ],
+            "separation": [
+              0,
+              0
+            ]
+          },
+          "origin": [
+            8,
+            31
+          ],
+          "role": "NPC",
+          "size": [
+            192,
+            32
+          ],
+          "tags": [
+            "size_form:16",
+            "actor_art"
+          ],
+          "usage": "sprite"
+        },
+        "pixel_sha256": "fa02372f8e07aa253aa6e69f1be7ba25f47d0711a6f6364345f0ab67fada7e4a",
+        "reviewed_on": "2026-10-29",
+        "scope": "Visually reviewed NPC art frame cells, facing and sequence. Native frame size retained. Pivot, looping and 1/6/8 fps playback are editable importer defaults, not artist-authored timing. No collision, movement, interaction or gameplay behavior certified."
+      }
+    },
+    "d62d508e4f84792cdacf477305b261799e54bdb3473287bb0373d656891615cc": {
+      "": {
+        "kind": "actor_art",
+        "input": {
+          "animations": {
+            "sit_left": {
+              "fps": 8.0,
+              "frames": [
+                [
+                  6,
+                  0
+                ],
+                [
+                  7,
+                  0
+                ],
+                [
+                  8,
+                  0
+                ],
+                [
+                  9,
+                  0
+                ],
+                [
+                  10,
+                  0
+                ],
+                [
+                  11,
+                  0
+                ]
+              ],
+              "loop": true
+            },
+            "sit_right": {
+              "fps": 8.0,
+              "frames": [
+                [
+                  0,
+                  0
+                ],
+                [
+                  1,
+                  0
+                ],
+                [
+                  2,
+                  0
+                ],
+                [
+                  3,
+                  0
+                ],
+                [
+                  4,
+                  0
+                ],
+                [
+                  5,
+                  0
+                ]
+              ],
+              "loop": true
+            }
+          },
+          "frame": [
+            32,
+            32
+          ],
+          "grid": {
+            "cell": [
+              32,
+              32
+            ],
+            "margin": [
+              0,
+              0
+            ],
+            "separation": [
+              0,
+              0
+            ]
+          },
+          "origin": [
+            16,
+            31
+          ],
+          "role": "NPC",
+          "size": [
+            384,
+            32
+          ],
+          "tags": [
+            "size_form:16"
+          ],
+          "usage": "sprite"
+        },
+        "approved": {
+          "animations": {
+            "sit_left": {
+              "fps": 8.0,
+              "frames": [
+                [
+                  6,
+                  0
+                ],
+                [
+                  7,
+                  0
+                ],
+                [
+                  8,
+                  0
+                ],
+                [
+                  9,
+                  0
+                ],
+                [
+                  10,
+                  0
+                ],
+                [
+                  11,
+                  0
+                ]
+              ],
+              "loop": true
+            },
+            "sit_right": {
+              "fps": 8.0,
+              "frames": [
+                [
+                  0,
+                  0
+                ],
+                [
+                  1,
+                  0
+                ],
+                [
+                  2,
+                  0
+                ],
+                [
+                  3,
+                  0
+                ],
+                [
+                  4,
+                  0
+                ],
+                [
+                  5,
+                  0
+                ]
+              ],
+              "loop": true
+            }
+          },
+          "frame": [
+            32,
+            32
+          ],
+          "grid": {
+            "cell": [
+              32,
+              32
+            ],
+            "margin": [
+              0,
+              0
+            ],
+            "separation": [
+              0,
+              0
+            ]
+          },
+          "origin": [
+            16,
+            31
+          ],
+          "role": "NPC",
+          "size": [
+            384,
+            32
+          ],
+          "tags": [
+            "size_form:16",
+            "actor_art"
+          ],
+          "usage": "sprite"
+        },
+        "pixel_sha256": "b9265f260594d7f41cdbfced33f932ffc3168966c35b956d018085b7d1bfe11c",
+        "reviewed_on": "2026-10-29",
+        "scope": "Visually reviewed NPC art frame cells, facing and sequence. Native frame size retained. Pivot, looping and 1/6/8 fps playback are editable importer defaults, not artist-authored timing. No collision, movement, interaction or gameplay behavior certified."
+      }
+    },
+    "2883f284ac66f969f81dd18a33448780655016e810a78a63e0982412d681d851": {
+      "c0": {
+        "kind": "actor_art",
+        "input": {
+          "animations": {
+            "idle_down": {
+              "fps": 1.0,
+              "frames": [
+                [
+                  1,
+                  0
+                ]
+              ],
+              "loop": true
+            },
+            "idle_left": {
+              "fps": 1.0,
+              "frames": [
+                [
+                  1,
+                  1
+                ]
+              ],
+              "loop": true
+            },
+            "idle_right": {
+              "fps": 1.0,
+              "frames": [
+                [
+                  1,
+                  2
+                ]
+              ],
+              "loop": true
+            },
+            "idle_up": {
+              "fps": 1.0,
+              "frames": [
+                [
+                  1,
+                  3
+                ]
+              ],
+              "loop": true
+            },
+            "walk_down": {
+              "fps": 6.0,
+              "frames": [
+                [
+                  1,
+                  0
+                ],
+                [
+                  0,
+                  0
+                ],
+                [
+                  1,
+                  0
+                ],
+                [
+                  2,
+                  0
+                ]
+              ],
+              "loop": true
+            },
+            "walk_left": {
+              "fps": 6.0,
+              "frames": [
+                [
+                  1,
+                  1
+                ],
+                [
+                  0,
+                  1
+                ],
+                [
+                  1,
+                  1
+                ],
+                [
+                  2,
+                  1
+                ]
+              ],
+              "loop": true
+            },
+            "walk_right": {
+              "fps": 6.0,
+              "frames": [
+                [
+                  1,
+                  2
+                ],
+                [
+                  0,
+                  2
+                ],
+                [
+                  1,
+                  2
+                ],
+                [
+                  2,
+                  2
+                ]
+              ],
+              "loop": true
+            },
+            "walk_up": {
+              "fps": 6.0,
+              "frames": [
+                [
+                  1,
+                  3
+                ],
+                [
+                  0,
+                  3
+                ],
+                [
+                  1,
+                  3
+                ],
+                [
+                  2,
+                  3
+                ]
+              ],
+              "loop": true
+            }
+          },
+          "character_index": 0,
+          "directions": 4,
+          "frame": [
+            48,
+            96
+          ],
+          "grid": {
+            "cell": [
+              48,
+              96
+            ],
+            "margin": [
+              0,
+              0
+            ],
+            "separation": [
+              0,
+              0
+            ]
+          },
+          "origin": [
+            24,
+            95
+          ],
+          "role": "NPC",
+          "size": [
+            576,
+            768
+          ],
+          "usage": "sprite"
+        },
+        "approved": {
+          "animations": {
+            "idle_down": {
+              "fps": 1.0,
+              "frames": [
+                [
+                  1,
+                  0
+                ]
+              ],
+              "loop": true
+            },
+            "idle_left": {
+              "fps": 1.0,
+              "frames": [
+                [
+                  1,
+                  1
+                ]
+              ],
+              "loop": true
+            },
+            "idle_right": {
+              "fps": 1.0,
+              "frames": [
+                [
+                  1,
+                  2
+                ]
+              ],
+              "loop": true
+            },
+            "idle_up": {
+              "fps": 1.0,
+              "frames": [
+                [
+                  1,
+                  3
+                ]
+              ],
+              "loop": true
+            },
+            "walk_down": {
+              "fps": 6.0,
+              "frames": [
+                [
+                  1,
+                  0
+                ],
+                [
+                  0,
+                  0
+                ],
+                [
+                  1,
+                  0
+                ],
+                [
+                  2,
+                  0
+                ]
+              ],
+              "loop": true
+            },
+            "walk_left": {
+              "fps": 6.0,
+              "frames": [
+                [
+                  1,
+                  1
+                ],
+                [
+                  0,
+                  1
+                ],
+                [
+                  1,
+                  1
+                ],
+                [
+                  2,
+                  1
+                ]
+              ],
+              "loop": true
+            },
+            "walk_right": {
+              "fps": 6.0,
+              "frames": [
+                [
+                  1,
+                  2
+                ],
+                [
+                  0,
+                  2
+                ],
+                [
+                  1,
+                  2
+                ],
+                [
+                  2,
+                  2
+                ]
+              ],
+              "loop": true
+            },
+            "walk_up": {
+              "fps": 6.0,
+              "frames": [
+                [
+                  1,
+                  3
+                ],
+                [
+                  0,
+                  3
+                ],
+                [
+                  1,
+                  3
+                ],
+                [
+                  2,
+                  3
+                ]
+              ],
+              "loop": true
+            }
+          },
+          "character_index": 0,
+          "directions": 4,
+          "frame": [
+            48,
+            96
+          ],
+          "grid": {
+            "cell": [
+              48,
+              96
+            ],
+            "margin": [
+              0,
+              0
+            ],
+            "separation": [
+              0,
+              0
+            ]
+          },
+          "origin": [
+            24,
+            95
+          ],
+          "role": "NPC",
+          "size": [
+            576,
+            768
+          ],
+          "usage": "sprite",
+          "tags": [
+            "actor_art"
+          ]
+        },
+        "pixel_sha256": "997ab68ee00600200e9ccdd65483d3508298f23f5019750b6f27c1c719f520d9",
+        "reviewed_on": "2026-10-29",
+        "scope": "Visually reviewed NPC art frame cells, facing and sequence. Native frame size retained. Pivot, looping and 1/6/8 fps playback are editable importer defaults, not artist-authored timing. No collision, movement, interaction or gameplay behavior certified."
+      },
+      "c1": {
+        "kind": "actor_art",
+        "input": {
+          "animations": {
+            "idle_down": {
+              "fps": 1.0,
+              "frames": [
+                [
+                  4,
+                  0
+                ]
+              ],
+              "loop": true
+            },
+            "idle_left": {
+              "fps": 1.0,
+              "frames": [
+                [
+                  4,
+                  1
+                ]
+              ],
+              "loop": true
+            },
+            "idle_right": {
+              "fps": 1.0,
+              "frames": [
+                [
+                  4,
+                  2
+                ]
+              ],
+              "loop": true
+            },
+            "idle_up": {
+              "fps": 1.0,
+              "frames": [
+                [
+                  4,
+                  3
+                ]
+              ],
+              "loop": true
+            },
+            "walk_down": {
+              "fps": 6.0,
+              "frames": [
+                [
+                  4,
+                  0
+                ],
+                [
+                  3,
+                  0
+                ],
+                [
+                  4,
+                  0
+                ],
+                [
+                  5,
+                  0
+                ]
+              ],
+              "loop": true
+            },
+            "walk_left": {
+              "fps": 6.0,
+              "frames": [
+                [
+                  4,
+                  1
+                ],
+                [
+                  3,
+                  1
+                ],
+                [
+                  4,
+                  1
+                ],
+                [
+                  5,
+                  1
+                ]
+              ],
+              "loop": true
+            },
+            "walk_right": {
+              "fps": 6.0,
+              "frames": [
+                [
+                  4,
+                  2
+                ],
+                [
+                  3,
+                  2
+                ],
+                [
+                  4,
+                  2
+                ],
+                [
+                  5,
+                  2
+                ]
+              ],
+              "loop": true
+            },
+            "walk_up": {
+              "fps": 6.0,
+              "frames": [
+                [
+                  4,
+                  3
+                ],
+                [
+                  3,
+                  3
+                ],
+                [
+                  4,
+                  3
+                ],
+                [
+                  5,
+                  3
+                ]
+              ],
+              "loop": true
+            }
+          },
+          "character_index": 1,
+          "directions": 4,
+          "frame": [
+            48,
+            96
+          ],
+          "grid": {
+            "cell": [
+              48,
+              96
+            ],
+            "margin": [
+              0,
+              0
+            ],
+            "separation": [
+              0,
+              0
+            ]
+          },
+          "origin": [
+            24,
+            95
+          ],
+          "role": "NPC",
+          "size": [
+            576,
+            768
+          ],
+          "usage": "sprite"
+        },
+        "approved": {
+          "animations": {
+            "idle_down": {
+              "fps": 1.0,
+              "frames": [
+                [
+                  4,
+                  0
+                ]
+              ],
+              "loop": true
+            },
+            "idle_left": {
+              "fps": 1.0,
+              "frames": [
+                [
+                  4,
+                  1
+                ]
+              ],
+              "loop": true
+            },
+            "idle_right": {
+              "fps": 1.0,
+              "frames": [
+                [
+                  4,
+                  2
+                ]
+              ],
+              "loop": true
+            },
+            "idle_up": {
+              "fps": 1.0,
+              "frames": [
+                [
+                  4,
+                  3
+                ]
+              ],
+              "loop": true
+            },
+            "walk_down": {
+              "fps": 6.0,
+              "frames": [
+                [
+                  4,
+                  0
+                ],
+                [
+                  3,
+                  0
+                ],
+                [
+                  4,
+                  0
+                ],
+                [
+                  5,
+                  0
+                ]
+              ],
+              "loop": true
+            },
+            "walk_left": {
+              "fps": 6.0,
+              "frames": [
+                [
+                  4,
+                  1
+                ],
+                [
+                  3,
+                  1
+                ],
+                [
+                  4,
+                  1
+                ],
+                [
+                  5,
+                  1
+                ]
+              ],
+              "loop": true
+            },
+            "walk_right": {
+              "fps": 6.0,
+              "frames": [
+                [
+                  4,
+                  2
+                ],
+                [
+                  3,
+                  2
+                ],
+                [
+                  4,
+                  2
+                ],
+                [
+                  5,
+                  2
+                ]
+              ],
+              "loop": true
+            },
+            "walk_up": {
+              "fps": 6.0,
+              "frames": [
+                [
+                  4,
+                  3
+                ],
+                [
+                  3,
+                  3
+                ],
+                [
+                  4,
+                  3
+                ],
+                [
+                  5,
+                  3
+                ]
+              ],
+              "loop": true
+            }
+          },
+          "character_index": 1,
+          "directions": 4,
+          "frame": [
+            48,
+            96
+          ],
+          "grid": {
+            "cell": [
+              48,
+              96
+            ],
+            "margin": [
+              0,
+              0
+            ],
+            "separation": [
+              0,
+              0
+            ]
+          },
+          "origin": [
+            24,
+            95
+          ],
+          "role": "NPC",
+          "size": [
+            576,
+            768
+          ],
+          "usage": "sprite",
+          "tags": [
+            "actor_art"
+          ]
+        },
+        "pixel_sha256": "997ab68ee00600200e9ccdd65483d3508298f23f5019750b6f27c1c719f520d9",
+        "reviewed_on": "2026-10-29",
+        "scope": "Visually reviewed NPC art frame cells, facing and sequence. Native frame size retained. Pivot, looping and 1/6/8 fps playback are editable importer defaults, not artist-authored timing. No collision, movement, interaction or gameplay behavior certified."
+      },
+      "c2": {
+        "kind": "actor_art",
+        "input": {
+          "animations": {
+            "idle_down": {
+              "fps": 1.0,
+              "frames": [
+                [
+                  7,
+                  0
+                ]
+              ],
+              "loop": true
+            },
+            "idle_left": {
+              "fps": 1.0,
+              "frames": [
+                [
+                  7,
+                  1
+                ]
+              ],
+              "loop": true
+            },
+            "idle_right": {
+              "fps": 1.0,
+              "frames": [
+                [
+                  7,
+                  2
+                ]
+              ],
+              "loop": true
+            },
+            "idle_up": {
+              "fps": 1.0,
+              "frames": [
+                [
+                  7,
+                  3
+                ]
+              ],
+              "loop": true
+            },
+            "walk_down": {
+              "fps": 6.0,
+              "frames": [
+                [
+                  7,
+                  0
+                ],
+                [
+                  6,
+                  0
+                ],
+                [
+                  7,
+                  0
+                ],
+                [
+                  8,
+                  0
+                ]
+              ],
+              "loop": true
+            },
+            "walk_left": {
+              "fps": 6.0,
+              "frames": [
+                [
+                  7,
+                  1
+                ],
+                [
+                  6,
+                  1
+                ],
+                [
+                  7,
+                  1
+                ],
+                [
+                  8,
+                  1
+                ]
+              ],
+              "loop": true
+            },
+            "walk_right": {
+              "fps": 6.0,
+              "frames": [
+                [
+                  7,
+                  2
+                ],
+                [
+                  6,
+                  2
+                ],
+                [
+                  7,
+                  2
+                ],
+                [
+                  8,
+                  2
+                ]
+              ],
+              "loop": true
+            },
+            "walk_up": {
+              "fps": 6.0,
+              "frames": [
+                [
+                  7,
+                  3
+                ],
+                [
+                  6,
+                  3
+                ],
+                [
+                  7,
+                  3
+                ],
+                [
+                  8,
+                  3
+                ]
+              ],
+              "loop": true
+            }
+          },
+          "character_index": 2,
+          "directions": 4,
+          "frame": [
+            48,
+            96
+          ],
+          "grid": {
+            "cell": [
+              48,
+              96
+            ],
+            "margin": [
+              0,
+              0
+            ],
+            "separation": [
+              0,
+              0
+            ]
+          },
+          "origin": [
+            24,
+            95
+          ],
+          "role": "NPC",
+          "size": [
+            576,
+            768
+          ],
+          "usage": "sprite"
+        },
+        "approved": {
+          "animations": {
+            "idle_down": {
+              "fps": 1.0,
+              "frames": [
+                [
+                  7,
+                  0
+                ]
+              ],
+              "loop": true
+            },
+            "idle_left": {
+              "fps": 1.0,
+              "frames": [
+                [
+                  7,
+                  1
+                ]
+              ],
+              "loop": true
+            },
+            "idle_right": {
+              "fps": 1.0,
+              "frames": [
+                [
+                  7,
+                  2
+                ]
+              ],
+              "loop": true
+            },
+            "idle_up": {
+              "fps": 1.0,
+              "frames": [
+                [
+                  7,
+                  3
+                ]
+              ],
+              "loop": true
+            },
+            "walk_down": {
+              "fps": 6.0,
+              "frames": [
+                [
+                  7,
+                  0
+                ],
+                [
+                  6,
+                  0
+                ],
+                [
+                  7,
+                  0
+                ],
+                [
+                  8,
+                  0
+                ]
+              ],
+              "loop": true
+            },
+            "walk_left": {
+              "fps": 6.0,
+              "frames": [
+                [
+                  7,
+                  1
+                ],
+                [
+                  6,
+                  1
+                ],
+                [
+                  7,
+                  1
+                ],
+                [
+                  8,
+                  1
+                ]
+              ],
+              "loop": true
+            },
+            "walk_right": {
+              "fps": 6.0,
+              "frames": [
+                [
+                  7,
+                  2
+                ],
+                [
+                  6,
+                  2
+                ],
+                [
+                  7,
+                  2
+                ],
+                [
+                  8,
+                  2
+                ]
+              ],
+              "loop": true
+            },
+            "walk_up": {
+              "fps": 6.0,
+              "frames": [
+                [
+                  7,
+                  3
+                ],
+                [
+                  6,
+                  3
+                ],
+                [
+                  7,
+                  3
+                ],
+                [
+                  8,
+                  3
+                ]
+              ],
+              "loop": true
+            }
+          },
+          "character_index": 2,
+          "directions": 4,
+          "frame": [
+            48,
+            96
+          ],
+          "grid": {
+            "cell": [
+              48,
+              96
+            ],
+            "margin": [
+              0,
+              0
+            ],
+            "separation": [
+              0,
+              0
+            ]
+          },
+          "origin": [
+            24,
+            95
+          ],
+          "role": "NPC",
+          "size": [
+            576,
+            768
+          ],
+          "usage": "sprite",
+          "tags": [
+            "actor_art"
+          ]
+        },
+        "pixel_sha256": "997ab68ee00600200e9ccdd65483d3508298f23f5019750b6f27c1c719f520d9",
+        "reviewed_on": "2026-10-29",
+        "scope": "Visually reviewed NPC art frame cells, facing and sequence. Native frame size retained. Pivot, looping and 1/6/8 fps playback are editable importer defaults, not artist-authored timing. No collision, movement, interaction or gameplay behavior certified."
+      },
+      "c3": {
+        "kind": "actor_art",
+        "input": {
+          "animations": {
+            "idle_down": {
+              "fps": 1.0,
+              "frames": [
+                [
+                  10,
+                  0
+                ]
+              ],
+              "loop": true
+            },
+            "idle_left": {
+              "fps": 1.0,
+              "frames": [
+                [
+                  10,
+                  1
+                ]
+              ],
+              "loop": true
+            },
+            "idle_right": {
+              "fps": 1.0,
+              "frames": [
+                [
+                  10,
+                  2
+                ]
+              ],
+              "loop": true
+            },
+            "idle_up": {
+              "fps": 1.0,
+              "frames": [
+                [
+                  10,
+                  3
+                ]
+              ],
+              "loop": true
+            },
+            "walk_down": {
+              "fps": 6.0,
+              "frames": [
+                [
+                  10,
+                  0
+                ],
+                [
+                  9,
+                  0
+                ],
+                [
+                  10,
+                  0
+                ],
+                [
+                  11,
+                  0
+                ]
+              ],
+              "loop": true
+            },
+            "walk_left": {
+              "fps": 6.0,
+              "frames": [
+                [
+                  10,
+                  1
+                ],
+                [
+                  9,
+                  1
+                ],
+                [
+                  10,
+                  1
+                ],
+                [
+                  11,
+                  1
+                ]
+              ],
+              "loop": true
+            },
+            "walk_right": {
+              "fps": 6.0,
+              "frames": [
+                [
+                  10,
+                  2
+                ],
+                [
+                  9,
+                  2
+                ],
+                [
+                  10,
+                  2
+                ],
+                [
+                  11,
+                  2
+                ]
+              ],
+              "loop": true
+            },
+            "walk_up": {
+              "fps": 6.0,
+              "frames": [
+                [
+                  10,
+                  3
+                ],
+                [
+                  9,
+                  3
+                ],
+                [
+                  10,
+                  3
+                ],
+                [
+                  11,
+                  3
+                ]
+              ],
+              "loop": true
+            }
+          },
+          "character_index": 3,
+          "directions": 4,
+          "frame": [
+            48,
+            96
+          ],
+          "grid": {
+            "cell": [
+              48,
+              96
+            ],
+            "margin": [
+              0,
+              0
+            ],
+            "separation": [
+              0,
+              0
+            ]
+          },
+          "origin": [
+            24,
+            95
+          ],
+          "role": "NPC",
+          "size": [
+            576,
+            768
+          ],
+          "usage": "sprite"
+        },
+        "approved": {
+          "animations": {
+            "idle_down": {
+              "fps": 1.0,
+              "frames": [
+                [
+                  10,
+                  0
+                ]
+              ],
+              "loop": true
+            },
+            "idle_left": {
+              "fps": 1.0,
+              "frames": [
+                [
+                  10,
+                  1
+                ]
+              ],
+              "loop": true
+            },
+            "idle_right": {
+              "fps": 1.0,
+              "frames": [
+                [
+                  10,
+                  2
+                ]
+              ],
+              "loop": true
+            },
+            "idle_up": {
+              "fps": 1.0,
+              "frames": [
+                [
+                  10,
+                  3
+                ]
+              ],
+              "loop": true
+            },
+            "walk_down": {
+              "fps": 6.0,
+              "frames": [
+                [
+                  10,
+                  0
+                ],
+                [
+                  9,
+                  0
+                ],
+                [
+                  10,
+                  0
+                ],
+                [
+                  11,
+                  0
+                ]
+              ],
+              "loop": true
+            },
+            "walk_left": {
+              "fps": 6.0,
+              "frames": [
+                [
+                  10,
+                  1
+                ],
+                [
+                  9,
+                  1
+                ],
+                [
+                  10,
+                  1
+                ],
+                [
+                  11,
+                  1
+                ]
+              ],
+              "loop": true
+            },
+            "walk_right": {
+              "fps": 6.0,
+              "frames": [
+                [
+                  10,
+                  2
+                ],
+                [
+                  9,
+                  2
+                ],
+                [
+                  10,
+                  2
+                ],
+                [
+                  11,
+                  2
+                ]
+              ],
+              "loop": true
+            },
+            "walk_up": {
+              "fps": 6.0,
+              "frames": [
+                [
+                  10,
+                  3
+                ],
+                [
+                  9,
+                  3
+                ],
+                [
+                  10,
+                  3
+                ],
+                [
+                  11,
+                  3
+                ]
+              ],
+              "loop": true
+            }
+          },
+          "character_index": 3,
+          "directions": 4,
+          "frame": [
+            48,
+            96
+          ],
+          "grid": {
+            "cell": [
+              48,
+              96
+            ],
+            "margin": [
+              0,
+              0
+            ],
+            "separation": [
+              0,
+              0
+            ]
+          },
+          "origin": [
+            24,
+            95
+          ],
+          "role": "NPC",
+          "size": [
+            576,
+            768
+          ],
+          "usage": "sprite",
+          "tags": [
+            "actor_art"
+          ]
+        },
+        "pixel_sha256": "997ab68ee00600200e9ccdd65483d3508298f23f5019750b6f27c1c719f520d9",
+        "reviewed_on": "2026-10-29",
+        "scope": "Visually reviewed NPC art frame cells, facing and sequence. Native frame size retained. Pivot, looping and 1/6/8 fps playback are editable importer defaults, not artist-authored timing. No collision, movement, interaction or gameplay behavior certified."
+      }
+    },
+    "4014227842bb194fa2c59452ae4eb4597f510d61228f0f56eaf8e1e8c4d58982": {
+      "": {
+        "kind": "actor_art",
+        "input": {
+          "animations": {
+            "idle_down": {
+              "fps": 8.0,
+              "frames": [
+                [
+                  3,
+                  0
+                ]
+              ],
+              "loop": true
+            },
+            "idle_left": {
+              "fps": 8.0,
+              "frames": [
+                [
+                  2,
+                  0
+                ]
+              ],
+              "loop": true
+            },
+            "idle_right": {
+              "fps": 8.0,
+              "frames": [
+                [
+                  0,
+                  0
+                ]
+              ],
+              "loop": true
+            },
+            "idle_up": {
+              "fps": 8.0,
+              "frames": [
+                [
+                  1,
+                  0
+                ]
+              ],
+              "loop": true
+            }
+          },
+          "frame": [
+            16,
+            32
+          ],
+          "grid": {
+            "cell": [
+              16,
+              32
+            ],
+            "margin": [
+              0,
+              0
+            ],
+            "separation": [
+              0,
+              0
+            ]
+          },
+          "role": "NPC",
+          "size": [
+            64,
+            32
+          ],
+          "tags": [
+            "size_form:16"
+          ],
+          "usage": "sprite"
+        },
+        "approved": {
+          "animations": {
+            "idle_down": {
+              "fps": 8.0,
+              "frames": [
+                [
+                  3,
+                  0
+                ]
+              ],
+              "loop": true
+            },
+            "idle_left": {
+              "fps": 8.0,
+              "frames": [
+                [
+                  2,
+                  0
+                ]
+              ],
+              "loop": true
+            },
+            "idle_right": {
+              "fps": 8.0,
+              "frames": [
+                [
+                  0,
+                  0
+                ]
+              ],
+              "loop": true
+            },
+            "idle_up": {
+              "fps": 8.0,
+              "frames": [
+                [
+                  1,
+                  0
+                ]
+              ],
+              "loop": true
+            }
+          },
+          "frame": [
+            16,
+            32
+          ],
+          "grid": {
+            "cell": [
+              16,
+              32
+            ],
+            "margin": [
+              0,
+              0
+            ],
+            "separation": [
+              0,
+              0
+            ]
+          },
+          "role": "NPC",
+          "size": [
+            64,
+            32
+          ],
+          "tags": [
+            "size_form:16",
+            "actor_art"
+          ],
+          "usage": "sprite",
+          "origin": [
+            8,
+            31
+          ]
+        },
+        "pixel_sha256": "88643c83790dae904d14aef1a2402d317c569c6c5ef94b0bc855b90386cef611",
+        "reviewed_on": "2026-10-29",
+        "scope": "Visually reviewed NPC art frame cells, facing and sequence. Native frame size retained. Pivot, looping and 1/6/8 fps playback are editable importer defaults, not artist-authored timing. No collision, movement, interaction or gameplay behavior certified."
+      }
+    },
+    "c0f102ff32fcdea48d1d6c25e3e44bacc8d4e6a9b2c10a530f231b63b1dcdcc0": {
+      "": {
+        "kind": "actor_art",
+        "input": {
+          "animations": {
+            "walk_down": {
+              "fps": 8.0,
+              "frames": [
+                [
+                  0,
+                  0
+                ],
+                [
+                  1,
+                  0
+                ],
+                [
+                  2,
+                  0
+                ]
+              ],
+              "loop": true
+            },
+            "walk_left": {
+              "fps": 8.0,
+              "frames": [
+                [
+                  0,
+                  1
+                ],
+                [
+                  1,
+                  1
+                ],
+                [
+                  2,
+                  1
+                ]
+              ],
+              "loop": true
+            },
+            "walk_right": {
+              "fps": 8.0,
+              "frames": [
+                [
+                  0,
+                  2
+                ],
+                [
+                  1,
+                  2
+                ],
+                [
+                  2,
+                  2
+                ]
+              ],
+              "loop": true
+            },
+            "walk_up": {
+              "fps": 8.0,
+              "frames": [
+                [
+                  0,
+                  3
+                ],
+                [
+                  1,
+                  3
+                ],
+                [
+                  2,
+                  3
+                ]
+              ],
+              "loop": true
+            }
+          },
+          "frame": [
+            16,
+            32
+          ],
+          "grid": {
+            "cell": [
+              16,
+              32
+            ],
+            "margin": [
+              0,
+              0
+            ],
+            "separation": [
+              0,
+              0
+            ]
+          },
+          "role": "NPC",
+          "size": [
+            48,
+            128
+          ],
+          "tags": [
+            "size_form:16"
+          ],
+          "usage": "sprite"
+        },
+        "approved": {
+          "animations": {
+            "walk_down": {
+              "fps": 8.0,
+              "frames": [
+                [
+                  0,
+                  0
+                ],
+                [
+                  1,
+                  0
+                ],
+                [
+                  2,
+                  0
+                ]
+              ],
+              "loop": true
+            },
+            "walk_left": {
+              "fps": 8.0,
+              "frames": [
+                [
+                  0,
+                  1
+                ],
+                [
+                  1,
+                  1
+                ],
+                [
+                  2,
+                  1
+                ]
+              ],
+              "loop": true
+            },
+            "walk_right": {
+              "fps": 8.0,
+              "frames": [
+                [
+                  0,
+                  2
+                ],
+                [
+                  1,
+                  2
+                ],
+                [
+                  2,
+                  2
+                ]
+              ],
+              "loop": true
+            },
+            "walk_up": {
+              "fps": 8.0,
+              "frames": [
+                [
+                  0,
+                  3
+                ],
+                [
+                  1,
+                  3
+                ],
+                [
+                  2,
+                  3
+                ]
+              ],
+              "loop": true
+            }
+          },
+          "frame": [
+            16,
+            32
+          ],
+          "grid": {
+            "cell": [
+              16,
+              32
+            ],
+            "margin": [
+              0,
+              0
+            ],
+            "separation": [
+              0,
+              0
+            ]
+          },
+          "role": "NPC",
+          "size": [
+            48,
+            128
+          ],
+          "tags": [
+            "size_form:16",
+            "actor_art"
+          ],
+          "usage": "sprite",
+          "origin": [
+            8,
+            31
+          ]
+        },
+        "pixel_sha256": "5487a3fa74b95645f8ad47ec4050d34b8ec7a1b2fd4ab15785a658ff1650fcf7",
+        "reviewed_on": "2026-10-29",
+        "scope": "Visually reviewed NPC art frame cells, facing and sequence. Native frame size retained. Pivot, looping and 1/6/8 fps playback are editable importer defaults, not artist-authored timing. No collision, movement, interaction or gameplay behavior certified."
+      }
+    },
+    "db3a1e05c9d068ac74c7ebda99f62a08daa5f807d759caab3f27b784756a1af9": {
+      "": {
+        "kind": "actor_art",
+        "input": {
+          "animations": {
+            "walk_down": {
+              "fps": 8.0,
+              "frames": [
+                [
+                  18,
+                  0
+                ],
+                [
+                  19,
+                  0
+                ],
+                [
+                  20,
+                  0
+                ],
+                [
+                  21,
+                  0
+                ],
+                [
+                  22,
+                  0
+                ],
+                [
+                  23,
+                  0
+                ]
+              ],
+              "loop": true
+            },
+            "walk_left": {
+              "fps": 8.0,
+              "frames": [
+                [
+                  12,
+                  0
+                ],
+                [
+                  13,
+                  0
+                ],
+                [
+                  14,
+                  0
+                ],
+                [
+                  15,
+                  0
+                ],
+                [
+                  16,
+                  0
+                ],
+                [
+                  17,
+                  0
+                ]
+              ],
+              "loop": true
+            },
+            "walk_right": {
+              "fps": 8.0,
+              "frames": [
+                [
+                  0,
+                  0
+                ],
+                [
+                  1,
+                  0
+                ],
+                [
+                  2,
+                  0
+                ],
+                [
+                  3,
+                  0
+                ],
+                [
+                  4,
+                  0
+                ],
+                [
+                  5,
+                  0
+                ]
+              ],
+              "loop": true
+            },
+            "walk_up": {
+              "fps": 8.0,
+              "frames": [
+                [
+                  6,
+                  0
+                ],
+                [
+                  7,
+                  0
+                ],
+                [
+                  8,
+                  0
+                ],
+                [
+                  9,
+                  0
+                ],
+                [
+                  10,
+                  0
+                ],
+                [
+                  11,
+                  0
+                ]
+              ],
+              "loop": true
+            }
+          },
+          "frame": [
+            16,
+            32
+          ],
+          "grid": {
+            "cell": [
+              16,
+              32
+            ],
+            "margin": [
+              0,
+              0
+            ],
+            "separation": [
+              0,
+              0
+            ]
+          },
+          "role": "NPC",
+          "size": [
+            384,
+            32
+          ],
+          "tags": [
+            "size_form:16"
+          ],
+          "usage": "sprite"
+        },
+        "approved": {
+          "animations": {
+            "walk_down": {
+              "fps": 8.0,
+              "frames": [
+                [
+                  18,
+                  0
+                ],
+                [
+                  19,
+                  0
+                ],
+                [
+                  20,
+                  0
+                ],
+                [
+                  21,
+                  0
+                ],
+                [
+                  22,
+                  0
+                ],
+                [
+                  23,
+                  0
+                ]
+              ],
+              "loop": true
+            },
+            "walk_left": {
+              "fps": 8.0,
+              "frames": [
+                [
+                  12,
+                  0
+                ],
+                [
+                  13,
+                  0
+                ],
+                [
+                  14,
+                  0
+                ],
+                [
+                  15,
+                  0
+                ],
+                [
+                  16,
+                  0
+                ],
+                [
+                  17,
+                  0
+                ]
+              ],
+              "loop": true
+            },
+            "walk_right": {
+              "fps": 8.0,
+              "frames": [
+                [
+                  0,
+                  0
+                ],
+                [
+                  1,
+                  0
+                ],
+                [
+                  2,
+                  0
+                ],
+                [
+                  3,
+                  0
+                ],
+                [
+                  4,
+                  0
+                ],
+                [
+                  5,
+                  0
+                ]
+              ],
+              "loop": true
+            },
+            "walk_up": {
+              "fps": 8.0,
+              "frames": [
+                [
+                  6,
+                  0
+                ],
+                [
+                  7,
+                  0
+                ],
+                [
+                  8,
+                  0
+                ],
+                [
+                  9,
+                  0
+                ],
+                [
+                  10,
+                  0
+                ],
+                [
+                  11,
+                  0
+                ]
+              ],
+              "loop": true
+            }
+          },
+          "frame": [
+            16,
+            32
+          ],
+          "grid": {
+            "cell": [
+              16,
+              32
+            ],
+            "margin": [
+              0,
+              0
+            ],
+            "separation": [
+              0,
+              0
+            ]
+          },
+          "role": "NPC",
+          "size": [
+            384,
+            32
+          ],
+          "tags": [
+            "size_form:16",
+            "actor_art"
+          ],
+          "usage": "sprite",
+          "origin": [
+            8,
+            31
+          ]
+        },
+        "pixel_sha256": "f4089569849aa4de81dc1275f1603eeb81b5e5efb97a40b040bb99b93834de87",
+        "reviewed_on": "2026-10-29",
+        "scope": "Visually reviewed NPC art frame cells, facing and sequence. Native frame size retained. Pivot, looping and 1/6/8 fps playback are editable importer defaults, not artist-authored timing. No collision, movement, interaction or gameplay behavior certified."
+      }
     }
   }
 }

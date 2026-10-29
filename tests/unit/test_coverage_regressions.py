@@ -278,6 +278,10 @@ def test_optional_modern_actions_use_their_own_frame_width(tmp_path: Path) -> No
     assert actions["Hero_sit_16x16.png"]["frame"] == [32, 32]
     assert actions["Hero_sit2_16x16.png"]["animations"]["sit2_right"]["frames"][-1] == [5, 0]
     assert actions["Hero_sit3_16x16.png"]["frame"] == [16, 32]
+    assert set(actions["Hero_sit3_16x16.png"]["animations"]) == {"sit3_down", "sit3_up"}
+    assert actions["Hero_sit3_16x16.png"]["animations"]["sit3_up"]["frames"] == [
+        [i, 0] for i in range(6, 12)
+    ]
 
 
 def test_review_facts_do_not_alias_or_discard_unchecked_tags() -> None:

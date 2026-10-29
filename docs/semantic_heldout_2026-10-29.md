@@ -155,3 +155,7 @@ T17.34 still needs the unresolved semantic metadata and independent calibration 
 T10.09/T10.10 still need a qualified sample including two commercial inputs and verified Tiled
 metadata, human first-paint timings, complete manual audit-edit counts and the remaining manual
 release checks. No release gate is closed by this report.
+
+Follow-up: the [actor-art certification pass](actor_metadata_2026-10-29.md) disposes of the 23
+flagged actor-art entries and corrects Modern Interiors' license metadata. Its new ledger delta
+is recorded separately; the trial evidence and counts above retain their original scope.

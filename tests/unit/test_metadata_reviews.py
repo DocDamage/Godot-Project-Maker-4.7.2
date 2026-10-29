@@ -148,6 +148,50 @@ def test_packaged_confirmations_are_complete_valid_and_independent() -> None:
             schema.validate("catalog", catalog.Catalog(assets=[a]).to_json())
 
 
+def test_actor_art_rejects_unreviewed_behavior_sources_and_geometry() -> None:
+    record = next(
+        record
+        for variants in metadata_reviews.readings()["assets"].values()
+        for record in variants.values()
+        if record.get("kind") == "actor_art" and "character_index" in record["approved"]
+    )
+    approved = record["approved"]
+    assert metadata_reviews.complete(approved, "actor_art")
+    for changes in (
+        {"collision": {"profile": "SOLID"}},
+        {"move_speed": 100},
+        {"role": "PLAYER"},
+        {"tags": []},
+        {"origin": [0, 0]},
+        {"character_index": True},
+        {"character_index": 8},
+        {"frame": [False, 32]},
+    ):
+        assert not metadata_reviews.complete({**approved, **changes}, "actor_art")
+    for changes in (
+        {"source": "other.png"},
+        {"rects": [[0, 0, 16, 32]]},
+        {"fps": float("nan")},
+        {"fps": True},
+        {"loop": "true"},
+        {"frames": []},
+        {"frames": [[-1, 0]]},
+        {"frames": [[12, 0]]},
+        {"frames": [[0, 8]]},
+        {"frames": [[True, 0]]},
+        {"frames": [[(approved["character_index"] % 4 * 3 + 3) % 12, 0]]},
+    ):
+        altered = copy.deepcopy(approved)
+        name = next(iter(altered["animations"]))
+        altered["animations"][name].update(changes)
+        assert not metadata_reviews.complete(altered, "actor_art"), changes
+    altered = copy.deepcopy(approved)
+    altered["animations"]["attack_down"] = altered["animations"].pop(
+        next(iter(altered["animations"]))
+    )
+    assert not metadata_reviews.complete(altered, "actor_art")
+
+
 def test_profile_keys_refer_to_original_source_and_recreate_helpers(reviewed) -> None:
     opened, inv, before, a, _, _ = reviewed
     a.status = "CONFIRMED"

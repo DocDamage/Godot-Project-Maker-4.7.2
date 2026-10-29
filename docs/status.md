@@ -45,6 +45,14 @@ code, with clean final snapshots. These are engineering checks, not a semantic a
 Independent calibration labels, commercial/Tiled sample qualification and human release
 measurements remain pending; the saved answers and calibration table are unchanged.
 
+The [actor-art follow-up](actor_metadata_2026-10-29.md) certifies the 23 previously flagged
+Modern Interiors actor-art entries, fixes front/back seated directions and corrects the free
+pack's detected license to non-commercial use only. All 23 actual generated character scenes
+and 300 playback frames pass native pixel/pivot checks; the assets-only project validates.
+The ledger now has 2,465 unresolved entries by disposition. Seven tile sheets and four primary
+multi-source actors in that pack remain outside the new certification scope. No detector
+confidence, saved owner choice or calibration table is changed.
+
 The owner's words: "the whole purpose is for me to be able to make my own levels without having
 to add all the underlying logic to my assets as I import them." Generated starter maps, villages
 and stages are examples; the product is a pack's assets carrying their logic into Godot. Work is

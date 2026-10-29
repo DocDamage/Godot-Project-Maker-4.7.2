@@ -86,6 +86,13 @@ visible. These runs do not qualify the release sample: commercial provenance and
 are unverified, and first-paint timings and manual audit edits remain unmeasured. See the
 [JSON record](semantic_heldout_2026-10-29.json) for all 42 native trial outcomes and measurements.
 
+The subsequent [actor-art certification pass](actor_metadata_2026-10-29.md) resolves the 23
+flagged Modern Interiors actor-art entries, leaving 2,465 unresolved ledger entries by
+disposition. It also corrects that free pack's previously reported commercial license:
+the shipped document explicitly restricts commercial use. Matched old/new document detection
+changes only p22 among the 30 inputs; this does not reclassify all packs or qualify a commercial
+held-out sample. Native frame/pivot checks and an assets-only project validate the new decisions.
+
 *Pending (human).* The maintainer picks **5 packs not used during development**: at least 2
 commercial, 1 in RPG Maker format, 1 with Tiled metadata and 1 "messy" pack (inconsistent names,
 mixed sizes, nested folders). For each pack and each archetype run

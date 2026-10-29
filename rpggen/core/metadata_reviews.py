@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import copy
 import hashlib
+import re
 from functools import lru_cache
 from pathlib import Path
 from typing import Any
@@ -56,7 +57,95 @@ def complete(facets: dict[str, Any], kind: str = "static_object") -> bool:
         return complete_static_battler(facets)
     if kind == "static_animal":
         return _complete_static_sprite(facets, "ANIMAL", "static_animal")
+    if kind == "actor_art":
+        return _complete_actor_art(facets)
     return False
+
+
+def _complete_actor_art(facets: dict[str, Any]) -> bool:
+    """Reviewed NPC art cells/facing, with explicit playback and pivot defaults.
+
+    This kind does not approve collision, movement, interaction or source-authored timing.
+    Separate animation sources and trimmed frames need a different review contract.
+    """
+    allowed = {
+        "usage",
+        "role",
+        "size",
+        "frame",
+        "origin",
+        "grid",
+        "animations",
+        "tags",
+        "directions",
+        "character_index",
+    }
+    if set(facets) - allowed or facets.get("usage") != "sprite" or facets.get("role") != "NPC":
+        return False
+    size, frame = facets.get("size"), facets.get("frame")
+    if not isinstance(size, list) or not isinstance(frame, list):
+        return False
+    if any(
+        not isinstance(pair, list)
+        or len(pair) != 2
+        or any(type(v) is not int or v <= 0 for v in pair)
+        for pair in (size, frame)
+    ):
+        return False
+    if any(size[i] % frame[i] for i in range(2)):
+        return False
+    if facets.get("origin") != [frame[0] // 2, frame[1] - 1]:
+        return False
+    if facets.get("grid") != {"cell": frame, "margin": [0, 0], "separation": [0, 0]}:
+        return False
+    tags = facets.get("tags")
+    if (
+        not isinstance(tags, list)
+        or "actor_art" not in tags
+        or any(tag not in ("actor_art", "size_form:16") for tag in tags)
+    ):
+        return False
+    if "directions" in facets and (
+        type(facets["directions"]) is not int or facets["directions"] != 4
+    ):
+        return False
+    cols, rows = size[0] // frame[0], size[1] // frame[1]
+    index = facets.get("character_index")
+    if "character_index" in facets and (
+        type(index) is not int or not 0 <= index < 8 or (cols, rows) != (12, 8)
+    ):
+        return False
+    animations = facets.get("animations")
+    if not isinstance(animations, dict) or not animations:
+        return False
+    for name, spec in animations.items():
+        if not re.fullmatch(r"(?:idle|walk|phone|sit[23]?)_(?:down|up|left|right)", name):
+            return False
+        if not isinstance(spec, dict) or set(spec) != {"frames", "fps", "loop"}:
+            return False
+        if type(spec["fps"]) not in (int, float) or spec["fps"] not in (1, 6, 8):
+            return False  # explicit presentation defaults, never inferred artist timing
+        if (
+            type(spec["loop"]) is not bool
+            or not isinstance(spec["frames"], list)
+            or not spec["frames"]
+        ):
+            return False
+        for cell in spec["frames"]:
+            if (
+                not isinstance(cell, list)
+                or len(cell) != 2
+                or any(type(v) is not int for v in cell)
+            ):
+                return False
+            x, y = cell
+            if not (0 <= x < cols and 0 <= y < rows):
+                return False
+            if index is not None and not (
+                index % 4 * 3 <= x < index % 4 * 3 + 3 and index // 4 * 4 <= y < index // 4 * 4 + 4
+            ):
+                return False
+    return True
 
 
 def complete_static_battler(facets: dict[str, Any]) -> bool:
