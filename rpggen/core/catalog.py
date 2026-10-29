@@ -1808,6 +1808,16 @@ def assemble(
                             {*facets.get("tags", []), classifier.UNUSED_TAG + reason}
                         )
                 f = files[path]
+                # Exact-image review facts may correct semantics on a metadata atlas, but
+                # must retain its coordinates and animation references. Profiles/learned
+                # rules have already claimed their paths and retain precedence.
+                if detected_by not in ("profile", "learned"):
+                    from rpggen.core import pack_readings
+
+                    checked = pack_readings.region_facts(f.sha256, variant)
+                    if detected_by == "tiled":
+                        checked = {k: v for k, v in checked.items() if k in ("role", "tags")}
+                    pack_readings.apply_facts(facets, checked)
                 # a picture rpggen drew from a part of a sheet is the variant's (T17.29: a crop
                 # cut from a sheet of tiles)
                 drawn_key = (
@@ -1911,8 +1921,8 @@ def assemble(
         license_files = _license_files(licence_paths, root)
         stated = _stated_licence(pack_id, previous, results)
         above = (
-            licenses.licence_above(opened.root)
-            if not license_files and opened.kind == "folder"
+            licenses.licence_above(opened.licence_root or opened.root)
+            if not license_files and (opened.kind == "folder" or opened.licence_root is not None)
             else None
         )
         if above is not None:
@@ -2190,6 +2200,32 @@ def assemble(
 
     if vision is not None:
         _ask_vision(catalog, vision, pack_roots, generated)
+    from rpggen.core import metadata_reviews
+
+    reviewed: set[str] = set()
+    for asset in catalog.assets:
+        if (
+            asset.kind != "image"
+            or asset.status in ("MISSING", "CONFLICT")
+            or asset.detected_by in ("profile", "learned")
+            or asset.overrides
+            or asset.rule
+        ):
+            continue
+        root_path = pack_roots.get(asset.pack_id)
+        if root_path is None:
+            continue
+        reviewed_picture = (
+            Path(generated[asset.path])
+            if asset.path in generated
+            else (root_path / asset.path.split("/", 3)[-1])
+        )
+        approved = metadata_reviews.decision(
+            asset.sha256, asset.id.partition("#")[2], effective(asset), reviewed_picture
+        )
+        if approved is not None:
+            asset.detected = approved
+            reviewed.add(asset.id)
     publisher_of = {p.pack_id: calibration.publisher_id(p.license) for p in catalog.packs}
     for asset in catalog.assets:
         # a reader's confidence as the answer key measured it, its publisher's first (T17.34)
@@ -2202,7 +2238,7 @@ def assemble(
         asset.status = recompute_status(
             asset,
             file_missing=asset.status == "MISSING",
-            user_confirmed=asset.status == "CONFIRMED",
+            user_confirmed=asset.status == "CONFIRMED" or asset.id in reviewed,
         )
     catalog.assets.sort(key=lambda a: _sort_key(a.id))
     return catalog, issues, generated

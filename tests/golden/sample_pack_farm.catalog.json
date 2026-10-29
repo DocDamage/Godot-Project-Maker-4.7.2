@@ -3523,7 +3523,7 @@
       "pack_id": "sample_pack_farm",
       "profile_id": null,
       "root": "assets/packs/sample_pack_farm",
-      "source_sha256": "a05a8c992b86e91bf95255793ae5bce6d91437c948beebcfb70e119a269245f0",
+      "source_sha256": "f31aef3a3aec8d4237a861d6a5dbb84c235e5bc7d61c88961bfe7baf9cf1f7a4",
       "warnings": [
         "strips_direction_assumed:animals/cow_sleep_24x24_2frames.png",
         "strips_direction_assumed:animals/hen_sleep_16x16_2frames.png",

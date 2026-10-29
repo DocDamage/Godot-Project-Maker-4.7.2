@@ -1345,6 +1345,9 @@
       "usage": "sprite"
     },
     "props/rock.png": {
+      "collision": {
+        "profile": "BOTTOM_HALF"
+      },
       "frame": [
         16,
         16

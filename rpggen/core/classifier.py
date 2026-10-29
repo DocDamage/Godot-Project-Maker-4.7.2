@@ -676,7 +676,9 @@ def made_for(inventory: Any, sheets: Any = (), name: str = "", above: Sequence[s
                 top += 1
     for facets in sheets:
         animations = facets.get("animations") if isinstance(facets, dict) else None
-        if _is_side_sheet(animations):
+        if isinstance(facets, dict) and "view:top" in facets.get("tags", []):
+            top += 2  # a verified top-down layout may include a jump animation
+        elif _is_side_sheet(animations):
             side += 2
         elif _is_top_sheet(animations):
             top += 2
@@ -913,6 +915,19 @@ UNUSED_PREVIEW_FOLDER = "preview_folder"
 UNUSED_GUIDE_PICTURE = "guide_picture"
 
 
+def documentation_art(path: str) -> bool:
+    """Instruction/marketing pictures that must not be decoded into tiles or objects."""
+    _folders, stem = _path_parts(path)
+    words = set(_tokenize(stem))
+    plain = re.sub(r"[^a-z]+", " ", stem.casefold()).strip()
+    return bool(words & {"coupon", "readme", "license", "licence"}) or plain in {
+        "how to",
+        "animation name",
+        "animation names",
+        "animation legend",
+    }
+
+
 def not_game_art(path: str, wrapper: str = "") -> str | None:
     """Why a picture of a pack is most likely not game art (T16.21), or None: it lies in a
     preview folder, or it is a preview, a test or a layout guide (a picture at the pack's root
@@ -926,9 +941,12 @@ def not_game_art(path: str, wrapper: str = "") -> str | None:
     if any(folder.strip().casefold() in PREVIEW_FOLDERS for folder in folders):
         return UNUSED_PREVIEW_FOLDER
     words = set(_tokenize(stem))
+    if documentation_art(path):
+        return UNUSED_GUIDE_PICTURE
     if words and (words <= GUIDE_WORDS or (not folders and words & GUIDE_WORDS)):
         return UNUSED_GUIDE_PICTURE
     near = words | {w for folder in folders for w in _tokenize(folder)}
+    near = {re.sub(r"\d+$", "", w) for w in near}  # Tileset1 is still a layout label
     if words & TEMPLATE_WORDS and near & LAYOUT_WORDS:  # the layout of the autotiles, drawn
         return UNUSED_GUIDE_PICTURE
     return None

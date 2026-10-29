@@ -2,8 +2,9 @@
 
 This page is the published record for the pack-coverage study (ARCHITECTURE §51) and the held-out
 validation of the Definition of Done (§50, task T10.09). **Numbers below are marked with where they
-come from.** Anything that needs packs this repository cannot contain (commercial or unseen packs)
-is a human step and is marked *pending* until a maintainer fills it in. Nothing here is estimated.
+come from.** The real-pack baseline below uses the owner's local collection; only measurements
+and review decisions are committed. Complete audits, owner checks and first-paint timings remain
+pending where they have not been measured. Nothing here is estimated.
 
 ## What is measured automatically
 
@@ -39,17 +40,41 @@ table below.
 
 ## Pack-coverage study (ARCHITECTURE §51)
 
-*Pending (human).* Sample about 30 popular top-down RPG packs, free and paid. For each record the
-tier that handles it (1: Tiled/Aseprite/LDtk metadata, 2: layout standard such as RPG Maker or
-LPC, 3: vendor layout needing a profile, 4: none) and what had to be fixed in the audit. If one
-vendor family covers a large share of the packs in tier 3 or 4, ship its profile in the registry.
-Record each pack in the table:
+**Baseline, fixes, repeat study and remaining-entry screening completed 2026-10-28** on 30 inputs from
+`G:\All 2D Assets Stay Here`: 28 top-down inputs and two isometric extensions, across seven
+library folder groups. The [per-pack table and findings](coverage_2026-10-28.md) record each
+input's local source, detected license, reader tier, confidence counts and sampled corrections.
+The [repeat report](coverage_2026-10-28_fixed.md) and its
+[JSON evidence](coverage_2026-10-28_fixed.json) record the fixes and their verification against
+the same inputs. The [remaining-entry review](coverage_2026-10-28_review.md) and its
+[complete ID ledger](coverage_2026-10-28_review.json) screen all 9,478 previously flagged entries
+and record further corrections. The original evidence is retained. No pack art is committed.
 
-| Pack (source, license) | Tier | Audit edits | Notes |
-|------------------------|:----:|------------:|-------|
-| *(none recorded yet)* | | | |
+| Measured evidence | Result |
+|-------------------|--------|
+| Inputs completing analysis / input image files | 30 / 443; no analysis errors or warnings in the repeat |
+| Active catalog image entries after cutting and terrain generation | 12,644: 4,061 confident (32.1%), 8,583 NEEDS_REVIEW (67.9%) |
+| Agent screening | All 9,478 previously flagged entries screened in 99 contact sheets; 786 region corrections verified. All 27 original correction checks still pass; 53 earlier accepted field judgments remain unchanged and two are explicitly revised. This is not full metadata certification. |
+| Assets-only editor checks | Ten projects built and validated; 17 terrain checks with zero holes/mismatches, 102 dock placements, inspected renders. Unverified mixed-atlas terrain inference is withheld; three projects have no terrain checks. |
+| Input integrity | Eight original archives (including a wrapped archive) and 232 accepted direct-folder files rehashed; all unchanged |
+
+This is a convenience sample of the owner's library, not a popularity survey or a measured
+free/paid market sample. Confidence is not accuracy, and successful analysis/generation is not
+proof of pack support. The follow-up applies 786 further region corrections and 54 source/layout
+readings bound to complete image hashes; these scopes overlap and do not form an accuracy rate.
+Partial field checks do not increase confidence. Complete audit edit counts and first-paint times
+remain unmeasured. Whole-pack
+profiles for the CuteSCKR and SakPix families (14/30 inputs) still need complete audits.
+The repeat report also corrects two original findings: the pink Elements tile is legitimate art,
+and LPC's 128 reported perimeter errors were a probe bug. T17.34 remains open.
 
 ## Held-out validation (T10.09)
+
+The subsequent [metadata confirmation pass](coverage_2026-10-28_metadata.md) reviewed all
+8,583 remaining entries and confirmed 6,070 static placements with explicit non-blocking
+defaults. The repeated 30-pack analysis has 6,070 CONFIRMED, 4,061 AUTO_DETECTED and 2,513
+NEEDS_REVIEW active entries. This does not certify functional doors, actors, crops, terrain
+topology or ambiguous extractions; the per-entry ledger records what remains unresolved.
 
 *Pending (human).* The maintainer picks **5 packs not used during development**: at least 2
 commercial, 1 in RPG Maker format, 1 with Tiled metadata and 1 "messy" pack (inconsistent names,
