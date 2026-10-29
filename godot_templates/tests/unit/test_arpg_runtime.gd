@@ -6,7 +6,25 @@ const Fixtures := preload("../lib/fixtures.gd")
 const ArpgBuild := preload("res://builder/recipes/arpg/arpg_build.gd")
 const EnemyRecipes := preload("res://builder/recipes/arpg/enemy_recipes.gd")
 const SwingRecipe := preload("res://builder/recipes/arpg/swing_recipe.gd")
+const ActorBuild := preload("res://builder/lib/actor_build.gd")
 const ARCH_DIR := "res://addons/rpg_runtime/archetypes/arpg"
+
+func test_large_static_battler_art_keeps_a_reachable_combat_body_and_its_native_visual(t) -> void:
+	var frames := SpriteFrames.new()
+	frames.add_animation("idle_down")
+	var node := EnemyRecipes.new()._build_scene(frames, {"frame": Vector2i(400, 400), "origin": Vector2i(200, 399)}, 16, RpgEnemyDefinition.new(), false, false, true)
+	var hurt := node.get_node("Hurtbox") as Area2D
+	var body := (hurt.get_node("Shape") as CollisionShape2D).shape as RectangleShape2D
+	var player_body := ArpgBuild.body_size(Vector2i(16, 24), 16)
+	t.ok(absf(hurt.position.y + 12.0) < (body.size.y + player_body.y) * 0.5, "standing actors' combat bands overlap despite different canvas sizes")
+	var feet := (node.get_node("Feet") as CollisionShape2D).shape as RectangleShape2D
+	t.ok(feet.size.x <= 16.0, "the portrait canvas does not push the player outside attack reach")
+	var visual := node.get_node("Visual") as AnimatedSprite2D
+	t.eq(visual.offset, Vector2(-200, -399))
+	t.ok(visual.sprite_frames == frames and visual.scale == Vector2.ONE, "native art and pivot are preserved")
+	ActorBuild.set_feet(node, {"feet": 64.0})
+	t.eq(feet.size.x, 64.0, "the caller's explicit footprint still wins")
+	node.free()
 
 func _scripts(dir_path: String) -> Array[String]:
 	var out: Array[String] = []

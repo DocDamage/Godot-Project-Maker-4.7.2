@@ -4,7 +4,7 @@ extends RefCounted
 ## sprite stands in (ASSET-025), tinted red. The scene holds the combat parts of arpg_build.gd and
 ## the enemy_ai.gd state machine; the numbers live in the definition's `behavior`.
 
-const RECIPE_VERSION := 3  # 3: an enemy stands on its feet (T17.30)
+const RECIPE_VERSION := 4  # static battler canvas size does not set its combat footprint
 
 const Paths := preload("../../lib/paths.gd")
 const SceneUtil := preload("../../lib/scene_util.gd")
@@ -267,7 +267,8 @@ func build(ctx: BuildContext) -> Array:
 			issues.append(ctx.make_issue("VAL-002", {"file": definition_path(slug)}, definition_path(slug)))
 			continue
 		var fo := ActorBuild.frame_and_origin(ctx.catalog.effective(a))
-		var node := _build_scene(frames, fo, tile, def, JsonUtil.to_bool(e["fallback"]), Navigation.enabled(ctx))
+		var tags := JsonUtil.to_array(ctx.catalog.effective(a).get("tags", []))
+		var node := _build_scene(frames, fo, tile, def, JsonUtil.to_bool(e["fallback"]), Navigation.enabled(ctx), tags.has("static_battler"))
 		# a figure drawn in a frame as wide as its widest swing stands on its own feet (T17.30)
 		ActorBuild.set_feet(node, ctx.catalog.effective(a))
 		ActorBuild.add_shadow(node, ctx.catalog.effective(a))
@@ -327,7 +328,7 @@ func _save_variants(ctx: BuildContext, slug: String, tile: int, issues: Array) -
 
 ## The enemy actor: base actor + enemy_ai.gd + the combat parts. (Inherited scenes cannot be saved
 ## headless, so it is built by the same function as every other actor.)
-func _build_scene(frames: SpriteFrames, fo: Dictionary, tile: int, def: Resource, fallback: bool, agent: bool) -> Node:
+func _build_scene(frames: SpriteFrames, fo: Dictionary, tile: int, def: Resource, fallback: bool, agent: bool, static_battler: bool = false) -> Node:
 	var frame: Vector2i = fo["frame"]
 	var origin: Vector2i = fo["origin"]
 	var root := ActorBuild.build("base", "Enemy", frames, frame, origin, tile)
@@ -336,6 +337,12 @@ func _build_scene(frames: SpriteFrames, fo: Dictionary, tile: int, def: Resource
 	root.set("tile_size", float(tile))
 	if fallback:
 		(root.get_node("Visual") as CanvasItem).modulate = FALLBACK_TINT
-	ArpgBuild.augment_enemy(root, frame, tile, agent)
+	var combat_frame := frame
+	if static_battler:
+		# Keep the illustration and its pivot native. Default combat operates near the feet,
+		# within world-tile reach, rather than half a large portrait's height above the player.
+		combat_frame = Vector2i(mini(frame.x, tile * 2), mini(frame.y, tile * 2))
+		ActorBuild.set_feet(root, {"feet": minf(frame.x * 0.6, maxf(6.0, tile * 0.75))})
+	ArpgBuild.augment_enemy(root, combat_frame, tile, agent)
 	ActorBuild.add_persistent(root)
 	return root

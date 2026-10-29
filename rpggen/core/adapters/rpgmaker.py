@@ -29,6 +29,9 @@ MARKED_SIZES = {
     "A5": {(256, 512), (384, 768)},
     "B": {(512, 512), (768, 768)},
 }
+COHORT_SHEET = re.compile(
+    r"^(?P<prefix>.+?)[_\- ](?P<letter>A[1-5]|B|C|D|E)(?:[_\- ].*)?$", re.IGNORECASE
+)
 
 
 def marked_letter(f: InventoryFile) -> str | None:
@@ -74,6 +77,34 @@ def _is_image(f: InventoryFile) -> bool:
     return f.kind == "image" and f.image is not None and f.ext == ".png"
 
 
+def cohort_letters(files: list[InventoryFile]) -> dict[str, str]:
+    """Suffixed sheets in a coherent RPG Maker family, not an isolated name like plan_B.
+
+    Two distinct standard A layouts, with the same prefix, directory and native tile size,
+    establish the format. Only standard-sized members of that family are then admitted.
+    """
+    groups: dict[tuple[str, str, int], list[tuple[str, str]]] = {}
+    for f in files:
+        if not _is_image(f):
+            continue
+        m = COHORT_SHEET.fullmatch(posixpath.splitext(posixpath.basename(f.path))[0])
+        if m is None or f.image is None:
+            continue
+        letter = m["letter"].upper()
+        dimensions = (f.image["w"], f.image["h"])
+        if dimensions not in MARKED_SIZES.get(letter, MARKED_SIZES["B"]):
+            continue
+        tile = 48 if dimensions[0] in (768, 384) else 32
+        key = (posixpath.dirname(f.path).casefold(), m["prefix"].casefold(), tile)
+        groups.setdefault(key, []).append((f.path, letter))
+    return {
+        path: letter
+        for members in groups.values()
+        if len({letter for _, letter in members if letter.startswith("A")}) >= 2
+        for path, letter in members
+    }
+
+
 class RpgMakerAdapter:
     name = "rpgmaker"
     priority = 40
@@ -89,6 +120,8 @@ class RpgMakerAdapter:
             score += 0.3
         if any(marked_letter(f) for f in images):
             score += 0.5  # a marked sheet of the right size is read wherever it lies
+        if cohort_letters(images):
+            score += 0.5
         for f in images:
             if _parent_dir(f.path) == "characters" and f.image:
                 w, h = f.image["w"], f.image["h"]
@@ -102,7 +135,10 @@ class RpgMakerAdapter:
     def extract(self, inv: Inventory, root: Path, ctx: AdapterContext) -> AdapterResult:
         result = AdapterResult(self.name)
         issues = IssueList()
-        tilesets = [f for f in inv.files if _is_image(f) and self._is_tileset(f)]
+        cohort = cohort_letters(inv.files)
+        tilesets = [
+            f for f in inv.files if _is_image(f) and (self._is_tileset(f) or f.path in cohort)
+        ]
         characters = [
             f
             for f in inv.files
@@ -117,7 +153,10 @@ class RpgMakerAdapter:
         tile = self._tile_size(tilesets)
         result.pack_warnings.append(f"rpgmaker_tile_size_{tile}")
         for f in tilesets:
-            result.assets.append(self._tileset_fragment(f, tile))
+            native_tile = (
+                (48 if f.image and f.image["w"] in (768, 384) else 32) if f.path in cohort else tile
+            )
+            result.assets.append(self._tileset_fragment(f, native_tile, cohort.get(f.path)))
         for f in characters:
             self._character_fragments(root, f, result, issues)
         for f in faces:
@@ -155,10 +194,16 @@ class RpgMakerAdapter:
         c32 = sum(1 for w in widths if w % 32 == 0 and w % 48 != 0)
         return 48 if c48 >= c32 else 32
 
-    def _tileset_fragment(self, f: InventoryFile, tile: int) -> AssetFragment:
+    def _tileset_fragment(
+        self, f: InventoryFile, tile: int, cohort_letter: str | None = None
+    ) -> AssetFragment:
         stem = posixpath.splitext(posixpath.basename(f.path))[0]
         letter_match = SHEET_LETTER.search(stem)
-        letter = marked_letter(f) or (letter_match.group(1).upper() if letter_match else "B")
+        letter = (
+            cohort_letter
+            or marked_letter(f)
+            or (letter_match.group(1).upper() if letter_match else "B")
+        )
         facets: dict[str, Any] = {
             "usage": "tiles",
             "grid": {"cell": [tile, tile], "margin": [0, 0], "separation": [0, 0]},
