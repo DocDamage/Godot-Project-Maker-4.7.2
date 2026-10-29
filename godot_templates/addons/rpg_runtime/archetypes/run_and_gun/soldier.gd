@@ -76,6 +76,7 @@ var pool_override: RpgArcadeBulletPool = null
 var input_node_enabled := true
 
 var _safe_left := 0.0
+var _tile_hazards := RpgTileHazards.new()
 var _grenade_asked := false
 var _flash_left := 0.0
 var _start := Vector2.ZERO
@@ -216,6 +217,7 @@ func press_grenade() -> void:
 	_grenade_asked = true
 
 func step(delta: float) -> void:
+	_tile_hazards.tick(delta)
 	if not _started:
 		_started = true
 		_start = position
@@ -267,7 +269,13 @@ func step(delta: float) -> void:
 		throw_grenade()
 	_follow_camera()
 	if not dead and touching_hazard():
-		hit()
+		var feet := RpgUtil.world_position(self)
+		var half := body_width() * 0.5 - 1.0
+		var points: Array[Vector2] = [feet + Vector2(0.0, -2.0), feet + Vector2(-half, -2.0), feet + Vector2(half, -2.0), body_center()]
+		var spec := RpgTileHazards.at(layers(), points, invulnerable_s * 0.5)
+		if not is_invulnerable() and _tile_hazards.consume(spec):
+			hit(RpgUtil.to_int(spec["damage"]))
+			_safe_left = minf(_safe_left, RpgUtil.to_float(spec["cooldown"], invulnerable_s * 0.5))
 	if not dead and _below_stage():
 		die()
 
@@ -362,10 +370,10 @@ func add_grenade() -> bool:
 
 ## Something hit the soldier. Nothing happens while it blinks; else it costs one health, and the
 ## last one is a death. True when the hit counted.
-func hit() -> bool:
+func hit(amount: int = 1) -> bool:
 	if dead or is_invulnerable():
 		return false
-	health -= 1
+	health -= maxi(1, amount)
 	was_hit.emit(health)
 	if health <= 0:
 		die()

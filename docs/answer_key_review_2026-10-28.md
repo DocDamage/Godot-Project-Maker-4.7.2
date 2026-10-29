@@ -89,3 +89,17 @@ Private pictures, catalogs, contact sheets and machine-readable evidence remain 
 under `F:/rpggen_scratch/answer_key/systematic_review_20261028/`. The successful import's output
 is under `D:/rpggen_crash_verification_20261028/`; crash evidence is under
 `C:/Users/dferr/.codex/diagnostics/crash-repair-2026-10-28/`.
+
+## Orchard and hazard implementation follow-up (2026-10-29)
+
+The saved orchard/hazard choices now have generator, runtime and authoring support. Eight
+canonical orchard crops use inspected hash-bound layouts; all 47 growth frames preserve source
+pixels. Trees survive dormancy and regrow fruit after harvesting. Each tile can independently
+enable damage and set its amount/repeat interval, including packed isometric tiles; the
+elemental palette is harmless until configured. See [rules and settings](orchards_and_hazards.md).
+These are editable gameplay defaults, not additional answers submitted on the owner's behalf.
+
+Validation: 2,580 Python unit tests passed/3 skipped, 27 focused GUI/edit tests passed, and
+1,106 Godot tests passed with zero failures or script errors. Ruff, formatting and mypy pass.
+The real Farm RPG reanalysis completed in 30.64 seconds at about 1.2 GiB peak worker private
+memory. Private evidence is under `D:/rpggen_orchard_hazards_20261028/`.

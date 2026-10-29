@@ -27,6 +27,10 @@ differences and the original owner marks are recorded separately. See
 [the review report](answer_key_review_2026-10-28.md). This does not close T17.34's native
 metadata, calibration or held-out validation work.
 
+The accepted orchard and hazard follow-up now has eight hash-bound orchard growth layouts,
+persistent seasonal fruit trees, and individual tile damage/interval controls in asset details.
+See [orchard and hazard rules](orchards_and_hazards.md) for the editable defaults and behavior.
+
 The owner's words: "the whole purpose is for me to be able to make my own levels without having
 to add all the underlying logic to my assets as I import them." Generated starter maps, villages
 and stages are examples; the product is a pack's assets carrying their logic into Godot. Work is

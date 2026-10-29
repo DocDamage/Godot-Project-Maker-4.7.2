@@ -182,7 +182,10 @@ func state_of(cell: Vector2i) -> String:
 		return SOIL
 	if RpgUtil.to_bool(entry.get("dead", false)) or not crops.has(crop_id):
 		return WITHERED  # withered, or of a kind the game no longer has (T18.09)
-	return RIPE if RpgCropData.is_ripe(RpgUtil.to_int(entry.get("grown", 0)), crops.days(crop_id)) else CROP
+	var ripe := RpgCropData.is_ripe(RpgUtil.to_int(entry.get("grown", 0)), crops.days(crop_id))
+	if crops.orchard(crop_id) and not crops.grows_in(crop_id, season_now()):
+		ripe = false
+	return RIPE if ripe else CROP
 
 func is_watered(cell: Vector2i) -> bool:
 	return cells.has(cell) and RpgUtil.to_bool(RpgUtil.to_dict(cells[cell]).get("w", false))
@@ -268,7 +271,7 @@ func water_all() -> int:
 
 ## True when `crop_id` can be planted in `cell` in the season of this name.
 func can_plant(cell: Vector2i, crop_id: String, season_name: String) -> bool:
-	return state_of(cell) == SOIL and crops.has(crop_id) and crops.grows_in(crop_id, season_name)
+	return state_of(cell) == SOIL and crops.has(crop_id) and (crops.orchard(crop_id) or crops.grows_in(crop_id, season_name))
 
 ## Plants a crop in tilled soil, in the season the calendar shows (spring without one).
 func plant(cell: Vector2i, crop_id: String) -> bool:
@@ -279,6 +282,7 @@ func plant(cell: Vector2i, crop_id: String) -> bool:
 	entry["grown"] = 0
 	entry["dead"] = false
 	entry["idle"] = 0
+	entry.erase("established")
 	_touched(cell)
 	return true
 
@@ -301,6 +305,8 @@ func harvest(cell: Vector2i) -> bool:
 	var again := crops.regrow(crop_id)
 	if again > 0:
 		entry["grown"] = crops.days(crop_id) - again
+		if crops.orchard(crop_id):
+			entry["established"] = true
 	else:
 		entry["crop"] = ""
 		entry["grown"] = 0
@@ -317,6 +323,7 @@ func remove_crop(cell: Vector2i) -> bool:
 	var entry: Dictionary = cells[cell]
 	entry["crop"] = ""
 	entry["grown"] = 0
+	entry.erase("established")
 	entry["dead"] = false
 	entry["idle"] = 0
 	entry.erase("look")
@@ -344,9 +351,21 @@ static func grow(field_cells: Dictionary, crop_data: RpgCropData, season_next: S
 		var wet := RpgUtil.to_bool(entry.get("w", false))
 		if crop_id != "" and crop_data.has(crop_id):
 			if not RpgUtil.to_bool(entry.get("dead", false)):
-				if wet:
+				if crop_data.orchard(crop_id):
+					var grown := RpgUtil.to_int(entry.get("grown", 0))
+					var established := RpgUtil.to_bool(entry.get("established", false)) or grown >= crop_data.maturity_days(crop_id)
+					if not established:
+						grown = mini(crop_data.maturity_days(crop_id), grown + 1)
+						established = grown >= crop_data.maturity_days(crop_id)
+					elif crop_data.grows_in(crop_id, season_next):
+						grown = mini(crop_data.days(crop_id), grown + 1)
+					else:
+						grown = crop_data.maturity_days(crop_id)
+					entry["grown"] = grown
+					entry["established"] = established
+				elif wet:
 					entry["grown"] = mini(crop_data.days(crop_id), RpgUtil.to_int(entry.get("grown", 0)) + 1)
-				if not crop_data.grows_in(crop_id, season_next):
+				if not crop_data.orchard(crop_id) and not crop_data.grows_in(crop_id, season_next):
 					entry["dead"] = true
 			entry["idle"] = 0
 		elif wet:
@@ -404,6 +423,8 @@ func from_dict(saved: Dictionary) -> void:
 		}
 		if entry.get("look") is Array:  # the picture it was last shown with (T18.09)
 			cell["look"] = RpgUtil.to_array(entry["look"]).duplicate()
+		if entry.has("established"):
+			cell["established"] = RpgUtil.to_bool(entry["established"])
 		cells[cell_of(RpgUtil.to_str(key))] = cell
 
 ## Writes the state into the game state (every change does).
@@ -454,9 +475,9 @@ func _show(cell: Vector2i) -> void:
 	if node == null:
 		node = _make_crop(crop_id, cell)
 	var state := state_of(cell)
-	var days := crops.days(crop_id)
 	var count := crops.stages(crop_id)
-	node.show_stage(RpgCropData.stage_of(grown_at(cell), days, count), count, state == RIPE, state == WITHERED)
+	var established := RpgUtil.to_bool(RpgUtil.to_dict(cells[cell]).get("established", false))
+	node.show_stage(crops.picture(crop_id, grown_at(cell), established), count, state == RIPE, state == WITHERED)
 	var look := node.look()
 	var entry: Dictionary = cells[cell]
 	if not look.is_empty() and entry.get("look") != look:
