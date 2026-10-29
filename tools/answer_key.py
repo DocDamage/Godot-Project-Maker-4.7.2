@@ -292,13 +292,37 @@ def corpus(out: Path) -> None:
         print(f"{pack['name']}: {len(doc['entries'])} pictures")
 
 
+def review_data(out: Path) -> dict[str, Any]:
+    """The smaller decision queue, kept separately from the owner's original group marks."""
+    queue: dict[str, Any] = read_json(out / "review_queue.json", {})
+    return {**queue, "decisions": read_json(out / "review_decisions.json", {})}
+
+
+def save_review_decision(out: Path, data: dict[str, Any]) -> None:
+    questions = {q["id"]: q for q in review_data(out).get("questions", [])}
+    question = questions.get(str(data.get("id", "")))
+    if question is None or data.get("choice") not in question["choices"]:
+        raise ValueError("Choose one of the answers shown for this question.")
+    note = data.get("note", "")
+    if not isinstance(note, str) or len(note) > 2000:
+        raise ValueError("Notes must be text of at most 2,000 characters.")
+    marks = read_json(out / "review_decisions.json", {})
+    marks[question["id"]] = {"choice": data["choice"], "note": note}
+    from rpggen import jsonio
+
+    jsonio.write(out / "review_decisions.json", marks)
+
+
 def serve(out: Path, port: int) -> None:
     """The review page (``answer_key_page.html``) on ``127.0.0.1`` only; the owner's marks are
     written under ``out`` as they are made."""
     from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+    from threading import Lock
     from urllib.parse import parse_qs, urlparse
 
     page = (Path(__file__).parent / "answer_key_page.html").read_bytes()
+    review_page = (Path(__file__).parent / "answer_key_decisions.html").read_bytes()
+    decision_lock = Lock()
     packs = load_packs(out)
     names = {p["name"] for p in packs}
 
@@ -325,7 +349,26 @@ def serve(out: Path, port: int) -> None:
             url = urlparse(self.path)
             q = {k: v[0] for k, v in parse_qs(url.query).items()}
             if url.path == "/":
-                self._send(200, page, "text/html; charset=utf-8")
+                selected = (
+                    review_page
+                    if (out / "review_queue.json").is_file()
+                    and q.get("all") != "1"
+                    and "pack" not in q
+                    else page
+                )
+                self._send(200, selected, "text/html; charset=utf-8")
+            elif url.path == "/api/questions":
+                self._json(review_data(out))
+            elif url.path == "/review-sheet":
+                question = next(
+                    (r for r in review_data(out).get("questions", []) if r["id"] == q.get("id")),
+                    None,
+                )
+                file = (out / question["sheet"]).resolve() if question else None
+                if file is not None and file.is_relative_to(out.resolve()) and file.is_file():
+                    self._send(200, file.read_bytes(), "image/png")
+                else:
+                    self._send(404, b"no sheet", "text/plain")
             elif url.path == "/api/packs":
                 rows = []
                 for p in packs:
@@ -370,6 +413,21 @@ def serve(out: Path, port: int) -> None:
                 self._send(404, b"not found", "text/plain")
 
         def do_POST(self) -> None:  # noqa: N802
+            if urlparse(self.path).path == "/api/decision":
+                try:
+                    length = int(self.headers.get("Content-Length", "0"))
+                    if not 0 < length <= 16000:
+                        raise ValueError("Invalid decision size.")
+                    data = json.loads(self.rfile.read(length))
+                    if not isinstance(data, dict):
+                        raise ValueError("Invalid decision.")
+                    with decision_lock:
+                        save_review_decision(out, data)
+                except (ValueError, TypeError) as exc:
+                    self._send(400, str(exc).encode("utf-8"), "text/plain; charset=utf-8")
+                    return
+                self._json({"ok": True})
+                return
             if urlparse(self.path).path != "/api/mark":
                 self._send(404, b"not found", "text/plain")
                 return

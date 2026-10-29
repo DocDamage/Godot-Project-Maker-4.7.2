@@ -20,6 +20,12 @@ rows (T14.13), below.
 
 ## The aim (2026-10-15)
 
+**Answer-key review update (2026-10-28):** the 26,408-entry owner review has been reduced to
+four grouped game-design choices covering 44 entries. Corrections, technical reference
+differences and the original owner marks are recorded separately. See
+[the review report](answer_key_review_2026-10-28.md). This does not close T17.34's native
+metadata, calibration or held-out validation work.
+
 The owner's words: "the whole purpose is for me to be able to make my own levels without having
 to add all the underlying logic to my assets as I import them." Generated starter maps, villages
 and stages are examples; the product is a pack's assets carrying their logic into Godot. Work is

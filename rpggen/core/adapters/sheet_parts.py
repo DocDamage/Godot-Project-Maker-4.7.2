@@ -230,30 +230,40 @@ def islands(mask: np.ndarray) -> list[tuple[int, int, int, int, np.ndarray]]:
     blocks = padded.reshape(bh, BLOCK, bw, BLOCK).any(axis=(1, 3))
     labels = np.zeros((bh, bw), dtype=np.int32)
     count = 0
+    boxes = []
     for y0, x0 in zip(*np.nonzero(blocks), strict=True):
         if labels[y0, x0]:
             continue
         count += 1
         stack = [(int(y0), int(x0))]
         labels[y0, x0] = count
+        top = bottom = int(y0)
+        left = right = int(x0)
         while stack:
             y, x = stack.pop()
+            top, bottom = min(top, y), max(bottom, y)
+            left, right = min(left, x), max(right, x)
             for dy in (-1, 0, 1):
                 for dx in (-1, 0, 1):
                     ny, nx = y + dy, x + dx
                     if 0 <= ny < bh and 0 <= nx < bw and blocks[ny, nx] and not labels[ny, nx]:
                         labels[ny, nx] = count
                         stack.append((ny, nx))
-    full = np.repeat(np.repeat(labels, BLOCK, axis=0), BLOCK, axis=1)[:h, :w]
+        boxes.append((left, top, right + 1, bottom + 1))
     found = []
-    for label in range(1, count + 1):
-        own = mask & (full == label)
+    for label, (left, top, right, bottom) in enumerate(boxes, 1):
+        x0, y0 = left * BLOCK, top * BLOCK
+        x1, y1 = min(right * BLOCK, w), min(bottom * BLOCK, h)
+        # Expand only this component's box, not the full sheet for every object.
+        full = np.repeat(np.repeat(labels[top:bottom, left:right], BLOCK, axis=0), BLOCK, axis=1)
+        own = mask[y0:y1, x0:x1] & (full[: y1 - y0, : x1 - x0] == label)
         ys, xs = np.nonzero(own)
         if not xs.size:
             continue
         x, y = int(xs.min()), int(ys.min())
         x1, y1 = int(xs.max()) + 1, int(ys.max()) + 1
-        found.append((x, y, x1 - x, y1 - y, own[y:y1, x:x1]))
+        # Keep only the trimmed pixels, not the component mask's backing array.
+        found.append((x0 + x, y0 + y, x1 - x, y1 - y, own[y:y1, x:x1].copy()))
     found.sort(key=lambda i: (i[1], i[0]))
     return found
 

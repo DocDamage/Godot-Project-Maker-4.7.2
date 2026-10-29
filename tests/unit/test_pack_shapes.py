@@ -294,6 +294,30 @@ def test_islands_keep_close_parts_together() -> None:
     assert [(x, y, w, h) for x, y, w, h, _own in found] == [(10, 10, 20, 10), (60, 60, 10, 10)]
 
 
+def test_islands_do_not_retain_a_full_sheet_mask_per_object() -> None:
+    mask = np.zeros((512, 512), dtype=bool)
+    mask[::24, ::24] = True
+    found = sheet_parts.islands(mask)
+    assert len(found) == 22 * 22
+    assert all(own.flags.owndata and own.nbytes == w * h for _x, _y, w, h, own in found)
+    assert sum(own.nbytes for _x, _y, _w, _h, own in found) == 22 * 22
+
+
+def test_islands_separate_nested_objects_and_clip_sheet_edges() -> None:
+    mask = np.zeros((79, 83), dtype=bool)
+    mask[:66, 0] = mask[:66, 65] = True
+    mask[0, :66] = mask[65, :66] = True
+    mask[30:33, 30:33] = True  # inside the ring's box, but a separate object
+    mask[78, 82] = True  # the last block extends beyond both sheet edges
+    found = sheet_parts.islands(mask)
+    assert [(x, y, w, h) for x, y, w, h, _own in found] == [
+        (0, 0, 66, 66),
+        (30, 30, 3, 3),
+        (82, 78, 1, 1),
+    ]
+    assert [int(own.sum()) for _x, _y, _w, _h, own in found] == [260, 9, 1]
+
+
 # ------------------------------------------------------------------------------ cancel
 
 
