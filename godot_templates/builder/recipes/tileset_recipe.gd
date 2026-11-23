@@ -9,6 +9,7 @@ const JsonUtil := preload("../lib/json_util.gd")
 const BuildContext := preload("../lib/build_context.gd")
 const SideTileset := preload("../lib/side_tileset.gd")
 const IsoTileset := preload("../lib/iso_tileset.gd")
+const TileHazards := preload("../lib/tile_hazards.gd")
 
 func outputs(ctx: BuildContext) -> PackedStringArray:
 	var out := PackedStringArray()
@@ -684,6 +685,7 @@ func _build_source(ctx: BuildContext, ts: TileSet, def: Dictionary, s: Dictionar
 			_configure_tile(ctx, src.get_tile_data(coords, 0), asset, tile_collision, atlas_cell, cell_img, is_new, tile_key, issues)
 			if _side:
 				SideTileset.configure_tile(src.get_tile_data(coords, 0), eff, ov, tile_collision, atlas_cell, ts, tex_path)
+			TileHazards.configure(ts, src.get_tile_data(coords, 0), ov, _side)
 			if _nav_enabled:
 				_configure_navigation(src.get_tile_data(coords, 0), JsonUtil.to_str(eff.get("role", "")), tile_collision, atlas_cell)
 			var terrain: Variant = ov.get("terrain")
@@ -906,6 +908,7 @@ func _build_iso_source(ctx: BuildContext, ts: TileSet, def: Dictionary, s: Dicti
 		var fps: float = tile["fps"]
 		IsoTileset.animate(src, coords, frames, fps)
 		var td := src.get_tile_data(coords, 0)
+		TileHazards.configure(ts, td, JsonUtil.to_dict(JsonUtil.to_dict(eff.get("tile_overrides", {})).get("0,0", {})))
 		var iso_terrain: Variant = eff.get("iso_terrain")
 		if iso_terrain is Dictionary and (is_new or td.terrain_set == -1):
 			var iso_spec: Dictionary = iso_terrain

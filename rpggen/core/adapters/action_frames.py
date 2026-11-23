@@ -254,6 +254,8 @@ def find_characters(inv: Inventory, claimed: set[str]) -> list[Character]:
             by_sequence[f.path] = (seq.owner_folder, seq.owner, seq.size)
     groups: dict[str, list[ActionFolder]] = {}
     for action in find_action_folders(inv, claimed):
+        if _reviewed_effect(action):
+            continue  # a checked effect beside an actor keeps its own frame size and role
         owner = _owner(action)
         if not owner:
             continue
@@ -403,6 +405,12 @@ EFFECTS_FOLDER = frozenset({"fx", "vfx", "effect", "effects", "explosion", "expl
 EFFECT_TAG = "effect_frames"
 
 
+def _reviewed_effect(action: ActionFolder) -> bool:
+    from rpggen.core import pack_readings
+
+    return pack_readings.region_facts(action.frames[0].sha256, "").get("role") == "EFFECT"
+
+
 def find_effects(inv: Inventory, claimed: set[str]) -> list[Character]:
     """The folders of numbered frames of one stem that no character took and whose folders say
     an effect (``Explosions pack/explosion-1-c/Sprites/explosion-c1..c10``, ``Hit/Sprites``,
@@ -410,7 +418,7 @@ def find_effects(inv: Inventory, claimed: set[str]) -> list[Character]:
     out: list[Character] = []
     for action in find_action_folders(inv, claimed):
         said = set(words(action.label)) | set(words(action.stem))
-        if not said & EFFECT_WORDS:
+        if not said & EFFECT_WORDS and not _reviewed_effect(action):
             continue
         out.append(Character(action.label, [("idle", action)], action.size))
     return out

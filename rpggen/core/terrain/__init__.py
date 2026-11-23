@@ -112,6 +112,10 @@ def generate(
     failed: list[tuple[catalog_mod.Asset, Path, str]] = []  # layouts not recognised
     for asset in sorted(catalog.assets, key=lambda a: catalog_mod._sort_key(a.id)):
         facets = asset.detected
+        if facets.get("role") == "NONE":
+            continue  # guides, previews and other unused sheets cannot seed terrains
+        if "terrain:manual" in _tags(facets):
+            continue  # reviewed mixed props/room pieces: keep atlas, do not invent terrains
         if (
             asset.kind == "image"
             and facets.get("usage") != "tiles"

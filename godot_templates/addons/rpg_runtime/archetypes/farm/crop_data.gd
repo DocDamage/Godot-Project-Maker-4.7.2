@@ -81,7 +81,23 @@ func stages(crop_id: String) -> int:
 
 ## 0 for a crop that is harvested once.
 func regrow(crop_id: String) -> int:
+	if orchard(crop_id):
+		return clampi(RpgUtil.to_int(crop(crop_id).get("regrow", 1)), 1, days(crop_id))
 	return clampi(RpgUtil.to_int(crop(crop_id).get("regrow", 0)), 0, days(crop_id))
+
+func orchard(crop_id: String) -> bool:
+	return RpgUtil.to_bool(crop(crop_id).get("orchard", false))
+
+func mature_stage(crop_id: String) -> int:
+	return clampi(RpgUtil.to_int(crop(crop_id).get("mature_stage", 0)), 0, maxi(0, stages(crop_id) - 2))
+
+func maturity_days(crop_id: String) -> int:
+	var needed := ceili(float(days(crop_id) * mature_stage(crop_id)) / maxi(1, stages(crop_id) - 1))
+	return clampi(needed, 0, maxi(0, days(crop_id) - 1))
+
+func picture(crop_id: String, grown: int, established: bool = false) -> int:
+	var stage := stage_of(grown, days(crop_id), stages(crop_id))
+	return maxi(mature_stage(crop_id), stage) if orchard(crop_id) and established else stage
 
 ## True when the crop grows in the season of this name. A crop that names no season grows in all.
 func grows_in(crop_id: String, season_name: String) -> bool:

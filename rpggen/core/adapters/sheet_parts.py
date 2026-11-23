@@ -108,9 +108,10 @@ ROLE_WORDS: tuple[tuple[frozenset[str], str, str], ...] = (
     (frozenset({"tool", "tools"}), "TOOL", "tool"),
     (frozenset({"tree", "trees"}), "DECORATION", "tree"),
     (frozenset({"weapon", "weapons", "sword", "swords"}), "WEAPON", ""),
-    (frozenset({"item", "items", "icon", "icons", "potion", "potions", "food", "loot", "coins"}),
+    (frozenset({"item", "items", "icon", "icons", "potion", "potions", "food", "loot",
+                "coins", "key", "keys"}),
      "ITEM", ""),
-    (frozenset({"furniture", "interior", "interiors"}), "INTERIOR", ""),
+    (frozenset({"furniture", "interior", "interiors"}), "DECORATION", ""),
     (frozenset({"decoration", "decorations", "lantern", "lanterns", "sign", "signs", "hay",
                 "bales", "sacks", "flower", "flowers", "patches", "scarecrow", "scarecrows",
                 "well", "wells", "pump", "pumps", "stall", "stalls", "garden", "gardens",
@@ -166,10 +167,10 @@ def _load(path: Path) -> np.ndarray:
         return np.asarray(im.convert("RGBA"), dtype=np.uint8)
 
 
-def is_tileset_pack(inv: Inventory) -> bool:
+def is_tileset_pack(inv: Inventory, root_name: str = "") -> bool:
     """Whether the pack says it is a tile set: its name, or the one folder it is wrapped in."""
     tops = {f.path.split("/", 1)[0] for f in inv.files if "/" in f.path}
-    names = [inv.pack_id.replace("_", " ")] + (sorted(tops) if len(tops) == 1 else [])
+    names = [inv.pack_id.replace("_", " "), root_name] + (sorted(tops) if len(tops) == 1 else [])
     return any(set(classifier.name_words(name)) & TILESET_WORDS for name in names)
 
 
@@ -229,30 +230,40 @@ def islands(mask: np.ndarray) -> list[tuple[int, int, int, int, np.ndarray]]:
     blocks = padded.reshape(bh, BLOCK, bw, BLOCK).any(axis=(1, 3))
     labels = np.zeros((bh, bw), dtype=np.int32)
     count = 0
+    boxes = []
     for y0, x0 in zip(*np.nonzero(blocks), strict=True):
         if labels[y0, x0]:
             continue
         count += 1
         stack = [(int(y0), int(x0))]
         labels[y0, x0] = count
+        top = bottom = int(y0)
+        left = right = int(x0)
         while stack:
             y, x = stack.pop()
+            top, bottom = min(top, y), max(bottom, y)
+            left, right = min(left, x), max(right, x)
             for dy in (-1, 0, 1):
                 for dx in (-1, 0, 1):
                     ny, nx = y + dy, x + dx
                     if 0 <= ny < bh and 0 <= nx < bw and blocks[ny, nx] and not labels[ny, nx]:
                         labels[ny, nx] = count
                         stack.append((ny, nx))
-    full = np.repeat(np.repeat(labels, BLOCK, axis=0), BLOCK, axis=1)[:h, :w]
+        boxes.append((left, top, right + 1, bottom + 1))
     found = []
-    for label in range(1, count + 1):
-        own = mask & (full == label)
+    for label, (left, top, right, bottom) in enumerate(boxes, 1):
+        x0, y0 = left * BLOCK, top * BLOCK
+        x1, y1 = min(right * BLOCK, w), min(bottom * BLOCK, h)
+        # Expand only this component's box, not the full sheet for every object.
+        full = np.repeat(np.repeat(labels[top:bottom, left:right], BLOCK, axis=0), BLOCK, axis=1)
+        own = mask[y0:y1, x0:x1] & (full[: y1 - y0, : x1 - x0] == label)
         ys, xs = np.nonzero(own)
         if not xs.size:
             continue
         x, y = int(xs.min()), int(ys.min())
         x1, y1 = int(xs.max()) + 1, int(ys.max()) + 1
-        found.append((x, y, x1 - x, y1 - y, own[y:y1, x:x1]))
+        # Keep only the trimmed pixels, not the component mask's backing array.
+        found.append((x0 + x, y0 + y, x1 - x, y1 - y, own[y:y1, x:x1].copy()))
     found.sort(key=lambda i: (i[1], i[0]))
     return found
 
@@ -313,7 +324,7 @@ def _thing(
 
         # only a tree is told so surely: bushes, rocks and flowers by their colours alone were
         # crops, soil and animals as often (that is T17.34's vision step)
-        if w >= BUILDING_MIN and h >= BUILDING_MIN and figures.is_house(picture):
+        if not sure and w >= BUILDING_MIN and h >= BUILDING_MIN and figures.is_house(picture):
             # a house or a barn among the things (T17.33: CuteSCKR's farmhouses, which nothing
             # names): the farm's and the village's own instead of a drawn box
             facets["role"] = "BUILDING"
@@ -993,7 +1004,7 @@ def cut_cells(
 def _saved(f: InventoryFile, cut: _Cut, work: Path) -> _Cut:
     """``cut`` with the picture of each part drawn into the work folder (and let go of)."""
     for part in cut.parts:
-        dest = work / _render_name(f, part.variant)
+        dest = work / _cache_render_name(f, part.variant)
         try:
             if not dest.exists():
                 dest.parent.mkdir(parents=True, exist_ok=True)
@@ -1007,6 +1018,103 @@ def _saved(f: InventoryFile, cut: _Cut, work: Path) -> _Cut:
 def _render_name(f: InventoryFile, variant: str) -> str:
     text = f"sheet_part/{RENDER_VERSION}\n{f.sha256}\n{variant}"
     return hashlib.sha256(text.encode("utf-8")).hexdigest() + ".png"
+
+
+def _cache_render_name(f: InventoryFile, variant: str) -> str:
+    from rpggen.core.adapters import reviewed_crops, reviewed_segments
+
+    name = _render_name(f, variant)
+    if key := reviewed_crops.layout_key(f.sha256, variant):
+        # Review keys and project paths stay stable. The physical cache must change
+        # when rectangles or masks change, even though the source image is unchanged.
+        name = hashlib.sha256(f"{name}\nreviewed_crop/{key}".encode()).hexdigest() + ".png"
+    if key := reviewed_segments.layout_key(f.sha256, variant):
+        name = hashlib.sha256(f"{name}\nreviewed_segment/{key}".encode()).hexdigest() + ".png"
+    return name
+
+
+def _reviewed_segments(f: InventoryFile, cut: _Cut) -> _Cut:
+    from rpggen.core.adapters import reviewed_segments
+
+    additions = []
+    for part in cut.parts:
+        record = reviewed_segments.reviewed(f.sha256).get(part.variant)
+        if record is None:
+            continue
+        for x, y, w, h in record.get("erase", []):
+            if (
+                x < 0
+                or y < 0
+                or w <= 0
+                or h <= 0
+                or x + w > part.picture.shape[1]
+                or y + h > part.picture.shape[0]
+            ):
+                raise ValueError("reviewed erase rectangle outside image")
+            part.picture = part.picture.copy()
+            part.picture[y : y + h, x : x + w] = 0
+        children = record.get("children", [])
+        if not children:
+            continue
+        owned = np.zeros(part.picture.shape[:2], dtype=bool)
+        for child in children:
+            x, y, w, h = child["rect"]
+            if (
+                x < 0
+                or y < 0
+                or w <= 0
+                or h <= 0
+                or x + w > part.picture.shape[1]
+                or y + h > part.picture.shape[0]
+            ):
+                raise ValueError("reviewed child rectangle outside image")
+            if owned[y : y + h, x : x + w].any():
+                raise ValueError("reviewed child rectangles overlap")
+            owned[y : y + h, x : x + w] = True
+            image = part.picture[y : y + h, x : x + w].copy()
+            facts = {
+                "usage": "sprite",
+                "role": "ANIMAL",
+                "size": [w, h],
+                "frame": [w, h],
+                "origin": [w // 2, h - 1],
+                "grid": {"cell": [w, h], "margin": [0, 0], "separation": [0, 0]},
+                "tags": ["static_animal"],
+                "animations": {"idle_down": {"fps": 1.0, "frames": [[0, 0]], "loop": True}},
+            }
+            additions.append(_Part(child["variant"], image, facts, UNNAMED_CONFIDENCE))
+        if ((part.picture[..., 3] > 0) & ~owned).any():
+            raise ValueError("reviewed segmentation leaves painted pixels unassigned")
+        part.facets["role"] = "NONE"
+        part.facets["tags"] = [classifier.UNUSED_TAG + "segmented"]
+    cut.parts.extend(additions)
+    return cut
+
+
+def _reviewed_crops(f: InventoryFile, a: np.ndarray, cut: _Cut) -> _Cut:
+    from rpggen.core.adapters import farm, reviewed_crops
+
+    layouts = reviewed_crops.reviewed(f.sha256)
+    if not layouts:
+        return cut
+    # Keep existing non-crop parts (including the owner's harvested ITEM variants).
+    cut.parts = [p for p in cut.parts if p.facets.get("usage") != "growth_strip"]
+    for layout in layouts:
+        width, height = layout["frame"]
+        strip = np.zeros((height, width * len(layout["rects"]), 4), dtype=np.uint8)
+        for i, (rect, offset) in enumerate(zip(layout["rects"], layout["offsets"], strict=True)):
+            x, y, w, h = rect
+            ox, oy = offset
+            if not (x >= 0 and y >= 0 and x + w <= a.shape[1] and y + h <= a.shape[0]):
+                raise ValueError("reviewed crop rectangle outside source")
+            if not (ox >= 0 and oy >= 0 and ox + w <= width and oy + h <= height):
+                raise ValueError("reviewed crop rectangle outside canvas")
+            strip[oy : oy + h, i * width + ox : i * width + ox + w] = a[y : y + h, x : x + w]
+        facts = farm._crop_facets(
+            len(layout["rects"]), width, height, layout["name"], "reviewed_sheet"
+        )
+        cut.parts.append(_Part(layout["variant"], strip, facts, CROP_CONFIDENCE))
+    return cut
 
 
 class SheetPartsAdapter:
@@ -1031,7 +1139,7 @@ class SheetPartsAdapter:
             if (cell := cell_sheet(f, ctx.claimed, tiled)) is not None
         }
         files += sorted((f for f in inv.files if f.path in cells), key=lambda f: f.path)
-        tileset = is_tileset_pack(inv)
+        tileset = is_tileset_pack(inv, root.name)
         farming = tileset and is_farm_tileset(inv)
 
         def one(f: InventoryFile) -> _Cut:
@@ -1045,11 +1153,19 @@ class SheetPartsAdapter:
             if float((a[..., 3] < PAINTED_ALPHA).mean()) < MIN_CLEAR:
                 return _Cut(reason="")
             cell = grid_cell(a) if tileset else None
-            if cell is None and _size(f) in B_TO_E:
+            role, _tag = _role(_words(f.path), ROLE_WORDS)
+            if (
+                cell is None
+                and _size(f) in B_TO_E
+                and role != "BUILDING"
+                and not any(w in inv.pack_id.split("_") for w in OBJECT_WORDS)
+            ):
                 # a sheet of the size of RPG Maker's B to E sheets in a pack that says no tile
                 # set is offered as tiles of 48 px by the grid reader (T16.21), as it was
                 return _Cut(reason="")
             cut = sort_cells(a, cell, farming) if cell else cut_objects(f, a)
+            cut = _reviewed_crops(f, a, cut)
+            cut = _reviewed_segments(f, cut)
             return _saved(f, cut, work)
 
         cuts = iso_sheets.in_parallel(one, files, ctx)
@@ -1062,7 +1178,15 @@ class SheetPartsAdapter:
             if not cut.parts:
                 continue
             for part in cut.parts:
-                if part.facets.get("usage") == "growth_strip":
+                from rpggen.core import pack_readings
+
+                checked = pack_readings.region_facts(f.sha256, part.variant)
+                pack_readings.apply_facts(part.facets, checked)
+                if part.facets.get(
+                    "usage"
+                ) == "growth_strip" and "growth_by:reviewed_sheet" not in part.facets.get(
+                    "tags", []
+                ):
                     # named by the pack's item its produce looks like, else by its colour and
                     # shape (T17.33: no ``crop_1``); a name twice gets a number
                     crops += 1
@@ -1071,7 +1195,7 @@ class SheetPartsAdapter:
                     looks = next(
                         (t[len(LOOKS) :] for t in part.facets["tags"] if t.startswith(LOOKS)), ""
                     )
-                    ripe = _ripe_of(work / _render_name(f, part.variant), part.facets)
+                    ripe = _ripe_of(work / _cache_render_name(f, part.variant), part.facets)
                     name = (match_item(ripe, items) if ripe is not None else "") or looks
                     name = name or f"{CROP_NAME}{crops}"
                     used_names[name] = used_names.get(name, 0) + 1
@@ -1084,7 +1208,7 @@ class SheetPartsAdapter:
                 result.assets.append(
                     AssetFragment(f.path, part.facets, part.confidence, "full", part.variant)
                 )
-                result.generated[project] = str(work / name)
+                result.generated[project] = str(work / _cache_render_name(f, part.variant))
                 result.rendered[f"{f.path}#{part.variant}"] = project
             result.assets.append(iso_sheets.aside(f, cut.reason or UNUSED_OBJECT_SHEET))
         result.issues = list(issues)

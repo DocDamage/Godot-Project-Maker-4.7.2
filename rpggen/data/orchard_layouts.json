@@ -1,0 +1,145 @@
+{
+  "8dc1587dd0e5eeac052574360240107829ba219164dfd432693c6a77f82907fd": {
+    "source": "Crops/Fruits Tree/Fall/Apple Tree - no shadow.png",
+    "name": "apple",
+    "season": "autumn",
+    "frame": [
+      32,
+      48
+    ],
+    "cells": [
+      0,
+      1,
+      2,
+      5,
+      6,
+      7
+    ],
+    "mature_stage": 3
+  },
+  "0475eef9b08b17ab25e77ad072765bd3269c618cb274fe21de1d9fca04a4614c": {
+    "source": "Crops/Fruits Tree/Spring/Apricot Tree - no shadow.png",
+    "name": "apricot",
+    "season": "spring",
+    "frame": [
+      32,
+      48
+    ],
+    "cells": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5
+    ],
+    "mature_stage": 3
+  },
+  "aa14b24b0451ada51714a48f70dda76f18fe3dbca3b3bd0f3c70e5e6a6c888e7": {
+    "source": "Crops/Fruits Tree/Spring/Cherry Tree - no shadow.png",
+    "name": "cherry",
+    "season": "spring",
+    "frame": [
+      32,
+      48
+    ],
+    "cells": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5
+    ],
+    "mature_stage": 4
+  },
+  "b4088833b35f9ca4fa0f1917b76f08a2314d2a00817c00c90e1fd9ea017b7f90": {
+    "source": "Crops/Fruits Tree/Summer/Banana Tree - no Shadow.png",
+    "name": "banana",
+    "season": "summer",
+    "frame": [
+      32,
+      48
+    ],
+    "cells": [
+      0,
+      1,
+      2,
+      3,
+      4
+    ],
+    "mature_stage": 2
+  },
+  "f6b75bc9e950a5468bfddaa77aeb47cdec6fdab832c5dbdfb56d3f74b57370af": {
+    "source": "Crops/Fruits Tree/Summer/Coconut tree - no Shadow.png",
+    "name": "coconut",
+    "season": "summer",
+    "frame": [
+      32,
+      48
+    ],
+    "cells": [
+      13,
+      14,
+      0,
+      5,
+      6,
+      7
+    ],
+    "mature_stage": 3
+  },
+  "6ee4fb8fa30f23ebee70dd958cc853b445b65e6160c1a994b6e781afc5dc89de": {
+    "source": "Crops/Fruits Tree/Summer/Mango Tree - no shadow.png",
+    "name": "mango",
+    "season": "summer",
+    "frame": [
+      32,
+      48
+    ],
+    "cells": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5
+    ],
+    "mature_stage": 3
+  },
+  "522f40a6077d9c7a8425522eaf492cf39d62981c289c8990a953842454bb98b9": {
+    "source": "Crops/Fruits Tree/Summer/Orange Tree - no shadow.png",
+    "name": "orange",
+    "season": "summer",
+    "frame": [
+      32,
+      48
+    ],
+    "cells": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5
+    ],
+    "mature_stage": 3
+  },
+  "dad6d21d92c2782d2b3ae6a953d84ac52f9f971b6337aa6f422aeb5a62e7f854": {
+    "source": "Crops/Fruits Tree/Summer/Peach Tree - no shadow.png",
+    "name": "peach",
+    "season": "summer",
+    "frame": [
+      32,
+      48
+    ],
+    "cells": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5
+    ],
+    "mature_stage": 3
+  }
+}

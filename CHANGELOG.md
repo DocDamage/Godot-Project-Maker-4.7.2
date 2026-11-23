@@ -5,6 +5,18 @@ changelog in `godot_templates/addons/rpg_runtime/CHANGELOG.md`.
 
 ## 1.5.0 (in work)
 
+* **Real-pack coverage fixes:** character sheets are grouped before generic object cutting;
+  reviewed props keep their roles, whole battlers keep their artwork, and instructions and
+  promotional images cannot seed terrains. Tiled atlases needed by maps survive deduplication;
+  wrapped RARs and vendor-named parent licenses are handled. The same 30-pack study was repeated:
+  [results and remaining review work](docs/coverage_2026-10-28_fixed.md).
+  A [follow-up screening of all 9,478 flagged entries](docs/coverage_2026-10-28_review.md)
+  adds 786 region corrections, fixes character directions and optional poses, preserves native
+  atlas scales, and withholds false inferred terrain on reviewed mixed construction sheets.
+  A [metadata confirmation pass](docs/coverage_2026-10-28_metadata.md) confirms 6,070 static
+  entries with guarded source/crop decisions, corrects further roles and fire layouts, and
+  fixes profile reimport and assets-only tool placement; 2,513 entries retain review flags.
+
 A seventh kind of game and a second way of seeing four of them. Nothing changes for a project
 of the six older kinds: a 1.0 to 1.4 project regenerates without a prompt, and a project that
 does not ask for the isometric view is built as it was.

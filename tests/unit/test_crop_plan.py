@@ -44,6 +44,32 @@ def _facts(count: int) -> dict:
 # ------------------------------------------------------------------------ the plan
 
 
+def test_orchards_keep_harvest_seasons_and_regrow_without_replanning_existing_crops() -> None:
+    orchard = {
+        "asset": "fruit.apple",
+        "name": "apple",
+        "stages": 6,
+        "orchard": True,
+        "mature_stage": 3,
+        "seasons": ["autumn"],
+    }
+    original = crop_plan.plan({}, 7, _facts(3))
+    before = copy.deepcopy(original)
+    extended, _ = crop_plan.extend(original, {"crops": [orchard]})
+    assert original == before
+    assert extended["crops"][:-1] == original["crops"]
+    apple = extended["crops"][-1]
+    assert apple["seasons"] == ["autumn"] and apple["orchard"] is True
+    assert apple["regrow"] == 2 and apple["mature_stage"] == 3
+    assert crop_plan.crops_file(extended)["crops"][-1]["orchard"] is True
+    for seed in range(10):
+        planned = crop_plan.plan({}, seed, {"crops": [orchard]})
+        assert crop_plan.check(planned) == [], "orchards don't replace year-round field crops"
+        assert "spring" in planned["crops"][0]["seasons"]
+        fruit = next(c for c in planned["crops"] if c.get("orchard"))
+        assert fruit["seasons"] == ["autumn"]
+
+
 def test_the_plan_is_the_same_for_the_same_seed_and_the_seed_counts() -> None:
     facts = _facts(7)
     first = crop_plan.plan({}, 4711, facts)

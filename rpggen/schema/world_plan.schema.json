@@ -333,6 +333,8 @@
         "days": {"type": "integer", "minimum": 1},
         "stages": {"type": "integer", "minimum": 1},
         "regrow": {"type": "integer", "minimum": 0},
+        "orchard": {"type": "boolean"},
+        "mature_stage": {"type": "integer", "minimum": 0},
         "seed_price": {"type": "integer", "minimum": 0},
         "price": {"type": "integer", "minimum": 0},
         "energy": {"type": "integer", "minimum": 0},

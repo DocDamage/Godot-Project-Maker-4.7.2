@@ -70,6 +70,63 @@ func _cleanup() -> void:
 
 # ---------------------------------------------------------------- growing
 
+func test_orchards_grow_without_water_survive_winter_and_keep_established_state(t) -> void:
+	var data := RpgCropData.new()
+	data.add_list([{"id": "apple", "orchard": true, "mature_stage": 3, "stages": 6, "days": 5, "regrow": 2, "seasons": ["autumn"]}])
+	var cells := {"2,2": {"crop": "apple", "grown": 0, "w": false}}
+	for night in 10:
+		RpgField.grow(cells, data, "winter")
+	var entry: Dictionary = cells["2,2"]
+	t.eq(entry["grown"], 3, "dormant at the mature tree")
+	t.ok(entry["established"] and not entry.get("dead", false))
+	RpgField.grow(cells, data, "autumn")
+	t.eq(cells["2,2"]["grown"], 4)
+	RpgField.grow(cells, data, "autumn")
+	t.eq(cells["2,2"]["grown"], 5, "fruit is ripe only after the remaining nights")
+	RpgField.grow(cells, data, "winter")
+	t.eq(cells["2,2"]["grown"], 3, "unpicked fruit does not survive the harvest season")
+	var field := RpgField.new()
+	field.from_dict(cells)
+	t.eq(field.to_dict()["2,2"]["established"], true)
+	t.eq(data.picture("apple", 0, true), 3, "an established tree never becomes a seedling")
+	field.free()
+
+func test_short_orchard_growth_still_leaves_a_fruitless_dormant_stage(t) -> void:
+	var data := RpgCropData.new()
+	data.add_list([{"id": "cherry", "orchard": true, "mature_stage": 4, "stages": 6, "days": 4, "seasons": ["spring"]}])
+	var cells := {"0,0": {"crop": "cherry", "grown": 0}}
+	for night in 10:
+		RpgField.grow(cells, data, "winter")
+	t.eq(cells["0,0"]["grown"], 3)
+	t.eq(data.picture("cherry", 3, true), 4, "mature without ripe fruit")
+	RpgField.grow(cells, data, "spring")
+	t.eq(cells["0,0"]["grown"], 4, "one fruiting night is still required")
+
+func test_orchard_harvest_keeps_the_tree_and_full_inventory_keeps_the_fruit(t) -> void:
+	var map := _map()
+	var field: RpgField = map["field"]
+	field.crops.crops["corn"] = field.crops.crop("corn").duplicate(true)
+	field.crops.crops["corn"].merge({"orchard": true, "mature_stage": 2, "regrow": 2}, true)
+	t.ok(field.can_plant(CORN, "corn", "winter") == false, "the cell still needs tilling")
+	field.till(CORN)
+	t.ok(field.can_plant(CORN, "corn", "winter"), "orchard planting is year-round")
+	field.plant(CORN, "corn")
+	for night in 4:
+		_night(field)
+	t.eq(field.state_of(CORN), RpgField.RIPE)
+	RpgUtil.state().inventory.capacity = 0
+	t.ok(not field.harvest(CORN))
+	t.eq(field.grown_at(CORN), 4, "full inventory keeps the ripe fruit")
+	RpgUtil.state().inventory.capacity = 40
+	t.ok(field.harvest(CORN))
+	t.eq(field.crop_at(CORN), "corn")
+	t.eq(field.grown_at(CORN), 2)
+	t.ok(field.to_dict()["2,2"]["established"])
+	for night in 2:
+		_night(field)
+	t.ok(field.harvest(CORN), "a second harvest from the same tree")
+	_cleanup()
+
 func test_a_crop_watered_every_day_is_ripe_after_its_days_and_not_before(t) -> void:
 	var map := _map()
 	var field: RpgField = map["field"]

@@ -19,7 +19,9 @@ in ``DIR/marks/NAME.json`` as they are made; ``corpus`` writes ``DIR/corpus/NAME
 ``fit`` scores the corpus with the raw confidences, fits the calibration and reports per pack
 and per publisher the sure share and the accuracy of the sure pictures before calibration and
 after it, each pack measured with a table fitted on the other packs (``DIR/fit_report.md``);
-``--write`` puts the table fitted on every pack into ``rpggen/data/calibration.json``.
+Only fully reviewed, source-bound observations train calibration. ``--write`` publishes to
+``rpggen/data/calibration.json`` only with supported bins and held-out source validation;
+otherwise the existing table is preserved.
 
 ``DIR/packs.json`` lists the packs: ``[{"name", "path", "publisher"}, ...]``.
 """
@@ -292,13 +294,43 @@ def corpus(out: Path) -> None:
         print(f"{pack['name']}: {len(doc['entries'])} pictures")
 
 
+def review_data(out: Path) -> dict[str, Any]:
+    """The smaller decision queue, kept separately from the owner's original group marks."""
+    queue: dict[str, Any] = read_json(out / "review_queue.json", {})
+    return {**queue, "decisions": read_json(out / "review_decisions.json", {})}
+
+
+def save_review_decision(out: Path, data: dict[str, Any]) -> None:
+    questions = {q["id"]: q for q in review_data(out).get("questions", [])}
+    question = questions.get(str(data.get("id", "")))
+    if question is None or data.get("choice") not in question["choices"]:
+        raise ValueError("Choose one of the answers shown for this question.")
+    note = data.get("note", "")
+    if not isinstance(note, str) or len(note) > 2000:
+        raise ValueError("Notes must be text of at most 2,000 characters.")
+    marks = read_json(out / "review_decisions.json", {})
+    decision = {"choice": data["choice"], "note": note}
+    from rpggen import jsonio
+
+    previous = marks.get(question["id"])
+    if previous != decision:
+        history = read_json(out / "review_decision_history.json", [])
+        history.append({"id": question["id"], "before": previous, "after": decision})
+        jsonio.write(out / "review_decision_history.json", history)
+    marks[question["id"]] = decision
+    jsonio.write(out / "review_decisions.json", marks)
+
+
 def serve(out: Path, port: int) -> None:
     """The review page (``answer_key_page.html``) on ``127.0.0.1`` only; the owner's marks are
     written under ``out`` as they are made."""
     from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+    from threading import Lock
     from urllib.parse import parse_qs, urlparse
 
     page = (Path(__file__).parent / "answer_key_page.html").read_bytes()
+    review_page = (Path(__file__).parent / "answer_key_decisions.html").read_bytes()
+    decision_lock = Lock()
     packs = load_packs(out)
     names = {p["name"] for p in packs}
 
@@ -325,7 +357,26 @@ def serve(out: Path, port: int) -> None:
             url = urlparse(self.path)
             q = {k: v[0] for k, v in parse_qs(url.query).items()}
             if url.path == "/":
-                self._send(200, page, "text/html; charset=utf-8")
+                selected = (
+                    review_page
+                    if (out / "review_queue.json").is_file()
+                    and q.get("all") != "1"
+                    and "pack" not in q
+                    else page
+                )
+                self._send(200, selected, "text/html; charset=utf-8")
+            elif url.path == "/api/questions":
+                self._json(review_data(out))
+            elif url.path == "/review-sheet":
+                question = next(
+                    (r for r in review_data(out).get("questions", []) if r["id"] == q.get("id")),
+                    None,
+                )
+                file = (out / question["sheet"]).resolve() if question else None
+                if file is not None and file.is_relative_to(out.resolve()) and file.is_file():
+                    self._send(200, file.read_bytes(), "image/png")
+                else:
+                    self._send(404, b"no sheet", "text/plain")
             elif url.path == "/api/packs":
                 rows = []
                 for p in packs:
@@ -370,6 +421,21 @@ def serve(out: Path, port: int) -> None:
                 self._send(404, b"not found", "text/plain")
 
         def do_POST(self) -> None:  # noqa: N802
+            if urlparse(self.path).path == "/api/decision":
+                try:
+                    length = int(self.headers.get("Content-Length", "0"))
+                    if not 0 < length <= 16000:
+                        raise ValueError("Invalid decision size.")
+                    data = json.loads(self.rfile.read(length))
+                    if not isinstance(data, dict):
+                        raise ValueError("Invalid decision.")
+                    with decision_lock:
+                        save_review_decision(out, data)
+                except (ValueError, TypeError) as exc:
+                    self._send(400, str(exc).encode("utf-8"), "text/plain; charset=utf-8")
+                    return
+                self._json({"ok": True})
+                return
             if urlparse(self.path).path != "/api/mark":
                 self._send(404, b"not found", "text/plain")
                 return
@@ -413,12 +479,44 @@ def fit(out: Path, write: bool) -> None:
 
     summary = analyze_cmd.run_private_corpus(out / "corpus", [])
     publisher_of = {p["name"]: p["publisher"] for p in load_packs(out)}
-    pictures = {name: rep["pictures"] for name, rep in summary["packs"].items()}
+    pictures = {
+        name: [p for p in rep["pictures"] if p.get("calibration_eligible") is True]
+        for name, rep in summary["packs"].items()
+    }
     auto, confirmed = catalog.AUTO_CONFIDENCE, catalog.CONFIRMED_CONFIDENCE
     rows: dict[str, dict[str, Any]] = {}
+    validated: list[dict[str, Any]] = []
+    validated_publishers: dict[str, list[dict[str, Any]]] = {}
+    validated_bins: dict[str, list[dict[str, Any]]] = {}
     for name, own in sorted(pictures.items()):
         others = [p for n, ps in pictures.items() if n != name for p in ps]
-        table = calibration.fit(others, auto, confirmed)
+        table = calibration.fit(calibration.training_for(others, own), auto, confirmed)
+        tested = [
+            {
+                **p,
+                "sure": calibration.calibrate_with(
+                    table,
+                    p["reader"],
+                    p.get("role", ""),
+                    float(p["confidence"]),
+                    p.get("publisher", ""),
+                )
+                >= auto,
+            }
+            for p in own
+        ]
+        validated.extend(tested)
+        validated_publishers.setdefault(publisher_of.get(name, "?"), []).extend(tested)
+        for p in tested:
+            key = calibration.fitted_key(
+                table,
+                p["reader"],
+                p.get("role", ""),
+                float(p["confidence"]),
+                p.get("publisher", ""),
+            )
+            if key is not None:
+                validated_bins.setdefault(key, []).append(p)
         rows[name] = {
             "before": _sure_counts(own, lambda p: p["sure"]),
             "after": _sure_counts(
@@ -452,6 +550,11 @@ def fit(out: Path, write: bool) -> None:
     lines = [
         "# Calibration on the answer key",
         "",
+        "Only explicit reviewed_fields with complete measured-field coverage are eligible.",
+        "Role-only owner choices and inherited draft fields are excluded. Variants and copies",
+        "of the held-out source are excluded from training, even in other packs. Bins count",
+        "independent source images, not the number of regions cut from the same sheet.",
+        "",
         "Sure: confirmed, or confidence at Auto-detected or above. *After*: each pack with a",
         "table fitted on the other packs (leave one pack out), so the numbers are what a new",
         "pack would see.",
@@ -482,14 +585,54 @@ def fit(out: Path, write: bool) -> None:
     )
     if summary["missing"]:
         lines += ["", "Not found: " + ", ".join(summary["missing"])]
+    coverage = {n: r.get("review_coverage", {}) for n, r in summary["packs"].items()}
+    validation = calibration.validation_support(validated)
+    publisher_validation = {
+        name: calibration.validation_support(ps) for name, ps in validated_publishers.items()
+    }
+    table = calibration.fit([p for ps in pictures.values() for p in ps], auto, confirmed)
+    removed = []
+    for key, bin_info in list(table["bins"].items()):
+        if (
+            bin_info["confidence"] >= auto
+            and not calibration.validation_support(validated_bins.get(key, []))["passed"]
+        ):
+            removed.append(key)
+            del table["bins"][key]
+    if not any(pictures.values()):
+        lines += ["", "No calibration-eligible observations. The shipped table is unchanged."]
+    else:
+        lines += [
+            "",
+            "Held-out sure source images: "
+            f"{validation['right_sources']}/{validation['sure_sources']}; "
+            f"95% Wilson lower bound: {pct(validation['wilson_low'])}. "
+            "Publishing requires at least 99% overall and per publisher with sure predictions.",
+        ]
     (out / "fit_report.md").write_text("\n".join(lines) + "\n", encoding="utf-8")
-    jsonio.write(out / "fit_report.json", {"packs": rows, "missing": summary["missing"]})
+    jsonio.write(
+        out / "fit_report.json",
+        {
+            "packs": rows,
+            "missing": summary["missing"],
+            "review_coverage": coverage,
+            "validation": validation,
+            "publisher_validation": publisher_validation,
+            "unsupported_sure_bins_removed": removed,
+        },
+    )
     print("\n".join(lines))
     if write:
-        table = calibration.fit([p for ps in pictures.values() for p in ps], auto, confirmed)
-        calibration.TABLE.write_text(
-            json.dumps(table, indent=1, sort_keys=True) + "\n", encoding="utf-8"
-        )
+        if summary["missing"] or not table["bins"]:
+            raise ValueError(
+                "Calibration not written: missing packs or no independently supported bins."
+            )
+        if not validation["passed"] or any(
+            not v["passed"] for v in publisher_validation.values() if v["sure_sources"]
+        ):
+            raise ValueError("Calibration not written: held-out source accuracy lacks 99% support.")
+        jsonio.write(calibration.TABLE, table)
+        calibration._table.cache_clear()
         print(f"wrote {calibration.TABLE} ({len(table['bins'])} bins)")
 
 
@@ -673,7 +816,10 @@ def main(argv: list[str] | None = None) -> int:
     elif args.cmd == "corpus":
         corpus(args.out)
     elif args.cmd == "fit":
-        fit(args.out, args.write)
+        try:
+            fit(args.out, args.write)
+        except ValueError as exc:
+            parser.error(str(exc))
     elif args.cmd == "vision":
         vision(args.out, args.per_pack, args.server, args.model, args.projector, args.write)
     return 0

@@ -32,6 +32,7 @@ from rpggen.gui.widgets import audio_preview, buttons, image_view
 from rpggen.gui.widgets.anim_preview import AnimPlayer
 from rpggen.gui.widgets.asset_grid import STATUS_COLORS, PathResolver
 from rpggen.gui.widgets.flow_layout import FlowLayout
+from rpggen.gui.widgets.hazard_settings import HazardSettings
 from rpggen.gui.widgets.image_view import ImageView
 
 USAGES = [
@@ -408,6 +409,8 @@ class AssetDetail(QWidget):
             self.collision_combo.addItem(name, name)
         self.collision_label = QLabel(self.tr("Collision"))
         form.addRow(self.collision_label, self.collision_combo)
+        self.hazards = HazardSettings(session)
+        form.addRow(self.hazards)
         self.tileset_combo = QComboBox()
         self.tileset_combo.setObjectName("tilesetCombo")
         self.tileset_combo.setToolTip(self.tr("The TileSet this sheet is added to"))
@@ -541,6 +544,9 @@ class AssetDetail(QWidget):
             usage = eff.get("usage")
             self._show_media_kind(asset, eff)
             show_collision = usage in COLLISION_USAGES
+            self.hazards.setVisible(usage in ("tiles", "iso_tile"))
+            if usage in ("tiles", "iso_tile"):
+                self.hazards.load_asset(asset.id, eff)
             self.collision_combo.setVisible(show_collision)
             self.collision_label.setVisible(show_collision)
             profile = (asset.overrides.get("collision") or {}).get("profile")

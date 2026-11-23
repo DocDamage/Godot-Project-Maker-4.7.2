@@ -14,6 +14,10 @@ the section ``farm``) and reused: once it is there the seed and the options no l
 it, and a crop added to the packs later is appended (``extend``). The builder writes it with
 the scenes of the crops to ``generated/data/crops.json`` on every build and to
 ``game/data/crops.json`` once; that file is the user's. No Qt, no Godot.
+
+Reviewed orchards carry their own harvest seasons and mature-tree frame. They always regrow;
+their unwatered juvenile growth and seasonal fruiting are handled by the runtime. Annual crops
+are distributed separately so adding orchard art never removes field crop coverage.
 """
 
 from __future__ import annotations
@@ -88,7 +92,18 @@ def facts_of(catalog: Any) -> dict[str, Any]:
                 if str(t).startswith(PRODUCE_TAG)
             ]
             name = said[0] if said and said[0] else crop_name(str(asset.id))
-            crops.append({"asset": str(asset.id), "name": name, "stages": stages})
+            fact = {"asset": str(asset.id), "name": name, "stages": stages}
+            tags = facets.get("tags") or []
+            if "orchard" in tags:
+                fact["orchard"] = True
+                fact["mature_stage"] = next(
+                    (int(t.split(":", 1)[1]) for t in tags if t.startswith("mature_stage:")),
+                    max(0, stages - 3),
+                )
+                fact["seasons"] = [
+                    t.split(":", 1)[1] for t in tags if t.startswith("harvest_season:")
+                ]
+            crops.append(fact)
     return {"crops": crops}
 
 
@@ -138,6 +153,11 @@ def _entry(
     stages = int(fact["stages"])
     days = days_of(stages, difficulty)
     regrow = max(1, days // 3) if index % REGROW_EVERY == REGROW_EVERY - 1 else 0
+    if fact.get("orchard"):
+        maturity = min(
+            days - 1, (days * int(fact["mature_stage"]) + stages - 2) // max(1, stages - 1)
+        )
+        regrow = max(1, days - maturity)
     seed_price, price = _prices(days, regrow)
     entry: dict[str, Any] = {
         "id": crop_id,
@@ -155,12 +175,16 @@ def _entry(
     }
     if fact.get("color"):
         entry["color"] = str(fact["color"])
+    if fact.get("orchard"):
+        entry.update(
+            orchard=True, mature_stage=int(fact["mature_stage"]), seasons=list(fact["seasons"])
+        )
     return entry
 
 
 def _with_drawn(found: list[dict[str, Any]]) -> tuple[list[dict[str, Any]], list[str]]:
     """The crops of the packs, with the drawn ones when there are fewer than two."""
-    if len(found) >= MIN_PER_SEASON:
+    if sum(not f.get("orchard") for f in found) >= MIN_PER_SEASON:
         return found, []
     taken = {str(f["name"]) for f in found}
     drawn = [
@@ -169,6 +193,8 @@ def _with_drawn(found: list[dict[str, Any]]) -> tuple[list[dict[str, Any]], list
         if name not in taken
     ]
     what = "no crop" if not found else "one crop"
+    if any(f.get("orchard") for f in found):
+        what = "fewer than two field crops"
     names = ", ".join(str(d["name"]) for d in drawn)
     return [*found, *drawn], [f"The packs have {what}: the drawn crops ({names}) were added."]
 
@@ -182,13 +208,22 @@ def plan(options: Any, seed: int, facts: Any = None) -> dict[str, Any]:
     crops, notes = _with_drawn(found)
     Random(f"{int(seed)}:crops").shuffle(crops)
     used: set[str] = set()
+    annual_count = sum(not f.get("orchard") for f in crops)
+    entries = []
+    annual_index = 0
+    for fact in crops:
+        entries.append(_entry(fact, annual_index, annual_count, opts["difficulty"], used))
+        if not fact.get("orchard"):
+            annual_index += 1
+    # Starting seeds should produce in spring, even when an orchard could be planted earlier.
+    if entries and "spring" not in entries[0]["seasons"]:
+        first = next(i for i, e in enumerate(entries) if "spring" in e["seasons"])
+        entries[0], entries[first] = entries[first], entries[0]
     return {
         "plan_version": PLAN_VERSION,
         "seed": int(seed),
         "difficulty": opts["difficulty"],
-        "crops": [
-            _entry(fact, i, len(crops), opts["difficulty"], used) for i, fact in enumerate(crops)
-        ],
+        "crops": entries,
         "notes": notes,
     }
 
@@ -215,7 +250,8 @@ def extend(stored: dict[str, Any], facts: Any) -> tuple[dict[str, Any], list[str
         # it grows where the fewest crops grow, and in the season after
         counts = per_season(out)
         first = min(range(len(SEASONS)), key=lambda s: (counts[SEASONS[s]], s))
-        entry["seasons"] = [SEASONS[first], SEASONS[(first + 1) % len(SEASONS)]]
+        if not fact.get("orchard"):
+            entry["seasons"] = [SEASONS[first], SEASONS[(first + 1) % len(SEASONS)]]
         out["crops"].append(entry)
         added.append(str(entry["name"]))
     return out, added

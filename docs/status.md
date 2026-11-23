@@ -20,6 +20,55 @@ rows (T14.13), below.
 
 ## The aim (2026-10-15)
 
+**Answer-key review update (2026-10-28):** the 26,408-entry owner review has been reduced to
+four grouped game-design choices covering 44 entries, now answered by the owner. The accepted
+choices include orchard crops and per-game hazard authoring. Corrections, technical reference
+differences and the original owner marks are recorded separately. See
+[the review report](answer_key_review_2026-10-28.md). This does not close T17.34's native
+metadata, calibration or held-out validation work.
+
+The accepted orchard and hazard follow-up now has eight hash-bound orchard growth layouts,
+persistent seasonal fruit trees, and individual tile damage/interval controls in asset details.
+See [orchard and hazard rules](orchards_and_hazards.md) for the editable defaults and behavior.
+
+The [2026-10-29 validation pass](metadata_validation_2026-10-29.md) checks 13,612 active images,
+14,137 animation frames and all 6,070 stored complete decisions. Calibration now requires
+explicit field provenance, unchanged source hashes and held-out source support; the current
+draft corpus cannot increase confidence. The owner's four saved choices remain unchanged.
+
+The [semantic certification and candidate validation pass](semantic_heldout_2026-10-29.md)
+adds 25 guarded static-art decisions (22 animal poses and three battlers), with two further
+partial corrections left unconfirmed. The earlier metadata ledger now has 2,488 unresolved
+entries by disposition, without claiming a fresh 30-pack import. Four native-project failures
+are fixed; all ten candidate archetype runs and both known Goblin regressions pass on frozen
+code, with clean final snapshots. These are engineering checks, not a semantic accuracy rate.
+Independent calibration labels, commercial/Tiled sample qualification and human release
+measurements remain pending; the saved answers and calibration table are unchanged.
+
+The [actor-art follow-up](actor_metadata_2026-10-29.md) certifies the 23 previously flagged
+Modern Interiors actor-art entries, fixes front/back seated directions and corrects the free
+pack's detected license to non-commercial use only. All 23 actual generated character scenes
+and 300 playback frames pass native pixel/pivot checks; the assets-only project validates.
+The ledger now has 2,465 unresolved entries by disposition. Seven tile sheets and four primary
+multi-source actors in that pack remain outside the new certification scope. No detector
+confidence, saved owner choice or calibration table is changed.
+
+The [field-crop follow-up](crop_metadata_2026-10-29.md) certifies ten crop-art strips and
+41 stages, restores garlic's early sprout, removes neighboring-row residue and preserves the
+owner's harvested ITEM variants. Saved logical stage counts now map correctly onto updated
+art without rewriting crop settings. All catalog IDs, project image paths and 590 review keys
+remain valid. The assets-only build and native crop checks pass. The ledger now has 2,455
+unresolved entries by disposition; terrain, building/segmentation metadata, independent
+calibration labels and qualified/human release checks remain open.
+
+The [terrain, building and segmentation follow-up](terrain_building_segmentation_2026-10-29.md)
+adds ten building placements, two separate static cat poses and one source-authored terrain
+atlas covering 40 styles. It fixes discarded building door points and prevents regeneration
+from inheriting an automatic confirmation after its guards fail. Windows inventory and image
+prewarm pools now share imports instead of spawning eight application copies. The earlier
+ledger has 2,443 unresolved entries by disposition; saved choices and calibration remain
+unchanged. Native validation and the host-memory interruptions are recorded in the report.
+
 The owner's words: "the whole purpose is for me to be able to make my own levels without having
 to add all the underlying logic to my assets as I import them." Generated starter maps, villages
 and stages are examples; the product is a pack's assets carrying their logic into Godot. Work is
@@ -180,7 +229,7 @@ All thirteen cards are done (2026-10-09). What the plan did not foresee, and wha
 | Item | Card | What to do |
 |------|------|------------|
 | Held-out packs | T10.09, T10.10 | Five packs not used during development (2 commercial, 1 RPG Maker, 1 Tiled, 1 messy), both archetypes, with `tools/held_out_run.py`; fill in time to first paint and audit edits in [coverage.md](coverage.md). All 10 runs must pass and the median time to first paint must be under 10 minutes. **A tag build refuses to run while the table says *(pending)*.** |
-| Pack-coverage study | ARCHITECTURE §51 | About 30 popular packs: the tier that handles each, the audit edits; ship profiles for any big vendor family. Table in [coverage.md](coverage.md). |
+| Pack-coverage study | ARCHITECTURE §51 | Baseline, fixes and remaining-entry screening completed 2026-10-28: same 30 inputs from `G:\All 2D Assets Stay Here`, 443 input images. All 9,478 flagged entries screened; 786 region corrections verified, plus source-layout fixes. All 27 initial correction checks still pass; two earlier accepted judgments were explicitly revised. Ten projects checked in Godot; [latest results and complete ID ledger](coverage_2026-10-28_review.md). The [metadata pass](coverage_2026-10-28_metadata.md) confirms 6,070 static entries; 2,513 retain review flags. Owner checks, first-paint timings, whole-pack profiles and held-out qualification remain open. |
 | Manual test pass | T11.29 | The 15 rows of `docs/spec/M11_pre_release.md` T11.29 on a frozen build: dock placement and rebuild, a real RPG Maker A2 sheet, the installer on a clean account, regeneration with the editor open, gamepad play of both archetypes, layers and Y-sort, audio, cancel, the Godot download, the online profile, display scaling at 150 % and 200 %, a 300–500 asset audit, the SmartScreen screenshot. |
 | Manual rows for M12 | T12.66 | Equip, buy and sell, recruit, finish the demo quest; walk an encounter zone and run a cutscene; switch the game's language and open the credits; use the minimap, world map and lighting; use the dialogue dock and a custom recipe in the editor; import a Tiled and an LDtk map; export to Web, Linux and macOS; resolve a conflict; check learned rules on a second pack. |
 

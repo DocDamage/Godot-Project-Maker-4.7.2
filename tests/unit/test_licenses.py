@@ -61,6 +61,49 @@ def test_wording_decides_for_a_vendor_licence() -> None:
 
 
 @pytest.mark.parametrize(
+    "text",
+    [
+        "YOU CAN USE THE ASSET IN NON COMMERCIAL PROJECTS\n"
+        "YOU CAN'T USE THE ASSET IN COMMERCIAL PROJECTS",
+        "You may not use this art in commercial games.",
+        "Commercial use is not permitted.",
+        "Only for non-commercial use.",
+        "Noncommercial projects only.",
+        "You can’t use these in commercial games.",
+    ],
+)
+def test_restricted_custom_terms_are_not_a_commercial_grant(text: str) -> None:
+    found = licenses.detect([("LICENSE.txt", text), ("readme.txt", "Free for commercial use")])
+    assert found.license_id == licenses.NONCOMMERCIAL
+    assert licenses.label(found.license_id) == "Non-commercial use only"
+    assert licenses.license_url(found.license_id) == ""
+
+
+@pytest.mark.parametrize(
+    "text",
+    [
+        "You can use this in commercial and non-commercial projects.",
+        "Free for commercial use. You cannot resell the assets.",
+        "Commercial use is allowed. Non-commercial use is allowed too.",
+        "You can use this in commercial games. You cannot resell the assets for commercial use.",
+    ],
+)
+def test_commercial_permission_is_preserved_when_terms_also_mention_restrictions(text: str) -> None:
+    assert licenses.detect([("LICENSE.txt", text)]).license_id == licenses.COMMERCIAL
+
+
+@pytest.mark.parametrize("word", ["non-commercial", "non commercial", "noncommercial"])
+def test_noncommercial_permission_alone_does_not_grant_commercial_use(word: str) -> None:
+    assert licenses.detect([("LICENSE", f"Free for {word} use.")]).license_id != licenses.COMMERCIAL
+
+
+@pytest.mark.parametrize("negative", ["can't", "may not"])
+def test_resale_prohibition_alone_does_not_grant_commercial_permission(negative: str) -> None:
+    found = licenses.detect([("LICENSE", f"You {negative} resell these for commercial purposes.")])
+    assert found.license_id == licenses.UNKNOWN
+
+
+@pytest.mark.parametrize(
     ("text", "license_id"),
     [
         ("CC BY-SA 4.0", "CC-BY-SA-4.0"),

@@ -150,6 +150,28 @@ def test_process_pool_path_matches_serial(tmp_path: Path, monkeypatch: pytest.Mo
     assert [f.to_json() for f in pooled.files] == [f.to_json() for f in serial.files]
 
 
+def test_windows_inventory_does_not_spawn_application_copies(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(inventory.sys, "platform", "win32")
+    monkeypatch.setattr(inventory, "POOL_THRESHOLD", 0)
+    calls = []
+    original = inventory.concurrent.futures.ThreadPoolExecutor
+
+    def threads(*, max_workers):
+        calls.append(max_workers)
+        return original(max_workers=max_workers)
+
+    def processes(**_kwargs):
+        pytest.fail("Windows inventory must not spawn another application per worker")
+
+    monkeypatch.setattr(inventory.concurrent.futures, "ThreadPoolExecutor", threads)
+    monkeypatch.setattr(inventory.concurrent.futures, "ProcessPoolExecutor", processes)
+    inv = _inv(SYNTH / "mixed")
+    assert calls and 1 <= calls[0] <= 8
+    assert len(inv.files) == 17 and not inv.issues
+
+
 def test_inventory_json_roundtrip() -> None:
     inv = _inv(SYNTH / "basic16")
     again = inventory.Inventory.from_json(inv.to_json())

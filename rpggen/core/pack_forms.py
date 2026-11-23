@@ -65,7 +65,8 @@ def _protected(asset: Any) -> bool:
     tags = _tags(asset)
     facets = asset.detected
     return (
-        facets.get("usage") == "growth_strip"
+        asset.detected_by == "tiled"  # its exact atlas coordinates are referenced by maps
+        or facets.get("usage") == "growth_strip"
         or (facets.get("role") in PROTECTED_ROLES and bool(facets.get("animations")))
         or lpc_compose.BODY_TAG in tags
         or lpc_compose.LAYER_TAG in tags

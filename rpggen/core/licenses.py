@@ -15,6 +15,7 @@ from pathlib import Path
 from typing import Any
 
 COMMERCIAL = "commercial"  # a vendor's own licence that allows commercial use
+NONCOMMERCIAL = "noncommercial"  # custom wording, not a Creative Commons licence
 RPG_MAKER = "rpgmaker"  # the RPG Maker terms: the art may only be used with RPG Maker
 UNKNOWN = ""
 
@@ -28,6 +29,7 @@ KNOWN_IDS = (
     "OGA-BY-3.0",
     "MIT",
     COMMERCIAL,
+    NONCOMMERCIAL,
     RPG_MAKER,
 )
 KEYS = ("license_id", "author", "url", "attribution_required", "credit", "ai_generated")
@@ -87,6 +89,8 @@ def label(license_id: str) -> str:
         return "Unknown licence"
     if license_id == COMMERCIAL:
         return "Commercial licence"
+    if license_id == NONCOMMERCIAL:
+        return "Non-commercial use only"
     if license_id == RPG_MAKER:
         return "RPG Maker terms"
     head, _, version = license_id.rpartition("-")
@@ -190,6 +194,15 @@ _COMMERCIAL = re.compile(
     r".{0,40}\b(?:allowed|permitted|ok|fine)\b",
     re.I | re.S,
 )
+_NONCOMMERCIAL = re.compile(
+    r"\b(?:cannot|can['’]t|can\s+not|may\s+not|must\s+not)\s+"
+    r"(?:use|be\s+used|edit|include|incorporate)\b[^.!?\n]{0,120}\bcommercial\b|"
+    r"\bcommercial\s+(?:use|projects?|games?|purposes?)\b[^.!?\n]{0,40}"
+    r"\b(?:not\s+(?:allowed|permitted)|prohibited|forbidden)\b|"
+    r"\b(?:only|solely|exclusively)\b[^.!?\n]{0,40}\bnon[ -]?commercial\b|"
+    r"\bnon[ -]?commercial\b[^.!?\n]{0,40}\bonly\b",
+    re.I,
+)
 _NEEDS_CREDIT = re.compile(
     r"\b(?:credits?|attribution)\s+(?:is\s+|are\s+)?(?:required|mandatory|necessary|obligatory)\b|"
     r"\b(?:must|have\s+to|need\s+to|required\s+to)\s+(?:give\s+)?(?:credit|attribut|be\s+credited|mention)|"
@@ -269,7 +282,15 @@ def _licence_of(text: str) -> str:
         return "MIT"
     if _RPG_MAKER.search(text):
         return RPG_MAKER
-    if _COMMERCIAL.search(text):
+    if _NONCOMMERCIAL.search(text):
+        return NONCOMMERCIAL
+    # A word boundary before "commercial" also matches "non-commercial" and
+    # "non commercial". Normalize those words before looking for a positive grant.
+    commercial_text = re.sub(r"\bnon[ -]?commercial\b", "noncommercial", text, flags=re.I)
+    commercial_text = re.sub(
+        r"\bcan['’]t\b|\bcan\s+not\b|\bmay\s+not\b", "cannot", commercial_text, flags=re.I
+    )
+    if _COMMERCIAL.search(commercial_text):
         return COMMERCIAL
     return UNKNOWN
 
@@ -409,7 +430,9 @@ def licence_above(folder: Path) -> tuple[str, PackLicense] | None:
     except OSError:
         return None
     for name in names:
-        if inventory.classify_kind(name) != "license":
+        if inventory.classify_kind(name) != "license" and not re.search(
+            r"(?:^|[ _-])licen[cs]e(?:[ ._-]|$)", name, re.IGNORECASE
+        ):
             continue
         found = detect([(name, read_text(parent / name))])
         if found.license_id:

@@ -1,0 +1,6481 @@
+{
+  "00f97476b75bd2d93c9b51a8119026631694b21c0beb8af87cc6f24638ef91d6": {
+    "": {
+      "animations": {
+        "idle_down": {
+          "fps": 1.0,
+          "frames": [
+            [
+              0,
+              0
+            ]
+          ],
+          "loop": true
+        }
+      },
+      "frame": [
+        204,
+        218
+      ],
+      "grid": {
+        "cell": [
+          204,
+          218
+        ],
+        "margin": [
+          0,
+          0
+        ],
+        "separation": [
+          0,
+          0
+        ]
+      },
+      "role": "ENEMY",
+      "usage": "sprite"
+    }
+  },
+  "01a890f9e34d8dc8d7e275489143b837569127d5f928419e6b6edc54b9b5ff33": {
+    "": {
+      "grid": {
+        "cell": [
+          16,
+          16
+        ],
+        "margin": [
+          0,
+          0
+        ],
+        "separation": [
+          0,
+          0
+        ]
+      },
+      "role": "DECORATION",
+      "tags": [
+        "terrain:manual"
+      ],
+      "usage": "tiles"
+    }
+  },
+  "02bd8c62eae65da94cc2a88f3e0f6264985d581794d4d81ca0d2c337120a3bbb": {
+    "o159_584": {
+      "role": "BUILDING"
+    },
+    "o18_576": {
+      "role": "BUILDING"
+    },
+    "o293_14": {
+      "role": "BUILDING"
+    },
+    "o293_591": {
+      "role": "BUILDING"
+    },
+    "o303_314": {
+      "role": "BUILDING"
+    },
+    "o453_528": {
+      "role": "BUILDING"
+    },
+    "o48_20": {
+      "role": "BUILDING"
+    },
+    "o534_30": {
+      "role": "BUILDING"
+    },
+    "o543_314": {
+      "role": "BUILDING"
+    },
+    "o63_314": {
+      "role": "BUILDING"
+    }
+  },
+  "0421779bbfa860780d6dc927a49d1b0c7c609fcebf4cba4bf9649bcac8226d83": {
+    "o386_204": {
+      "role": "WEAPON"
+    },
+    "o432_205": {
+      "role": "WEAPON"
+    },
+    "o482_204": {
+      "role": "WEAPON"
+    },
+    "o528_205": {
+      "role": "WEAPON"
+    }
+  },
+  "0475eef9b08b17ab25e77ad072765bd3269c618cb274fe21de1d9fca04a4614c": {
+    "": {
+      "role": "CROP"
+    }
+  },
+  "069885d582428bd2238eaa333e84d72469c3ca3b5ef303df188b5f09ceb0474b": {
+    "": {
+      "role": "DECORATION",
+      "tags": [
+        "terrain:manual",
+        "objects:manual",
+        "review:opaque_object_sheet"
+      ]
+    }
+  },
+  "06a8b8792b67fe82adb8acdbcbbd64a0970b1c7c571c0c01605af5bf0248f9d5": {
+    "": {
+      "role": "EFFECT"
+    }
+  },
+  "075a53be91222bf1d5a9ede1d575cf95da6bb4b6f8d01d45d3d496005fc839c3": {
+    "o0_0": {
+      "role": "BUILDING"
+    }
+  },
+  "08d7426a41183b9f02409fd57feefa900ad46c599efc3568fee2bf4350cbe102": {
+    "": {
+      "role": "CROP"
+    }
+  },
+  "0a8f8bb9871578f64a847d0b5bc2cac732293e8ba2dbf8e3ca488ff858d42c4a": {
+    "": {
+      "role": "EFFECT"
+    }
+  },
+  "0b925b1b7a4848b118a0faed81142c2a44cc85a76361184246e9d372e9200ab4": {
+    "": {
+      "role": "CROP"
+    }
+  },
+  "0c4d91615b2a1666e656dc4fcea1803c01cc4a34c3d2e77eb2583ac061e6b1ea": {
+    "g0_192": {
+      "role": "DECORATION",
+      "tags": [
+        "terrain:manual"
+      ]
+    }
+  },
+  "0fd199d5070c3449f8990d0db30a5700798d5dd29a20ed985c1919907192c35d": {
+    "o1194_58": {
+      "role": "NONE",
+      "tags": [
+        "unused_because:sheet_caption"
+      ]
+    },
+    "o234_58": {
+      "role": "NONE",
+      "tags": [
+        "unused_because:sheet_caption"
+      ]
+    },
+    "o406_41": {
+      "role": "NONE",
+      "tags": [
+        "unused_because:sheet_caption"
+      ]
+    },
+    "o497_41": {
+      "role": "NONE",
+      "tags": [
+        "unused_because:sheet_caption"
+      ]
+    },
+    "o564_41": {
+      "role": "NONE",
+      "tags": [
+        "unused_because:sheet_caption"
+      ]
+    },
+    "o636_41": {
+      "role": "NONE",
+      "tags": [
+        "unused_because:sheet_caption"
+      ]
+    },
+    "o732_41": {
+      "role": "NONE",
+      "tags": [
+        "unused_because:sheet_caption"
+      ]
+    },
+    "o831_40": {
+      "role": "NONE",
+      "tags": [
+        "unused_because:sheet_caption"
+      ]
+    },
+    "o897_41": {
+      "role": "NONE",
+      "tags": [
+        "unused_because:sheet_caption"
+      ]
+    },
+    "o963_41": {
+      "role": "NONE",
+      "tags": [
+        "unused_because:sheet_caption"
+      ]
+    }
+  },
+  "10375ededbb4bce10f547163d414f5fe8a62d8222737383d6d9e4bae7f83560b": {
+    "o1339_770": {
+      "role": "DECORATION"
+    },
+    "o840_734": {
+      "role": "DECORATION"
+    },
+    "o968_749": {
+      "role": "DECORATION"
+    }
+  },
+  "127ee9bd0a845bf2e9a86ffe116f320e48dbf4c378bc713d922648682e965d8c": {
+    "o1331_415": {
+      "role": "DECORATION"
+    }
+  },
+  "143c977a054b0d05d1fbe737121f0ecd94044c87313cdad7232d696a75cec84c": {
+    "o1032_410": {
+      "role": "DECORATION"
+    },
+    "o1034_889": {
+      "role": "DECORATION"
+    },
+    "o1036_653": {
+      "role": "DECORATION"
+    },
+    "o1040_136": {
+      "role": "DECORATION"
+    },
+    "o104_137": {
+      "role": "DECORATION"
+    },
+    "o1094_272": {
+      "role": "DECORATION"
+    },
+    "o1126_649": {
+      "role": "DECORATION"
+    },
+    "o1165_139": {
+      "role": "DECORATION"
+    },
+    "o1168_410": {
+      "role": "DECORATION"
+    },
+    "o1210_649": {
+      "role": "DECORATION"
+    },
+    "o1219_265": {
+      "role": "DECORATION"
+    },
+    "o1247_523": {
+      "role": "DECORATION"
+    },
+    "o1295_132": {
+      "role": "DECORATION"
+    },
+    "o1296_412": {
+      "role": "DECORATION"
+    },
+    "o1298_651": {
+      "role": "DECORATION"
+    },
+    "o1328_284": {
+      "role": "DECORATION"
+    },
+    "o1348_545": {
+      "role": "DECORATION"
+    },
+    "o1412_417": {
+      "role": "DECORATION"
+    },
+    "o1414_138": {
+      "role": "DECORATION"
+    },
+    "o1421_284": {
+      "role": "DECORATION"
+    },
+    "o1437_525": {
+      "role": "DECORATION"
+    },
+    "o145_270": {
+      "role": "DECORATION"
+    },
+    "o145_646": {
+      "role": "DECORATION"
+    },
+    "o186_410": {
+      "role": "DECORATION"
+    },
+    "o204_125": {
+      "role": "DECORATION"
+    },
+    "o245_646": {
+      "role": "DECORATION"
+    },
+    "o274_265": {
+      "role": "DECORATION"
+    },
+    "o282_517": {
+      "role": "DECORATION"
+    },
+    "o29_770": {
+      "role": "DECORATION"
+    },
+    "o329_410": {
+      "role": "DECORATION"
+    },
+    "o336_140": {
+      "role": "DECORATION"
+    },
+    "o347_648": {
+      "role": "DECORATION"
+    },
+    "o389_273": {
+      "role": "DECORATION"
+    },
+    "o416_517": {
+      "role": "DECORATION"
+    },
+    "o42_412": {
+      "role": "DECORATION"
+    },
+    "o443_132": {
+      "role": "DECORATION"
+    },
+    "o44_527": {
+      "role": "DECORATION"
+    },
+    "o450_648": {
+      "role": "DECORATION"
+    },
+    "o45_156": {
+      "role": "DECORATION"
+    },
+    "o45_646": {
+      "role": "DECORATION"
+    },
+    "o469_410": {
+      "role": "DECORATION"
+    },
+    "o505_273": {
+      "role": "DECORATION"
+    },
+    "o50_268": {
+      "role": "DECORATION"
+    },
+    "o532_519": {
+      "role": "DECORATION"
+    },
+    "o555_648": {
+      "role": "DECORATION"
+    },
+    "o558_134": {
+      "role": "DECORATION"
+    },
+    "o657_635": {
+      "role": "DECORATION"
+    },
+    "o683_138": {
+      "role": "DECORATION"
+    },
+    "o742_288": {
+      "role": "DECORATION"
+    },
+    "o756_654": {
+      "role": "DECORATION"
+    },
+    "o758_411": {
+      "role": "DECORATION"
+    },
+    "o786_132": {
+      "role": "DECORATION"
+    },
+    "o843_272": {
+      "role": "DECORATION"
+    },
+    "o852_649": {
+      "role": "DECORATION"
+    },
+    "o895_410": {
+      "role": "DECORATION"
+    },
+    "o902_140": {
+      "role": "DECORATION"
+    },
+    "o957_649": {
+      "role": "DECORATION"
+    },
+    "o961_280": {
+      "role": "DECORATION"
+    }
+  },
+  "14a63833e487499cafdba455caec4d869bea0b7a888c5b02737580a6f3f175aa": {
+    "": {
+      "role": "DECORATION",
+      "tags": [
+        "terrain:manual",
+        "objects:manual"
+      ]
+    }
+  },
+  "151035d9987cfccbf7803f137122591188123679de1015026b8c73c54b5b8016": {
+    "o672_12": {
+      "role": "BUILDING"
+    }
+  },
+  "16eff4750364b9da6163d5a13b678cb61fb3501378e68f0e8feb0dae169ff15b": {
+    "": {
+      "animations": {
+        "fire_0": {
+          "fps": 6.666666666666667,
+          "frames": [
+            [
+              0,
+              0
+            ],
+            [
+              0,
+              0
+            ],
+            [
+              0,
+              0
+            ],
+            [
+              0,
+              0
+            ],
+            [
+              0,
+              0
+            ],
+            [
+              0,
+              0
+            ]
+          ],
+          "loop": true,
+          "offsets": [
+            [
+              8,
+              0
+            ],
+            [
+              8,
+              0
+            ],
+            [
+              8,
+              0
+            ],
+            [
+              8,
+              0
+            ],
+            [
+              8,
+              0
+            ],
+            [
+              8,
+              0
+            ]
+          ],
+          "rects": [
+            [
+              0,
+              0,
+              32,
+              48
+            ],
+            [
+              0,
+              48,
+              32,
+              48
+            ],
+            [
+              0,
+              96,
+              32,
+              48
+            ],
+            [
+              0,
+              144,
+              32,
+              48
+            ],
+            [
+              0,
+              192,
+              32,
+              48
+            ],
+            [
+              0,
+              240,
+              32,
+              48
+            ]
+          ]
+        },
+        "fire_1": {
+          "fps": 6.666666666666667,
+          "frames": [
+            [
+              0,
+              0
+            ],
+            [
+              0,
+              0
+            ],
+            [
+              0,
+              0
+            ],
+            [
+              0,
+              0
+            ],
+            [
+              0,
+              0
+            ],
+            [
+              0,
+              0
+            ]
+          ],
+          "loop": true,
+          "offsets": [
+            [
+              0,
+              0
+            ],
+            [
+              0,
+              0
+            ],
+            [
+              0,
+              0
+            ],
+            [
+              0,
+              0
+            ],
+            [
+              0,
+              0
+            ],
+            [
+              0,
+              0
+            ]
+          ],
+          "rects": [
+            [
+              32,
+              0,
+              48,
+              48
+            ],
+            [
+              32,
+              48,
+              48,
+              48
+            ],
+            [
+              32,
+              96,
+              48,
+              48
+            ],
+            [
+              32,
+              144,
+              48,
+              48
+            ],
+            [
+              32,
+              192,
+              48,
+              48
+            ],
+            [
+              32,
+              240,
+              48,
+              48
+            ]
+          ]
+        },
+        "fire_2": {
+          "fps": 6.666666666666667,
+          "frames": [
+            [
+              0,
+              0
+            ],
+            [
+              0,
+              0
+            ],
+            [
+              0,
+              0
+            ],
+            [
+              0,
+              0
+            ],
+            [
+              0,
+              0
+            ],
+            [
+              0,
+              0
+            ]
+          ],
+          "loop": true,
+          "offsets": [
+            [
+              0,
+              0
+            ],
+            [
+              0,
+              0
+            ],
+            [
+              0,
+              0
+            ],
+            [
+              0,
+              0
+            ],
+            [
+              0,
+              0
+            ],
+            [
+              0,
+              0
+            ]
+          ],
+          "rects": [
+            [
+              80,
+              0,
+              48,
+              48
+            ],
+            [
+              80,
+              48,
+              48,
+              48
+            ],
+            [
+              80,
+              96,
+              48,
+              48
+            ],
+            [
+              80,
+              144,
+              48,
+              48
+            ],
+            [
+              80,
+              192,
+              48,
+              48
+            ],
+            [
+              80,
+              240,
+              48,
+              48
+            ]
+          ]
+        },
+        "fire_3": {
+          "fps": 6.666666666666667,
+          "frames": [
+            [
+              0,
+              0
+            ],
+            [
+              0,
+              0
+            ],
+            [
+              0,
+              0
+            ],
+            [
+              0,
+              0
+            ],
+            [
+              0,
+              0
+            ],
+            [
+              0,
+              0
+            ]
+          ],
+          "loop": true,
+          "offsets": [
+            [
+              0,
+              0
+            ],
+            [
+              0,
+              0
+            ],
+            [
+              0,
+              0
+            ],
+            [
+              0,
+              0
+            ],
+            [
+              0,
+              0
+            ],
+            [
+              0,
+              0
+            ]
+          ],
+          "rects": [
+            [
+              128,
+              0,
+              48,
+              48
+            ],
+            [
+              128,
+              48,
+              48,
+              48
+            ],
+            [
+              128,
+              96,
+              48,
+              48
+            ],
+            [
+              128,
+              144,
+              48,
+              48
+            ],
+            [
+              128,
+              192,
+              48,
+              48
+            ],
+            [
+              128,
+              240,
+              48,
+              48
+            ]
+          ]
+        }
+      },
+      "frame": [
+        48,
+        48
+      ],
+      "grid": {
+        "cell": [
+          48,
+          48
+        ],
+        "margin": [
+          0,
+          0
+        ],
+        "separation": [
+          0,
+          0
+        ]
+      },
+      "origin": [
+        24,
+        47
+      ],
+      "role": "EFFECT",
+      "tags": [
+        "terrain:manual",
+        "objects:manual"
+      ],
+      "usage": "sprite"
+    }
+  },
+  "1bbe25b0268030153dedc2023870b96e47e317cddf0c8788e4c114df7a4e045c": {
+    "": {
+      "grid": {
+        "cell": [
+          16,
+          16
+        ],
+        "margin": [
+          0,
+          0
+        ],
+        "separation": [
+          0,
+          0
+        ]
+      },
+      "role": "GROUND",
+      "tags": [
+        "terrain:manual",
+        "objects:manual"
+      ],
+      "usage": "tiles"
+    }
+  },
+  "1c3fcfa1eebffcf56d6afd1b9cee89ddb2affc5834db6e1feb1c9bfc0a4d54bc": {
+    "o667_132": {
+      "role": "ITEM"
+    }
+  },
+  "1c5052aa7f114c7ede544cbbfdbfb4c0907ce24b677d52a8ef83c993040a6331": {
+    "": {
+      "role": "CROP"
+    }
+  },
+  "256283058ce28f5a828b3b8724889c54e33ff475dca63a208f20ba129cd1993f": {
+    "": {
+      "grid": {
+        "cell": [
+          32,
+          32
+        ],
+        "margin": [
+          0,
+          0
+        ],
+        "separation": [
+          0,
+          0
+        ]
+      },
+      "role": "INTERIOR",
+      "tags": [
+        "terrain:manual",
+        "objects:manual"
+      ],
+      "usage": "tiles"
+    }
+  },
+  "294e248887a8439737edf44d1fd57e69b3c6234501484ed1809973c0a6c08e9b": {
+    "": {
+      "grid": {
+        "cell": [
+          48,
+          48
+        ],
+        "margin": [
+          0,
+          0
+        ],
+        "separation": [
+          0,
+          0
+        ]
+      },
+      "role": "DECORATION",
+      "tags": [
+        "terrain:manual"
+      ],
+      "usage": "tiles"
+    }
+  },
+  "2a4981a2606231bc495b0f99637823cc136af954b7e7a40b8c2f6a4c11b22ca3": {
+    "": {
+      "role": "CROP"
+    }
+  },
+  "2a5ab8becbb521814bd42db7a2de6b97972a0af94dcb807fc51e5652154e2ac5": {
+    "o1128_40": {
+      "role": "NONE",
+      "tags": [
+        "unused_because:sheet_caption"
+      ]
+    },
+    "o270_40": {
+      "role": "NONE",
+      "tags": [
+        "unused_because:sheet_caption"
+      ]
+    },
+    "o482_44": {
+      "role": "NONE",
+      "tags": [
+        "unused_because:sheet_caption"
+      ]
+    },
+    "o588_580": {
+      "role": "NONE",
+      "tags": [
+        "unused_because:sheet_caption"
+      ]
+    },
+    "o661_44": {
+      "role": "NONE",
+      "tags": [
+        "unused_because:sheet_caption"
+      ]
+    },
+    "o808_44": {
+      "role": "NONE",
+      "tags": [
+        "unused_because:sheet_caption"
+      ]
+    },
+    "o846_44": {
+      "role": "NONE",
+      "tags": [
+        "unused_because:sheet_caption"
+      ]
+    },
+    "o918_44": {
+      "role": "NONE",
+      "tags": [
+        "unused_because:sheet_caption"
+      ]
+    },
+    "o993_44": {
+      "role": "NONE",
+      "tags": [
+        "unused_because:sheet_caption"
+      ]
+    }
+  },
+  "2c0ad1abb00b1d6d2e24fd4edbf7df33ae69f1d147594ed17c2c0744091a797e": {
+    "o386_154": {
+      "role": "DECORATION"
+    }
+  },
+  "2cc84dcbe2bbb368d1e4aefc12782b7ad0245e883666fb064e5c4fe9671be059": {
+    "o1008_38": {
+      "role": "NONE",
+      "tags": [
+        "unused_because:sheet_caption"
+      ]
+    },
+    "o1106_152": {
+      "role": "NONE",
+      "tags": [
+        "unused_because:sheet_caption"
+      ]
+    },
+    "o1106_407": {
+      "role": "NONE",
+      "tags": [
+        "unused_because:sheet_caption"
+      ]
+    },
+    "o1158_714": {
+      "role": "NONE",
+      "tags": [
+        "unused_because:sheet_caption"
+      ]
+    },
+    "o1193_152": {
+      "role": "NONE",
+      "tags": [
+        "unused_because:sheet_caption"
+      ]
+    },
+    "o162_149": {
+      "role": "NONE",
+      "tags": [
+        "unused_because:sheet_caption"
+      ]
+    },
+    "o162_406": {
+      "role": "NONE",
+      "tags": [
+        "unused_because:sheet_caption"
+      ]
+    },
+    "o162_659": {
+      "role": "NONE",
+      "tags": [
+        "unused_because:sheet_caption"
+      ]
+    },
+    "o250_659": {
+      "role": "NONE",
+      "tags": [
+        "unused_because:sheet_caption"
+      ]
+    },
+    "o347_658": {
+      "role": "NONE",
+      "tags": [
+        "unused_because:sheet_caption"
+      ]
+    },
+    "o446_39": {
+      "role": "NONE"
+    },
+    "o494_38": {
+      "role": "NONE",
+      "tags": [
+        "unused_because:sheet_caption"
+      ]
+    },
+    "o630_39": {
+      "role": "NONE",
+      "tags": [
+        "unused_because:sheet_caption"
+      ]
+    },
+    "o647_151": {
+      "role": "NONE",
+      "tags": [
+        "unused_because:sheet_caption"
+      ]
+    },
+    "o679_38": {
+      "role": "NONE",
+      "tags": [
+        "unused_because:sheet_caption"
+      ]
+    },
+    "o792_713": {
+      "role": "NONE",
+      "tags": [
+        "unused_because:sheet_caption"
+      ]
+    },
+    "o793_39": {
+      "role": "NONE",
+      "tags": [
+        "unused_because:sheet_caption"
+      ]
+    },
+    "o877_38": {
+      "role": "NONE",
+      "tags": [
+        "unused_because:sheet_caption"
+      ]
+    },
+    "o878_407": {
+      "role": "NONE",
+      "tags": [
+        "unused_because:sheet_caption"
+      ]
+    }
+  },
+  "2fc29901f8db9beb7e1c7d753b4006580561dc97db12d861f8bef4b88a6e726b": {
+    "": {
+      "grid": {
+        "cell": [
+          32,
+          32
+        ],
+        "margin": [
+          0,
+          0
+        ],
+        "separation": [
+          0,
+          0
+        ]
+      },
+      "role": "INTERIOR",
+      "tags": [
+        "terrain:manual",
+        "objects:manual"
+      ],
+      "usage": "tiles"
+    }
+  },
+  "300e9cc9050cbabbd8f9135054f821a25cba780fe006fa8a220d6e1888f7a579": {
+    "o192_99": {
+      "animations": {},
+      "role": "BUILDING",
+      "usage": "object"
+    },
+    "o196_630": {
+      "animations": {
+        "idle_down": {
+          "fps": 1.0,
+          "frames": [
+            [
+              0,
+              0
+            ]
+          ],
+          "loop": true
+        },
+        "walk_down": {
+          "fps": 1.0,
+          "frames": [
+            [
+              0,
+              0
+            ]
+          ],
+          "loop": true
+        }
+      },
+      "grid": {
+        "cell": [
+          19,
+          20
+        ],
+        "margin": [
+          0,
+          0
+        ],
+        "separation": [
+          0,
+          0
+        ]
+      },
+      "role": "ANIMAL",
+      "usage": "sprite"
+    },
+    "o218_653": {
+      "animations": {
+        "idle_down": {
+          "fps": 1.0,
+          "frames": [
+            [
+              0,
+              0
+            ]
+          ],
+          "loop": true
+        },
+        "walk_down": {
+          "fps": 1.0,
+          "frames": [
+            [
+              0,
+              0
+            ]
+          ],
+          "loop": true
+        }
+      },
+      "grid": {
+        "cell": [
+          21,
+          17
+        ],
+        "margin": [
+          0,
+          0
+        ],
+        "separation": [
+          0,
+          0
+        ]
+      },
+      "role": "ANIMAL",
+      "usage": "sprite"
+    },
+    "o265_585": {
+      "animations": {
+        "idle_down": {
+          "fps": 1.0,
+          "frames": [
+            [
+              0,
+              0
+            ]
+          ],
+          "loop": true
+        },
+        "walk_down": {
+          "fps": 1.0,
+          "frames": [
+            [
+              0,
+              0
+            ]
+          ],
+          "loop": true
+        }
+      },
+      "grid": {
+        "cell": [
+          19,
+          21
+        ],
+        "margin": [
+          0,
+          0
+        ],
+        "separation": [
+          0,
+          0
+        ]
+      },
+      "role": "ANIMAL",
+      "usage": "sprite"
+    },
+    "o265_647": {
+      "role": "ANIMAL"
+    },
+    "o401_642": {
+      "animations": {
+        "idle_down": {
+          "fps": 1.0,
+          "frames": [
+            [
+              0,
+              0
+            ]
+          ],
+          "loop": true
+        },
+        "walk_down": {
+          "fps": 1.0,
+          "frames": [
+            [
+              0,
+              0
+            ]
+          ],
+          "loop": true
+        }
+      },
+      "grid": {
+        "cell": [
+          21,
+          21
+        ],
+        "margin": [
+          0,
+          0
+        ],
+        "separation": [
+          0,
+          0
+        ]
+      },
+      "role": "ANIMAL",
+      "usage": "sprite"
+    },
+    "o432_592": {
+      "animations": {
+        "idle_down": {
+          "fps": 1.0,
+          "frames": [
+            [
+              0,
+              0
+            ]
+          ],
+          "loop": true
+        },
+        "walk_down": {
+          "fps": 1.0,
+          "frames": [
+            [
+              0,
+              0
+            ]
+          ],
+          "loop": true
+        }
+      },
+      "grid": {
+        "cell": [
+          34,
+          23
+        ],
+        "margin": [
+          0,
+          0
+        ],
+        "separation": [
+          0,
+          0
+        ]
+      },
+      "role": "ANIMAL",
+      "usage": "sprite"
+    },
+    "o435_192": {
+      "animations": {},
+      "role": "NONE",
+      "tags": [
+        "unused_because:segmented"
+      ]
+    },
+    "o435_631": {
+      "animations": {
+        "idle_down": {
+          "fps": 1.0,
+          "frames": [
+            [
+              0,
+              0
+            ]
+          ],
+          "loop": true
+        },
+        "walk_down": {
+          "fps": 1.0,
+          "frames": [
+            [
+              0,
+              0
+            ]
+          ],
+          "loop": true
+        }
+      },
+      "grid": {
+        "cell": [
+          19,
+          25
+        ],
+        "margin": [
+          0,
+          0
+        ],
+        "separation": [
+          0,
+          0
+        ]
+      },
+      "role": "ANIMAL",
+      "usage": "sprite"
+    },
+    "o480_198": {
+      "role": "BUILDING"
+    },
+    "o480_448": {
+      "role": "BUILDING"
+    },
+    "o510_96": {
+      "role": "BUILDING"
+    },
+    "o684_495": {
+      "animations": {
+        "idle_down": {
+          "fps": 1.0,
+          "frames": [
+            [
+              0,
+              0
+            ]
+          ],
+          "loop": true
+        },
+        "walk_down": {
+          "fps": 1.0,
+          "frames": [
+            [
+              0,
+              0
+            ]
+          ],
+          "loop": true
+        }
+      },
+      "grid": {
+        "cell": [
+          25,
+          24
+        ],
+        "margin": [
+          0,
+          0
+        ],
+        "separation": [
+          0,
+          0
+        ]
+      },
+      "role": "ANIMAL",
+      "usage": "sprite"
+    },
+    "o96_96": {
+      "role": "BUILDING"
+    }
+  },
+  "325bbcfc9ba5375c2a9200cc7e3c41374681da45b25988db48eff640f253586a": {
+    "": {
+      "grid": {
+        "cell": [
+          48,
+          48
+        ],
+        "margin": [
+          0,
+          0
+        ],
+        "separation": [
+          0,
+          0
+        ]
+      },
+      "role": "INTERIOR",
+      "tags": [
+        "terrain:manual",
+        "objects:manual"
+      ],
+      "usage": "tiles"
+    }
+  },
+  "331a657cb5e33204ce48fc83acaa8c1f32d91109c9fed4cb3f10f8211b77b418": {
+    "": {
+      "role": "CROP"
+    }
+  },
+  "3677a8f090fd5139f8b8304cdc1c71d4086cdc62740c0cdf522c9333694f0e3f": {
+    "o845_451": {
+      "role": "DECORATION"
+    }
+  },
+  "3a187699e295232c62a0ebf9c228f6c8ba0cf14c950fda0a59d7225a41849d33": {
+    "": {
+      "grid": {
+        "cell": [
+          16,
+          16
+        ],
+        "margin": [
+          0,
+          0
+        ],
+        "separation": [
+          0,
+          0
+        ]
+      },
+      "role": "WATER",
+      "tags": [
+        "terrain:manual",
+        "objects:manual"
+      ],
+      "usage": "tiles"
+    }
+  },
+  "3a44df7e2e1cc2fbe61883a9f1507bf0e05e545e0533524b9e7bbf82b82ab369": {
+    "": {
+      "grid": {
+        "cell": [
+          32,
+          32
+        ],
+        "margin": [
+          0,
+          0
+        ],
+        "separation": [
+          0,
+          0
+        ]
+      },
+      "role": "INTERIOR",
+      "tags": [
+        "terrain:manual",
+        "objects:manual"
+      ],
+      "usage": "tiles"
+    }
+  },
+  "3fd0a4cd190983da9668bc8bfa1aaf5900da33c82276591d7046ac67a672b862": {
+    "o102_150": {
+      "role": "ITEM"
+    },
+    "o104_102": {
+      "role": "ITEM"
+    },
+    "o145_293": {
+      "role": "WEAPON"
+    },
+    "o147_195": {
+      "role": "WEAPON"
+    },
+    "o147_246": {
+      "role": "ITEM"
+    },
+    "o148_52": {
+      "role": "ITEM"
+    },
+    "o150_150": {
+      "role": "ITEM"
+    },
+    "o152_105": {
+      "role": "ITEM"
+    },
+    "o195_246": {
+      "role": "ITEM"
+    },
+    "o196_195": {
+      "role": "WEAPON"
+    },
+    "o196_60": {
+      "role": "ITEM"
+    },
+    "o199_153": {
+      "role": "ITEM"
+    },
+    "o200_104": {
+      "role": "ITEM"
+    },
+    "o242_676": {
+      "role": "TOOL"
+    },
+    "o244_197": {
+      "role": "WEAPON"
+    },
+    "o245_102": {
+      "role": "ITEM"
+    },
+    "o245_52": {
+      "role": "ITEM"
+    },
+    "o248_152": {
+      "role": "ITEM"
+    },
+    "o291_675": {
+      "role": "TOOL"
+    },
+    "o292_195": {
+      "role": "WEAPON"
+    },
+    "o294_53": {
+      "role": "ITEM"
+    },
+    "o298_105": {
+      "role": "ITEM"
+    },
+    "o2_198": {
+      "role": "WEAPON"
+    },
+    "o2_675": {
+      "role": "TOOL"
+    },
+    "o339_54": {
+      "role": "ITEM"
+    },
+    "o343_102": {
+      "role": "ITEM"
+    },
+    "o386_627": {
+      "role": "TOOL"
+    },
+    "o388_56": {
+      "role": "ITEM"
+    },
+    "o390_102": {
+      "role": "ITEM"
+    },
+    "o436_54": {
+      "role": "ITEM"
+    },
+    "o439_105": {
+      "role": "ITEM"
+    },
+    "o486_104": {
+      "role": "ITEM"
+    },
+    "o486_53": {
+      "role": "ITEM"
+    },
+    "o4_151": {
+      "role": "ITEM"
+    },
+    "o50_198": {
+      "role": "WEAPON"
+    },
+    "o51_154": {
+      "role": "ITEM"
+    },
+    "o51_246": {
+      "role": "ITEM"
+    },
+    "o51_678": {
+      "role": "TOOL"
+    },
+    "o531_627": {
+      "role": "TOOL"
+    },
+    "o533_107": {
+      "role": "ITEM"
+    },
+    "o533_54": {
+      "role": "ITEM"
+    },
+    "o54_101": {
+      "role": "ITEM"
+    },
+    "o578_628": {
+      "role": "TOOL"
+    },
+    "o581_54": {
+      "role": "ITEM"
+    },
+    "o582_106": {
+      "role": "ITEM"
+    },
+    "o627_627": {
+      "role": "TOOL"
+    },
+    "o628_56": {
+      "role": "ITEM"
+    },
+    "o679_54": {
+      "role": "ITEM"
+    },
+    "o684_9": {
+      "role": "ITEM"
+    },
+    "o6_251": {
+      "role": "ITEM"
+    },
+    "o6_292": {
+      "role": "WEAPON"
+    },
+    "o726_59": {
+      "role": "ITEM"
+    },
+    "o732_9": {
+      "role": "ITEM"
+    },
+    "o7_102": {
+      "role": "ITEM"
+    },
+    "o98_247": {
+      "role": "ITEM"
+    },
+    "o98_300": {
+      "role": "WEAPON"
+    },
+    "o99_198": {
+      "role": "WEAPON"
+    },
+    "o99_53": {
+      "role": "ITEM"
+    },
+    "o99_677": {
+      "role": "TOOL"
+    }
+  },
+  "4014227842bb194fa2c59452ae4eb4597f510d61228f0f56eaf8e1e8c4d58982": {
+    "": {
+      "animations": {
+        "idle_down": {
+          "fps": 8.0,
+          "frames": [
+            [
+              3,
+              0
+            ]
+          ],
+          "loop": true
+        },
+        "idle_left": {
+          "fps": 8.0,
+          "frames": [
+            [
+              2,
+              0
+            ]
+          ],
+          "loop": true
+        },
+        "idle_right": {
+          "fps": 8.0,
+          "frames": [
+            [
+              0,
+              0
+            ]
+          ],
+          "loop": true
+        },
+        "idle_up": {
+          "fps": 8.0,
+          "frames": [
+            [
+              1,
+              0
+            ]
+          ],
+          "loop": true
+        }
+      },
+      "frame": [
+        16,
+        32
+      ],
+      "grid": {
+        "cell": [
+          16,
+          32
+        ],
+        "margin": [
+          0,
+          0
+        ],
+        "separation": [
+          0,
+          0
+        ]
+      },
+      "role": "NPC",
+      "usage": "sprite"
+    }
+  },
+  "420f22202a4576a38324912dfeb4da6537ca6cad8f007c8489da5fc81122c72d": {
+    "": {
+      "grid": {
+        "cell": [
+          32,
+          32
+        ],
+        "margin": [
+          0,
+          0
+        ],
+        "separation": [
+          0,
+          0
+        ]
+      },
+      "role": "INTERIOR",
+      "tags": [
+        "terrain:manual",
+        "objects:manual"
+      ],
+      "usage": "tiles"
+    }
+  },
+  "425628ebc4e3f66396bd1e7c6bc51d4aabb0427c2308e33728edc9cc70946761": {
+    "": {
+      "role": "CROP"
+    }
+  },
+  "467e6a1dd3851aa591726e71503e9d4a5e1201da6ba51b10bdf0495293a74e2f": {
+    "": {
+      "role": "CROP"
+    }
+  },
+  "4799775495ef030683ec49266e36ffbe570471fd18aa5698a5a1fd19908cb976": {
+    "": {
+      "grid": {
+        "cell": [
+          32,
+          32
+        ],
+        "margin": [
+          0,
+          0
+        ],
+        "separation": [
+          0,
+          0
+        ]
+      },
+      "role": "DECORATION",
+      "tags": [
+        "terrain:manual"
+      ],
+      "usage": "tiles"
+    }
+  },
+  "48714f6602677cffd709ebb4c708c703082b49bb72fffa55113ff07d18779c61": {
+    "": {
+      "animations": {
+        "idle_down": {
+          "fps": 1.0,
+          "frames": [
+            [
+              0,
+              0
+            ]
+          ],
+          "loop": true
+        }
+      },
+      "frame": [
+        184,
+        210
+      ],
+      "grid": {
+        "cell": [
+          184,
+          210
+        ],
+        "margin": [
+          0,
+          0
+        ],
+        "separation": [
+          0,
+          0
+        ]
+      },
+      "role": "ENEMY",
+      "usage": "sprite"
+    }
+  },
+  "4ad3db880d5fa710b9323f2c25856a974a0807814b3e680b7077237412303490": {
+    "": {
+      "role": "CROP"
+    }
+  },
+  "4b186ffc9d57ed5e6aaff02190caca42d27cc69a7447f278ff1ee3c6d24f6bf1": {
+    "o1080_573": {
+      "role": "ROAD"
+    },
+    "o1080_724": {
+      "role": "ROAD"
+    },
+    "o1090_872": {
+      "role": "ROAD"
+    },
+    "o1155_208": {
+      "role": "ROAD"
+    },
+    "o1155_383": {
+      "role": "ROAD"
+    },
+    "o1230_573": {
+      "role": "ROAD"
+    },
+    "o1231_724": {
+      "role": "ROAD"
+    },
+    "o1242_872": {
+      "role": "ROAD"
+    },
+    "o1340_208": {
+      "role": "ROAD"
+    },
+    "o1340_383": {
+      "role": "ROAD"
+    },
+    "o1380_573": {
+      "role": "ROAD"
+    },
+    "o1384_724": {
+      "role": "ROAD"
+    },
+    "o1392_872": {
+      "role": "ROAD"
+    },
+    "o185_872": {
+      "role": "ROAD"
+    },
+    "o189_573": {
+      "role": "ROAD"
+    },
+    "o189_724": {
+      "role": "ROAD"
+    },
+    "o220_208": {
+      "role": "ROAD"
+    },
+    "o220_383": {
+      "role": "ROAD"
+    },
+    "o31_872": {
+      "role": "ROAD"
+    },
+    "o337_573": {
+      "role": "ROAD"
+    },
+    "o337_724": {
+      "role": "ROAD"
+    },
+    "o337_872": {
+      "role": "ROAD"
+    },
+    "o35_383": {
+      "role": "ROAD"
+    },
+    "o36_208": {
+      "role": "ROAD"
+    },
+    "o406_209": {
+      "role": "ROAD"
+    },
+    "o406_383": {
+      "role": "ROAD"
+    },
+    "o40_573": {
+      "role": "ROAD"
+    },
+    "o40_724": {
+      "role": "ROAD"
+    },
+    "o485_573": {
+      "role": "ROAD"
+    },
+    "o485_724": {
+      "role": "ROAD"
+    },
+    "o487_872": {
+      "role": "ROAD"
+    },
+    "o593_209": {
+      "role": "ROAD"
+    },
+    "o593_383": {
+      "role": "ROAD"
+    },
+    "o634_573": {
+      "role": "ROAD"
+    },
+    "o635_725": {
+      "role": "ROAD"
+    },
+    "o637_872": {
+      "role": "ROAD"
+    },
+    "o781_208": {
+      "role": "ROAD"
+    },
+    "o781_383": {
+      "role": "ROAD"
+    },
+    "o781_573": {
+      "role": "ROAD"
+    },
+    "o784_725": {
+      "role": "ROAD"
+    },
+    "o788_872": {
+      "role": "ROAD"
+    },
+    "o931_573": {
+      "role": "ROAD"
+    },
+    "o931_724": {
+      "role": "ROAD"
+    },
+    "o939_872": {
+      "role": "ROAD"
+    },
+    "o968_208": {
+      "role": "ROAD"
+    },
+    "o968_383": {
+      "role": "ROAD"
+    }
+  },
+  "4b74ecc956b5ff56596f51998a560a0de7dff0c675c7ed352608b30b3effb313": {
+    "o0_384": {
+      "role": "CLIFF"
+    }
+  },
+  "4d3dc5559567142cf63284a69781d8604008395541193f1839e3d04343b1c7f6": {
+    "": {
+      "role": "CROP"
+    }
+  },
+  "522f40a6077d9c7a8425522eaf492cf39d62981c289c8990a953842454bb98b9": {
+    "": {
+      "role": "CROP"
+    }
+  },
+  "52d43f8ea7953741ded08238bb8df4b8d25b95182684398c513457884246b762": {
+    "o386_295": {
+      "role": "TOOL"
+    },
+    "o397_240": {
+      "role": "TOOL"
+    },
+    "o400_196": {
+      "role": "TOOL"
+    },
+    "o432_196": {
+      "role": "TOOL"
+    },
+    "o434_338": {
+      "role": "TOOL"
+    },
+    "o435_291": {
+      "role": "TOOL"
+    },
+    "o482_200": {
+      "role": "TOOL"
+    },
+    "o482_290": {
+      "role": "TOOL"
+    },
+    "o482_338": {
+      "role": "TOOL"
+    },
+    "o530_292": {
+      "role": "TOOL"
+    },
+    "o536_197": {
+      "role": "TOOL"
+    },
+    "o578_291": {
+      "role": "TOOL"
+    },
+    "o585_97": {
+      "role": "TOOL"
+    },
+    "o590_240": {
+      "role": "TOOL"
+    },
+    "o592_196": {
+      "role": "TOOL"
+    },
+    "o633_97": {
+      "role": "TOOL"
+    },
+    "o637_195": {
+      "role": "TOOL"
+    },
+    "o637_240": {
+      "role": "TOOL"
+    },
+    "o688_196": {
+      "role": "TOOL"
+    },
+    "o733_240": {
+      "role": "TOOL"
+    }
+  },
+  "53261fb210c7fd3ad08a79c87016d9d2ca081fa702056b14b641be1b4bc2fd7b": {
+    "o276_59": {
+      "role": "NONE",
+      "tags": [
+        "unused_because:sheet_caption"
+      ]
+    },
+    "o327_20": {
+      "role": "NONE",
+      "tags": [
+        "unused_because:sheet_caption"
+      ]
+    },
+    "o391_153": {
+      "role": "NONE",
+      "tags": [
+        "unused_because:sheet_caption"
+      ]
+    },
+    "o472_33": {
+      "role": "NONE",
+      "tags": [
+        "unused_because:sheet_caption"
+      ]
+    },
+    "o582_33": {
+      "role": "NONE",
+      "tags": [
+        "unused_because:sheet_caption"
+      ]
+    },
+    "o654_32": {
+      "role": "NONE",
+      "tags": [
+        "unused_because:sheet_caption"
+      ]
+    },
+    "o782_32": {
+      "role": "NONE",
+      "tags": [
+        "unused_because:sheet_caption"
+      ]
+    },
+    "o829_59": {
+      "role": "NONE",
+      "tags": [
+        "unused_because:sheet_caption"
+      ]
+    },
+    "o873_32": {
+      "role": "NONE",
+      "tags": [
+        "unused_because:sheet_caption"
+      ]
+    },
+    "o925_32": {
+      "role": "NONE",
+      "tags": [
+        "unused_because:sheet_caption"
+      ]
+    }
+  },
+  "556fb42c6ee781d39bac01603a80b5fd1f1dbe28b739dee5a9dca1845e3f10ef": {
+    "": {
+      "grid": {
+        "cell": [
+          48,
+          48
+        ],
+        "margin": [
+          0,
+          0
+        ],
+        "separation": [
+          0,
+          0
+        ]
+      },
+      "role": "INTERIOR",
+      "tags": [
+        "terrain:manual",
+        "objects:manual"
+      ],
+      "usage": "tiles"
+    }
+  },
+  "55713278e92e126f45c982970fa2955300087f77dd63f611297670554ea8c7a0": {
+    "": {
+      "grid": {
+        "cell": [
+          48,
+          48
+        ],
+        "margin": [
+          0,
+          0
+        ],
+        "separation": [
+          0,
+          0
+        ]
+      },
+      "role": "INTERIOR",
+      "tags": [
+        "terrain:manual",
+        "objects:manual"
+      ],
+      "usage": "tiles"
+    }
+  },
+  "5bc36d00d83a8077080d423eb2b5d7e49ac872b49e3c4f08c8cca41e7aedf389": {
+    "o1024_34": {
+      "role": "NONE",
+      "tags": [
+        "unused_because:sheet_caption"
+      ]
+    },
+    "o1173_900": {
+      "animations": {
+        "idle_down": {
+          "fps": 1.0,
+          "frames": [
+            [
+              0,
+              0
+            ]
+          ],
+          "loop": true
+        },
+        "walk_down": {
+          "fps": 1.0,
+          "frames": [
+            [
+              0,
+              0
+            ]
+          ],
+          "loop": true
+        }
+      },
+      "grid": {
+        "cell": [
+          119,
+          106
+        ],
+        "margin": [
+          0,
+          0
+        ],
+        "separation": [
+          0,
+          0
+        ]
+      },
+      "role": "ANIMAL",
+      "usage": "sprite"
+    },
+    "o1259_435": {
+      "role": "NONE",
+      "tags": [
+        "unused_because:sheet_caption"
+      ]
+    },
+    "o127_904": {
+      "animations": {
+        "idle_down": {
+          "fps": 1.0,
+          "frames": [
+            [
+              0,
+              0
+            ]
+          ],
+          "loop": true
+        },
+        "walk_down": {
+          "fps": 1.0,
+          "frames": [
+            [
+              0,
+              0
+            ]
+          ],
+          "loop": true
+        }
+      },
+      "grid": {
+        "cell": [
+          77,
+          92
+        ],
+        "margin": [
+          0,
+          0
+        ],
+        "separation": [
+          0,
+          0
+        ]
+      },
+      "role": "ANIMAL",
+      "usage": "sprite"
+    },
+    "o185_431": {
+      "role": "NONE",
+      "tags": [
+        "unused_because:sheet_caption"
+      ]
+    },
+    "o402_889": {
+      "animations": {
+        "idle_down": {
+          "fps": 1.0,
+          "frames": [
+            [
+              0,
+              0
+            ]
+          ],
+          "loop": true
+        },
+        "walk_down": {
+          "fps": 1.0,
+          "frames": [
+            [
+              0,
+              0
+            ]
+          ],
+          "loop": true
+        }
+      },
+      "grid": {
+        "cell": [
+          119,
+          114
+        ],
+        "margin": [
+          0,
+          0
+        ],
+        "separation": [
+          0,
+          0
+        ]
+      },
+      "role": "ANIMAL",
+      "usage": "sprite"
+    },
+    "o419_34": {
+      "role": "NONE",
+      "tags": [
+        "unused_because:sheet_caption"
+      ]
+    },
+    "o650_893": {
+      "animations": {
+        "idle_down": {
+          "fps": 1.0,
+          "frames": [
+            [
+              0,
+              0
+            ]
+          ],
+          "loop": true
+        },
+        "walk_down": {
+          "fps": 1.0,
+          "frames": [
+            [
+              0,
+              0
+            ]
+          ],
+          "loop": true
+        }
+      },
+      "grid": {
+        "cell": [
+          107,
+          110
+        ],
+        "margin": [
+          0,
+          0
+        ],
+        "separation": [
+          0,
+          0
+        ]
+      },
+      "role": "ANIMAL",
+      "usage": "sprite"
+    },
+    "o774_34": {
+      "role": "NONE",
+      "tags": [
+        "unused_because:sheet_caption"
+      ]
+    },
+    "o932_930": {
+      "animations": {
+        "idle_down": {
+          "fps": 1.0,
+          "frames": [
+            [
+              0,
+              0
+            ]
+          ],
+          "loop": true
+        },
+        "walk_down": {
+          "fps": 1.0,
+          "frames": [
+            [
+              0,
+              0
+            ]
+          ],
+          "loop": true
+        }
+      },
+      "grid": {
+        "cell": [
+          62,
+          68
+        ],
+        "margin": [
+          0,
+          0
+        ],
+        "separation": [
+          0,
+          0
+        ]
+      },
+      "role": "ANIMAL",
+      "usage": "sprite"
+    }
+  },
+  "5cf3244fe00994b25f26b054361476c76f80cf47ff02062dc65d524590eb735e": {
+    "": {
+      "role": "CROP"
+    }
+  },
+  "5d66d7c0c7ed2754af7f8499807e85c28904c6933ebbaf6d24165ea9c4e0b73c": {
+    "": {
+      "role": "CROP"
+    }
+  },
+  "5f766f5d7711a36b3ccbacad82f2e4c91c3687647c1be67d756c7ed2225703de": {
+    "": {
+      "grid": {
+        "cell": [
+          32,
+          32
+        ],
+        "margin": [
+          0,
+          0
+        ],
+        "separation": [
+          0,
+          0
+        ]
+      },
+      "role": "INTERIOR",
+      "tags": [
+        "terrain:manual",
+        "objects:manual"
+      ],
+      "usage": "tiles"
+    }
+  },
+  "62e2fc6d8c3e37ad9c5ad17763a19b101bae695caed49231006ffc6b68bb59ef": {
+    "": {
+      "role": "CROP"
+    }
+  },
+  "649ec8c75f0feae311e7740a4361306c1ca27ec1c55037ed2b87671db86e56b4": {
+    "": {
+      "grid": {
+        "cell": [
+          16,
+          16
+        ],
+        "margin": [
+          0,
+          0
+        ],
+        "separation": [
+          0,
+          0
+        ]
+      },
+      "role": "INTERIOR",
+      "tags": [
+        "terrain:manual",
+        "objects:manual"
+      ],
+      "usage": "tiles"
+    }
+  },
+  "66c0cc26f9f5106f06e9b453413d5dfbcd9f006df56cb000fa98f00e86bbdf16": {
+    "o1004_594": {
+      "role": "WALL"
+    },
+    "o1006_738": {
+      "role": "WALL"
+    },
+    "o1037_878": {
+      "role": "WALL"
+    },
+    "o1078_439": {
+      "role": "WALL"
+    },
+    "o1129_749": {
+      "role": "DECORATION"
+    },
+    "o1130_293": {
+      "role": "DECORATION"
+    },
+    "o1131_142": {
+      "role": "WALL"
+    },
+    "o1149_878": {
+      "role": "DECORATION"
+    },
+    "o1243_285": {
+      "role": "WALL"
+    },
+    "o1264_744": {
+      "role": "DECORATION"
+    },
+    "o1285_875": {
+      "role": "DECORATION"
+    },
+    "o1352_430": {
+      "role": "WALL"
+    },
+    "o1356_750": {
+      "role": "DECORATION"
+    },
+    "o1406_289": {
+      "role": "WALL"
+    },
+    "o1407_136": {
+      "role": "WALL"
+    },
+    "o1412_874": {
+      "role": "DECORATION"
+    },
+    "o1423_735": {
+      "role": "DECORATION"
+    },
+    "o158_861": {
+      "role": "DECORATION"
+    },
+    "o26_281": {
+      "role": "WALL"
+    },
+    "o281_444": {
+      "role": "WALL"
+    },
+    "o282_285": {
+      "role": "WALL"
+    },
+    "o293_900": {
+      "role": "DECORATION"
+    },
+    "o29_443": {
+      "role": "WALL"
+    },
+    "o29_858": {
+      "role": "DECORATION"
+    },
+    "o30_728": {
+      "role": "WALL"
+    },
+    "o385_880": {
+      "role": "DECORATION"
+    },
+    "o417_446": {
+      "role": "WALL"
+    },
+    "o420_138": {
+      "role": "WALL"
+    },
+    "o496_882": {
+      "role": "DECORATION"
+    },
+    "o527_138": {
+      "role": "WALL"
+    },
+    "o536_285": {
+      "role": "WALL"
+    },
+    "o536_448": {
+      "role": "WALL"
+    },
+    "o593_872": {
+      "role": "DECORATION"
+    },
+    "o712_870": {
+      "role": "DECORATION"
+    },
+    "o714_432": {
+      "role": "WALL"
+    },
+    "o787_289": {
+      "role": "WALL"
+    },
+    "o794_436": {
+      "role": "WALL"
+    },
+    "o828_880": {
+      "role": "DECORATION"
+    },
+    "o890_438": {
+      "role": "WALL"
+    },
+    "o932_874": {
+      "role": "DECORATION"
+    },
+    "o978_290": {
+      "role": "WALL"
+    },
+    "o983_142": {
+      "role": "WALL"
+    },
+    "o988_440": {
+      "role": "WALL"
+    }
+  },
+  "6934e75aeb3ec5b6f86ebd2d82061f9e6a4cefc3b18b5d934be84eece966d8bf": {
+    "": {
+      "animations": {
+        "idle_down": {
+          "fps": 1.0,
+          "frames": [
+            [
+              0,
+              0
+            ]
+          ],
+          "loop": true
+        }
+      },
+      "frame": [
+        394,
+        400
+      ],
+      "grid": {
+        "cell": [
+          394,
+          400
+        ],
+        "margin": [
+          0,
+          0
+        ],
+        "separation": [
+          0,
+          0
+        ]
+      },
+      "role": "ENEMY",
+      "usage": "sprite"
+    }
+  },
+  "6a7cf46b2883503d1be61c603b81a6f3844c02da8c7c7782b29d46cc55c367d0": {
+    "": {
+      "grid": {
+        "cell": [
+          16,
+          16
+        ],
+        "margin": [
+          0,
+          0
+        ],
+        "separation": [
+          0,
+          0
+        ]
+      },
+      "role": "INTERIOR",
+      "tags": [
+        "terrain:manual",
+        "objects:manual"
+      ],
+      "usage": "tiles"
+    }
+  },
+  "6b01cf7cc1dacbb5144a740f247a9ba627096427e172e7c29bbb00e70efeb107": {
+    "o387_24": {
+      "role": "BUILDING"
+    },
+    "o452_409": {
+      "role": "BUILDING"
+    },
+    "o585_264": {
+      "role": "BUILDING"
+    },
+    "o589_24": {
+      "role": "BUILDING"
+    },
+    "o6_24": {
+      "role": "BUILDING"
+    }
+  },
+  "6ce070d52b7766d48499339619e56117447a6c4be244a02536c12fba8229d27b": {
+    "": {
+      "animations": {
+        "fire_0_0": {
+          "fps": 6.666666666666667,
+          "frames": [
+            [
+              0,
+              0
+            ],
+            [
+              0,
+              2
+            ],
+            [
+              0,
+              4
+            ]
+          ],
+          "loop": true
+        },
+        "fire_0_1": {
+          "fps": 6.666666666666667,
+          "frames": [
+            [
+              0,
+              1
+            ],
+            [
+              0,
+              3
+            ],
+            [
+              0,
+              5
+            ]
+          ],
+          "loop": true
+        },
+        "fire_1_0": {
+          "fps": 6.666666666666667,
+          "frames": [
+            [
+              1,
+              0
+            ],
+            [
+              1,
+              2
+            ],
+            [
+              1,
+              4
+            ]
+          ],
+          "loop": true
+        },
+        "fire_1_1": {
+          "fps": 6.666666666666667,
+          "frames": [
+            [
+              1,
+              1
+            ],
+            [
+              1,
+              3
+            ],
+            [
+              1,
+              5
+            ]
+          ],
+          "loop": true
+        },
+        "fire_2_0": {
+          "fps": 6.666666666666667,
+          "frames": [
+            [
+              2,
+              0
+            ],
+            [
+              2,
+              2
+            ],
+            [
+              2,
+              4
+            ]
+          ],
+          "loop": true
+        },
+        "fire_2_1": {
+          "fps": 6.666666666666667,
+          "frames": [
+            [
+              2,
+              1
+            ],
+            [
+              2,
+              3
+            ],
+            [
+              2,
+              5
+            ]
+          ],
+          "loop": true
+        }
+      },
+      "frame": [
+        32,
+        32
+      ],
+      "grid": {
+        "cell": [
+          32,
+          32
+        ],
+        "margin": [
+          0,
+          0
+        ],
+        "separation": [
+          0,
+          0
+        ]
+      },
+      "origin": [
+        16,
+        31
+      ],
+      "role": "EFFECT",
+      "tags": [
+        "terrain:manual",
+        "objects:manual"
+      ],
+      "usage": "sprite"
+    }
+  },
+  "6ee4fb8fa30f23ebee70dd958cc853b445b65e6160c1a994b6e781afc5dc89de": {
+    "": {
+      "role": "CROP"
+    }
+  },
+  "6f2d079ff04aa4e0c184ebbbe2c6ac99b2636cd6692663a4af1cb21125c798f2": {
+    "o1003_39": {
+      "role": "NONE",
+      "tags": [
+        "unused_because:sheet_caption"
+      ]
+    },
+    "o1004_617": {
+      "role": "DECORATION"
+    },
+    "o1007_292": {
+      "role": "DECORATION"
+    },
+    "o1042_896": {
+      "role": "DECORATION"
+    },
+    "o1058_136": {
+      "role": "DECORATION"
+    },
+    "o1094_470": {
+      "role": "EFFECT"
+    },
+    "o1213_144": {
+      "role": "DECORATION"
+    },
+    "o1220_304": {
+      "role": "DECORATION"
+    },
+    "o1220_461": {
+      "role": "DECORATION"
+    },
+    "o1220_610": {
+      "role": "DECORATION"
+    },
+    "o1220_755": {
+      "role": "DECORATION"
+    },
+    "o1260_304": {
+      "role": "DECORATION"
+    },
+    "o1260_461": {
+      "role": "DECORATION"
+    },
+    "o1260_610": {
+      "role": "DECORATION"
+    },
+    "o1260_755": {
+      "role": "DECORATION"
+    },
+    "o1300_304": {
+      "role": "DECORATION"
+    },
+    "o1300_461": {
+      "role": "DECORATION"
+    },
+    "o1300_610": {
+      "role": "DECORATION"
+    },
+    "o1300_754": {
+      "role": "DECORATION"
+    },
+    "o203_136": {
+      "role": "DECORATION"
+    },
+    "o206_292": {
+      "role": "DECORATION"
+    },
+    "o208_451": {
+      "role": "DECORATION"
+    },
+    "o338_449": {
+      "role": "DECORATION"
+    },
+    "o341_296": {
+      "role": "DECORATION"
+    },
+    "o349_614": {
+      "role": "DECORATION"
+    },
+    "o363_752": {
+      "role": "DECORATION"
+    },
+    "o381_137": {
+      "role": "DECORATION"
+    },
+    "o385_752": {
+      "role": "DECORATION"
+    },
+    "o464_461": {
+      "role": "DECORATION"
+    },
+    "o473_750": {
+      "role": "DECORATION"
+    },
+    "o480_608": {
+      "role": "DECORATION"
+    },
+    "o489_292": {
+      "role": "DECORATION"
+    },
+    "o508_39": {
+      "role": "NONE",
+      "tags": [
+        "unused_because:sheet_caption"
+      ]
+    },
+    "o548_136": {
+      "role": "DECORATION"
+    },
+    "o622_460": {
+      "role": "DECORATION"
+    },
+    "o622_882": {
+      "role": "DECORATION"
+    },
+    "o626_608": {
+      "role": "DECORATION"
+    },
+    "o649_750": {
+      "role": "DECORATION"
+    },
+    "o662_39": {
+      "role": "NONE",
+      "tags": [
+        "unused_because:sheet_caption"
+      ]
+    },
+    "o718_896": {
+      "role": "DECORATION"
+    },
+    "o723_39": {
+      "role": "NONE",
+      "tags": [
+        "unused_because:sheet_caption"
+      ]
+    },
+    "o726_136": {
+      "role": "DECORATION"
+    },
+    "o738_608": {
+      "role": "DECORATION"
+    },
+    "o798_360": {
+      "role": "DECORATION"
+    },
+    "o798_461": {
+      "role": "DECORATION"
+    },
+    "o800_311": {
+      "role": "DECORATION"
+    },
+    "o823_753": {
+      "role": "DECORATION"
+    },
+    "o868_136": {
+      "role": "DECORATION"
+    },
+    "o892_609": {
+      "role": "DECORATION"
+    },
+    "o897_883": {
+      "role": "DECORATION"
+    },
+    "o909_39": {
+      "role": "NONE",
+      "tags": [
+        "unused_because:sheet_caption"
+      ]
+    },
+    "o952_460": {
+      "role": "DECORATION"
+    },
+    "o976_751": {
+      "role": "DECORATION"
+    }
+  },
+  "6f2e41a92059c0901d6f0b6ec89f88d76659f8b0106091d702240784b4159304": {
+    "": {
+      "animations": {
+        "walk_down": {
+          "fps": 8.0,
+          "frames": [
+            [
+              0,
+              0
+            ],
+            [
+              1,
+              0
+            ],
+            [
+              2,
+              0
+            ]
+          ],
+          "loop": true
+        },
+        "walk_left": {
+          "fps": 8.0,
+          "frames": [
+            [
+              0,
+              1
+            ],
+            [
+              1,
+              1
+            ],
+            [
+              2,
+              1
+            ]
+          ],
+          "loop": true
+        },
+        "walk_right": {
+          "fps": 8.0,
+          "frames": [
+            [
+              0,
+              2
+            ],
+            [
+              1,
+              2
+            ],
+            [
+              2,
+              2
+            ]
+          ],
+          "loop": true
+        },
+        "walk_up": {
+          "fps": 8.0,
+          "frames": [
+            [
+              0,
+              3
+            ],
+            [
+              1,
+              3
+            ],
+            [
+              2,
+              3
+            ]
+          ],
+          "loop": true
+        }
+      },
+      "frame": [
+        48,
+        96
+      ],
+      "grid": {
+        "cell": [
+          48,
+          96
+        ],
+        "margin": [
+          0,
+          0
+        ],
+        "separation": [
+          0,
+          0
+        ]
+      },
+      "role": "NPC",
+      "usage": "sprite"
+    }
+  },
+  "736666072b471c307212efa6d8ea5ca4cf422ea609bf77264a9c4be4385b13fd": {
+    "": {
+      "role": "DECORATION",
+      "tags": [
+        "terrain:manual",
+        "objects:manual"
+      ]
+    }
+  },
+  "7993951bc29d259afb50df98e47d3eba7836ffec455ae9c4e21a767ce6c918a6": {
+    "o534_629": {
+      "role": "TOOL"
+    }
+  },
+  "7a79597dd45cf02cf0816755296d00c4316181650c188f839618fa2b46359972": {
+    "o1015_590": {
+      "role": "DECORATION"
+    },
+    "o1030_325": {
+      "role": "WALL"
+    },
+    "o1047_826": {
+      "role": "DECORATION"
+    },
+    "o1096_199": {
+      "role": "DECORATION"
+    },
+    "o1115_54": {
+      "role": "DECORATION"
+    },
+    "o1132_325": {
+      "role": "DECORATION"
+    },
+    "o1145_452": {
+      "role": "WALL"
+    },
+    "o1162_599": {
+      "role": "WALL"
+    },
+    "o1169_826": {
+      "role": "DECORATION"
+    },
+    "o1173_702": {
+      "role": "DECORATION"
+    },
+    "o1179_200": {
+      "role": "WALL"
+    },
+    "o1208_51": {
+      "role": "DECORATION"
+    },
+    "o1221_327": {
+      "role": "WALL"
+    },
+    "o1276_704": {
+      "role": "DECORATION"
+    },
+    "o1291_826": {
+      "role": "DECORATION"
+    },
+    "o1307_199": {
+      "role": "DECORATION"
+    },
+    "o1317_328": {
+      "role": "DECORATION"
+    },
+    "o1317_64": {
+      "role": "WALL"
+    },
+    "o1395_708": {
+      "role": "DECORATION"
+    },
+    "o1397_821": {
+      "role": "DECORATION"
+    },
+    "o1398_54": {
+      "role": "WALL"
+    },
+    "o1407_200": {
+      "role": "DECORATION"
+    },
+    "o1420_337": {
+      "role": "DECORATION"
+    },
+    "o142_184": {
+      "role": "DECORATION"
+    },
+    "o143_313": {
+      "role": "DECORATION"
+    },
+    "o150_454": {
+      "role": "WALL"
+    },
+    "o191_830": {
+      "role": "DECORATION"
+    },
+    "o235_315": {
+      "role": "DECORATION"
+    },
+    "o253_185": {
+      "role": "DECORATION"
+    },
+    "o254_454": {
+      "role": "WALL"
+    },
+    "o256_586": {
+      "role": "WALL"
+    },
+    "o261_703": {
+      "role": "WALL"
+    },
+    "o315_57": {
+      "role": "WALL"
+    },
+    "o315_827": {
+      "role": "DECORATION"
+    },
+    "o317_312": {
+      "role": "DECORATION"
+    },
+    "o354_188": {
+      "role": "DECORATION"
+    },
+    "o361_452": {
+      "role": "DECORATION"
+    },
+    "o403_318": {
+      "role": "DECORATION"
+    },
+    "o431_835": {
+      "role": "DECORATION"
+    },
+    "o436_66": {
+      "role": "WALL"
+    },
+    "o454_188": {
+      "role": "DECORATION"
+    },
+    "o463_588": {
+      "role": "DECORATION"
+    },
+    "o465_456": {
+      "role": "DECORATION"
+    },
+    "o46_816": {
+      "role": "DECORATION"
+    },
+    "o481_703": {
+      "role": "WALL"
+    },
+    "o48_185": {
+      "role": "DECORATION"
+    },
+    "o48_457": {
+      "role": "WALL"
+    },
+    "o496_320": {
+      "role": "DECORATION"
+    },
+    "o543_824": {
+      "role": "DECORATION"
+    },
+    "o562_194": {
+      "role": "WALL"
+    },
+    "o579_324": {
+      "role": "DECORATION"
+    },
+    "o581_60": {
+      "role": "DECORATION"
+    },
+    "o598_703": {
+      "role": "WALL"
+    },
+    "o645_60": {
+      "role": "DECORATION"
+    },
+    "o665_326": {
+      "role": "DECORATION"
+    },
+    "o66_315": {
+      "role": "DECORATION"
+    },
+    "o671_588": {
+      "role": "DECORATION"
+    },
+    "o673_824": {
+      "role": "DECORATION"
+    },
+    "o676_196": {
+      "role": "DECORATION"
+    },
+    "o713_703": {
+      "role": "DECORATION"
+    },
+    "o734_194": {
+      "role": "WALL"
+    },
+    "o752_343": {
+      "role": "DECORATION"
+    },
+    "o782_588": {
+      "role": "WALL"
+    },
+    "o783_55": {
+      "role": "DECORATION"
+    },
+    "o789_827": {
+      "role": "DECORATION"
+    },
+    "o842_219": {
+      "role": "DECORATION"
+    },
+    "o847_325": {
+      "role": "DECORATION"
+    },
+    "o870_470": {
+      "role": "DECORATION"
+    },
+    "o888_67": {
+      "role": "WALL"
+    },
+    "o905_199": {
+      "role": "DECORATION"
+    },
+    "o909_591": {
+      "role": "DECORATION"
+    },
+    "o911_814": {
+      "role": "DECORATION"
+    },
+    "o935_458": {
+      "role": "WALL"
+    },
+    "o938_319": {
+      "role": "DECORATION"
+    },
+    "o952_703": {
+      "role": "WALL"
+    },
+    "o969_205": {
+      "role": "WALL"
+    },
+    "o997_54": {
+      "role": "WALL"
+    }
+  },
+  "7cf5e6a591ea000e0e8e5579320a6ea38b128f57707c12a7bdc4b139f14e03c6": {
+    "o674_675": {
+      "role": "ITEM"
+    },
+    "o722_676": {
+      "role": "ITEM"
+    }
+  },
+  "7ee2c8e722aba10971c6dd067ca80742395441bdccce10fba20564bc1cafe56c": {
+    "": {
+      "role": "CROP"
+    }
+  },
+  "838865b88e2fe065d5d29fcddf27d58503478dbc45893c7a04d5c757685c1ec8": {
+    "o201_673": {
+      "role": "BUILDING"
+    },
+    "o289_638": {
+      "role": "TOOL"
+    },
+    "o290_577": {
+      "role": "TOOL"
+    },
+    "o481_530": {
+      "role": "TOOL"
+    },
+    "o509_530": {
+      "role": "TOOL"
+    }
+  },
+  "8b6d1d7a4ef4b49c39fe12e14d816cdb88cd9cfb0a18890ad734ecef9d12e038": {
+    "o1112_545": {
+      "role": "DECORATION"
+    }
+  },
+  "8db1fae94ea13ed0a7fd0a285ac125c08fc5a21d0158c4a04cd254f96d872901": {
+    "": {
+      "grid": {
+        "cell": [
+          48,
+          48
+        ],
+        "margin": [
+          0,
+          0
+        ],
+        "separation": [
+          0,
+          0
+        ]
+      },
+      "role": "GROUND",
+      "tags": [
+        "terrain:manual",
+        "objects:manual"
+      ],
+      "usage": "tiles"
+    }
+  },
+  "8dc1587dd0e5eeac052574360240107829ba219164dfd432693c6a77f82907fd": {
+    "": {
+      "role": "CROP"
+    }
+  },
+  "8fb5f0415055976f3f3ba8c3ae91c0eb7aa8c2c7ab5f57c043ef58110c27643f": {
+    "": {
+      "grid": {
+        "cell": [
+          48,
+          48
+        ],
+        "margin": [
+          0,
+          0
+        ],
+        "separation": [
+          0,
+          0
+        ]
+      },
+      "role": "INTERIOR",
+      "tags": [
+        "terrain:manual",
+        "objects:manual"
+      ],
+      "usage": "tiles"
+    }
+  },
+  "9099b278fc3c0e7b8f50aef1d38f0aae21c9b3b20ca1ecbdd4d59ee8cf8ebc29": {
+    "o1028_519": {
+      "role": "NONE",
+      "tags": [
+        "unused_because:sheet_caption"
+      ]
+    },
+    "o1071_106": {
+      "role": "NONE",
+      "tags": [
+        "unused_because:sheet_caption"
+      ]
+    },
+    "o1106_24": {
+      "role": "NONE",
+      "tags": [
+        "unused_because:sheet_caption"
+      ]
+    },
+    "o352_24": {
+      "role": "NONE",
+      "tags": [
+        "unused_because:sheet_caption"
+      ]
+    },
+    "o534_19": {
+      "role": "NONE",
+      "tags": [
+        "unused_because:sheet_caption"
+      ]
+    },
+    "o621_19": {
+      "role": "NONE",
+      "tags": [
+        "unused_because:sheet_caption"
+      ]
+    },
+    "o770_19": {
+      "role": "NONE",
+      "tags": [
+        "unused_because:sheet_caption"
+      ]
+    },
+    "o859_19": {
+      "role": "NONE",
+      "tags": [
+        "unused_because:sheet_caption"
+      ]
+    }
+  },
+  "9174495a6a30da9e520a2ed9eab4503c58fa6e8610c1e42aa0d98f89a2f8b638": {
+    "": {
+      "grid": {
+        "cell": [
+          16,
+          16
+        ],
+        "margin": [
+          0,
+          0
+        ],
+        "separation": [
+          0,
+          0
+        ]
+      },
+      "role": "INTERIOR",
+      "tags": [
+        "terrain:manual",
+        "objects:manual"
+      ],
+      "usage": "tiles"
+    }
+  },
+  "96d21597a8aa743fcf6f96a0c8bf108258ed4c599bb7539f293dccc9a71158a2": {
+    "": {
+      "animations": {
+        "fire_0": {
+          "fps": 8.0,
+          "frames": [
+            [
+              0,
+              0
+            ],
+            [
+              0,
+              1
+            ],
+            [
+              0,
+              2
+            ],
+            [
+              0,
+              3
+            ],
+            [
+              0,
+              4
+            ],
+            [
+              0,
+              5
+            ]
+          ],
+          "loop": true
+        },
+        "fire_1": {
+          "fps": 8.0,
+          "frames": [
+            [
+              1,
+              0
+            ],
+            [
+              1,
+              1
+            ],
+            [
+              1,
+              2
+            ],
+            [
+              1,
+              3
+            ],
+            [
+              1,
+              4
+            ],
+            [
+              1,
+              5
+            ]
+          ],
+          "loop": true
+        },
+        "fire_2": {
+          "fps": 8.0,
+          "frames": [
+            [
+              2,
+              0
+            ],
+            [
+              2,
+              1
+            ],
+            [
+              2,
+              2
+            ],
+            [
+              2,
+              3
+            ],
+            [
+              2,
+              4
+            ],
+            [
+              2,
+              5
+            ]
+          ],
+          "loop": true
+        }
+      },
+      "frame": [
+        32,
+        32
+      ],
+      "grid": {
+        "cell": [
+          32,
+          32
+        ],
+        "margin": [
+          0,
+          0
+        ],
+        "separation": [
+          0,
+          0
+        ]
+      },
+      "role": "EFFECT",
+      "tags": [
+        "terrain:manual",
+        "objects:manual"
+      ],
+      "usage": "sprite"
+    }
+  },
+  "9753c6032aa8ecb88004d89f5d3dabf0730bbc571cb256b8ce2c68c6f8a218f3": {
+    "o0_306": {
+      "role": "BUILDING"
+    },
+    "o100_385": {
+      "role": "BUILDING"
+    },
+    "o100_434": {
+      "role": "BUILDING"
+    },
+    "o100_576": {
+      "role": "BUILDING"
+    },
+    "o100_624": {
+      "role": "BUILDING"
+    },
+    "o101_0": {
+      "role": "BUILDING"
+    },
+    "o101_240": {
+      "role": "BUILDING"
+    },
+    "o104_720": {
+      "role": "BUILDING"
+    },
+    "o110_97": {
+      "role": "BUILDING"
+    },
+    "o118_288": {
+      "role": "BUILDING"
+    },
+    "o145_1": {
+      "role": "BUILDING"
+    },
+    "o146_512": {
+      "role": "BUILDING"
+    },
+    "o146_625": {
+      "role": "BUILDING"
+    },
+    "o148_385": {
+      "role": "BUILDING"
+    },
+    "o148_434": {
+      "role": "BUILDING"
+    },
+    "o192_194": {
+      "role": "BUILDING"
+    },
+    "o195_434": {
+      "role": "BUILDING"
+    },
+    "o196_386": {
+      "role": "BUILDING"
+    },
+    "o200_528": {
+      "role": "BUILDING"
+    },
+    "o240_499": {
+      "role": "BUILDING"
+    },
+    "o244_385": {
+      "role": "BUILDING"
+    },
+    "o290_284": {
+      "role": "BUILDING"
+    },
+    "o291_386": {
+      "role": "BUILDING"
+    },
+    "o303_0": {
+      "role": "BUILDING"
+    },
+    "o309_144": {
+      "role": "BUILDING"
+    },
+    "o386_384": {
+      "role": "BUILDING"
+    },
+    "o386_642": {
+      "role": "BUILDING"
+    },
+    "o388_482": {
+      "role": "BUILDING"
+    },
+    "o3_704": {
+      "role": "BUILDING"
+    },
+    "o432_615": {
+      "role": "BUILDING"
+    },
+    "o434_480": {
+      "role": "BUILDING"
+    },
+    "o480_384": {
+      "role": "BUILDING"
+    },
+    "o4_385": {
+      "role": "BUILDING"
+    },
+    "o4_434": {
+      "role": "BUILDING"
+    },
+    "o4_480": {
+      "role": "BUILDING"
+    },
+    "o4_528": {
+      "role": "BUILDING"
+    },
+    "o529_606": {
+      "role": "BUILDING"
+    },
+    "o52_385": {
+      "role": "BUILDING"
+    },
+    "o52_481": {
+      "role": "BUILDING"
+    },
+    "o52_528": {
+      "role": "BUILDING"
+    },
+    "o52_576": {
+      "role": "BUILDING"
+    },
+    "o52_624": {
+      "role": "BUILDING"
+    },
+    "o530_1": {
+      "role": "BUILDING"
+    },
+    "o53_0": {
+      "role": "BUILDING"
+    },
+    "o53_192": {
+      "role": "BUILDING"
+    },
+    "o53_96": {
+      "role": "BUILDING"
+    },
+    "o56_672": {
+      "role": "BUILDING"
+    },
+    "o576_384": {
+      "role": "BUILDING"
+    },
+    "o576_576": {
+      "role": "BUILDING"
+    },
+    "o578_2": {
+      "role": "BUILDING"
+    },
+    "o5_0": {
+      "role": "BUILDING"
+    },
+    "o5_192": {
+      "role": "BUILDING"
+    },
+    "o5_240": {
+      "role": "BUILDING"
+    },
+    "o5_96": {
+      "role": "BUILDING"
+    },
+    "o6_48": {
+      "role": "BUILDING"
+    },
+    "o6_624": {
+      "role": "BUILDING"
+    }
+  },
+  "97d382826a6fa7bd575af71e0b1abdb764be3a6bd96dedda16641fe5f5b1301e": {
+    "g192_0": {
+      "role": "DECORATION",
+      "tags": [
+        "terrain:manual"
+      ]
+    }
+  },
+  "994c5cdf720a30f65c322136f6d0d2769b252bd844c8b56a259075d4700c2893": {
+    "": {
+      "role": "DECORATION",
+      "tags": [
+        "terrain:manual",
+        "objects:manual"
+      ]
+    }
+  },
+  "997b86d24056e38f890e17857226dec08076075fe71b6747582e7e80ee80dc70": {
+    "o1164_811": {
+      "animations": {
+        "idle_down": {
+          "fps": 1.0,
+          "frames": [
+            [
+              0,
+              0
+            ]
+          ],
+          "loop": true
+        },
+        "walk_down": {
+          "fps": 1.0,
+          "frames": [
+            [
+              0,
+              0
+            ]
+          ],
+          "loop": true
+        }
+      },
+      "grid": {
+        "cell": [
+          44,
+          46
+        ],
+        "margin": [
+          0,
+          0
+        ],
+        "separation": [
+          0,
+          0
+        ]
+      },
+      "role": "ANIMAL",
+      "usage": "sprite"
+    },
+    "o1170_691": {
+      "animations": {
+        "idle_down": {
+          "fps": 1.0,
+          "frames": [
+            [
+              0,
+              0
+            ]
+          ],
+          "loop": true
+        },
+        "walk_down": {
+          "fps": 1.0,
+          "frames": [
+            [
+              0,
+              0
+            ]
+          ],
+          "loop": true
+        }
+      },
+      "grid": {
+        "cell": [
+          145,
+          150
+        ],
+        "margin": [
+          0,
+          0
+        ],
+        "separation": [
+          0,
+          0
+        ]
+      },
+      "role": "ANIMAL",
+      "usage": "sprite"
+    },
+    "o1290_811": {
+      "animations": {
+        "idle_down": {
+          "fps": 1.0,
+          "frames": [
+            [
+              0,
+              0
+            ]
+          ],
+          "loop": true
+        },
+        "walk_down": {
+          "fps": 1.0,
+          "frames": [
+            [
+              0,
+              0
+            ]
+          ],
+          "loop": true
+        }
+      },
+      "grid": {
+        "cell": [
+          42,
+          46
+        ],
+        "margin": [
+          0,
+          0
+        ],
+        "separation": [
+          0,
+          0
+        ]
+      },
+      "role": "ANIMAL",
+      "usage": "sprite"
+    },
+    "o1344_802": {
+      "animations": {
+        "idle_down": {
+          "fps": 1.0,
+          "frames": [
+            [
+              0,
+              0
+            ]
+          ],
+          "loop": true
+        },
+        "walk_down": {
+          "fps": 1.0,
+          "frames": [
+            [
+              0,
+              0
+            ]
+          ],
+          "loop": true
+        }
+      },
+      "grid": {
+        "cell": [
+          42,
+          46
+        ],
+        "margin": [
+          0,
+          0
+        ],
+        "separation": [
+          0,
+          0
+        ]
+      },
+      "role": "ANIMAL",
+      "usage": "sprite"
+    },
+    "o264_52": {
+      "role": "NONE",
+      "tags": [
+        "unused_because:sheet_caption"
+      ]
+    },
+    "o340_43": {
+      "role": "NONE",
+      "tags": [
+        "unused_because:sheet_caption"
+      ]
+    },
+    "o390_43": {
+      "role": "NONE",
+      "tags": [
+        "unused_because:sheet_caption"
+      ]
+    },
+    "o468_43": {
+      "role": "NONE",
+      "tags": [
+        "unused_because:sheet_caption"
+      ]
+    },
+    "o505_967": {
+      "role": "NONE",
+      "tags": [
+        "unused_because:sheet_caption"
+      ]
+    },
+    "o526_157": {
+      "role": "NONE",
+      "tags": [
+        "unused_because:sheet_caption"
+      ]
+    },
+    "o568_911": {
+      "role": "NONE",
+      "tags": [
+        "unused_because:sheet_caption"
+      ]
+    },
+    "o572_261": {
+      "role": "NONE",
+      "tags": [
+        "unused_because:sheet_caption"
+      ]
+    },
+    "o586_43": {
+      "role": "NONE",
+      "tags": [
+        "unused_because:sheet_caption"
+      ]
+    },
+    "o641_912": {
+      "role": "NONE",
+      "tags": [
+        "unused_because:sheet_caption"
+      ]
+    },
+    "o642_42": {
+      "role": "NONE",
+      "tags": [
+        "unused_because:sheet_caption"
+      ]
+    },
+    "o766_343": {
+      "role": "NONE",
+      "tags": [
+        "unused_because:sheet_caption"
+      ]
+    },
+    "o801_52": {
+      "role": "NONE",
+      "tags": [
+        "unused_because:sheet_caption"
+      ]
+    },
+    "o816_912": {
+      "role": "NONE",
+      "tags": [
+        "unused_because:sheet_caption"
+      ]
+    },
+    "o860_304": {
+      "role": "NONE",
+      "tags": [
+        "unused_because:sheet_caption"
+      ]
+    },
+    "o877_262": {
+      "role": "NONE",
+      "tags": [
+        "unused_because:sheet_caption"
+      ]
+    },
+    "o943_42": {
+      "role": "NONE",
+      "tags": [
+        "unused_because:sheet_caption"
+      ]
+    },
+    "o947_911": {
+      "role": "NONE",
+      "tags": [
+        "unused_because:sheet_caption"
+      ]
+    }
+  },
+  "99856d1760ae4c9e1a125dd7265632fa2e448601af40bba224f7167b938ebd61": {
+    "": {
+      "grid": {
+        "cell": [
+          48,
+          48
+        ],
+        "margin": [
+          0,
+          0
+        ],
+        "separation": [
+          0,
+          0
+        ]
+      },
+      "role": "GROUND",
+      "tags": [
+        "terrain:manual",
+        "objects:manual"
+      ],
+      "usage": "tiles"
+    }
+  },
+  "999576d733fc50aef0a967c1ee2c394ad724b1f49d2e976ca0620d9a99d0d6b6": {
+    "o0_0": {
+      "role": "BUILDING"
+    },
+    "o0_294": {
+      "role": "BUILDING"
+    },
+    "o0_485": {
+      "role": "BUILDING"
+    },
+    "o144_0": {
+      "role": "BUILDING"
+    },
+    "o336_384": {
+      "role": "BUILDING"
+    },
+    "o384_0": {
+      "role": "BUILDING"
+    },
+    "o384_177": {
+      "role": "BUILDING"
+    },
+    "o392_384": {
+      "role": "BUILDING"
+    },
+    "o3_178": {
+      "role": "BUILDING"
+    },
+    "o482_390": {
+      "role": "BUILDING"
+    },
+    "o486_576": {
+      "role": "BUILDING"
+    },
+    "o578_11": {
+      "role": "BUILDING"
+    },
+    "o672_589": {
+      "role": "BUILDING"
+    },
+    "o673_0": {
+      "role": "BUILDING"
+    },
+    "o683_434": {
+      "role": "WEAPON"
+    },
+    "o731_443": {
+      "role": "WEAPON"
+    },
+    "o96_177": {
+      "role": "BUILDING"
+    },
+    "o96_294": {
+      "role": "BUILDING"
+    },
+    "o96_583": {
+      "role": "BUILDING"
+    }
+  },
+  "9dfe6c667d8ce600a939496f9db0e387057e11db59842d474ae1624598fa23b1": {
+    "o194_0": {
+      "role": "BUILDING"
+    },
+    "o2_0": {
+      "role": "BUILDING"
+    },
+    "o98_384": {
+      "role": "BUILDING"
+    },
+    "o98_480": {
+      "role": "BUILDING"
+    }
+  },
+  "9e7d1a145f99bd01644788ee1dc4820ef121ab42c6b82e47ac53bf0689640e1b": {
+    "": {
+      "grid": {
+        "cell": [
+          48,
+          48
+        ],
+        "margin": [
+          0,
+          0
+        ],
+        "separation": [
+          0,
+          0
+        ]
+      },
+      "role": "GROUND",
+      "tags": [
+        "terrain:manual",
+        "objects:manual"
+      ],
+      "usage": "tiles"
+    }
+  },
+  "9ef95687568721ec9bacc156bfea49c65311b38d978bc1ba5b466a700b8c5466": {
+    "": {
+      "grid": {
+        "cell": [
+          48,
+          48
+        ],
+        "margin": [
+          0,
+          0
+        ],
+        "separation": [
+          0,
+          0
+        ]
+      },
+      "role": "INTERIOR",
+      "tags": [
+        "terrain:manual",
+        "objects:manual"
+      ],
+      "usage": "tiles"
+    }
+  },
+  "a167f9821a98133a5dc0bf1f9355ca05b2379003af9e83ed956277dc2ba84a00": {
+    "": {
+      "animations": {
+        "walk_down": {
+          "fps": 8.0,
+          "frames": [
+            [
+              18,
+              0
+            ],
+            [
+              19,
+              0
+            ],
+            [
+              20,
+              0
+            ],
+            [
+              21,
+              0
+            ],
+            [
+              22,
+              0
+            ],
+            [
+              23,
+              0
+            ]
+          ],
+          "loop": true
+        },
+        "walk_left": {
+          "fps": 8.0,
+          "frames": [
+            [
+              12,
+              0
+            ],
+            [
+              13,
+              0
+            ],
+            [
+              14,
+              0
+            ],
+            [
+              15,
+              0
+            ],
+            [
+              16,
+              0
+            ],
+            [
+              17,
+              0
+            ]
+          ],
+          "loop": true
+        },
+        "walk_right": {
+          "fps": 8.0,
+          "frames": [
+            [
+              0,
+              0
+            ],
+            [
+              1,
+              0
+            ],
+            [
+              2,
+              0
+            ],
+            [
+              3,
+              0
+            ],
+            [
+              4,
+              0
+            ],
+            [
+              5,
+              0
+            ]
+          ],
+          "loop": true
+        },
+        "walk_up": {
+          "fps": 8.0,
+          "frames": [
+            [
+              6,
+              0
+            ],
+            [
+              7,
+              0
+            ],
+            [
+              8,
+              0
+            ],
+            [
+              9,
+              0
+            ],
+            [
+              10,
+              0
+            ],
+            [
+              11,
+              0
+            ]
+          ],
+          "loop": true
+        }
+      },
+      "frame": [
+        48,
+        96
+      ],
+      "grid": {
+        "cell": [
+          48,
+          96
+        ],
+        "margin": [
+          0,
+          0
+        ],
+        "separation": [
+          0,
+          0
+        ]
+      },
+      "role": "NPC",
+      "usage": "sprite"
+    }
+  },
+  "a404a756f40dd8636a723a7451be51f94b9e08d8bca3a0e234437c6996b36275": {
+    "o481_674": {
+      "role": "TOOL"
+    },
+    "o639_673": {
+      "role": "TOOL"
+    }
+  },
+  "a6cf082735c4ab5680a1ae115305561383ed8f7abd58602d78c7966d90e28ef2": {
+    "": {
+      "role": "CROP"
+    }
+  },
+  "aa14b24b0451ada51714a48f70dda76f18fe3dbca3b3bd0f3c70e5e6a6c888e7": {
+    "": {
+      "role": "CROP"
+    }
+  },
+  "aa7d015ac92fe825a2e393403689a4f6b9869c5d0375a61c6c6d497068e42979": {
+    "o1080_32": {
+      "role": "NONE",
+      "tags": [
+        "unused_because:sheet_caption"
+      ]
+    },
+    "o1211_39": {
+      "role": "NONE",
+      "tags": [
+        "unused_because:sheet_caption"
+      ]
+    },
+    "o217_39": {
+      "role": "NONE",
+      "tags": [
+        "unused_because:sheet_caption"
+      ]
+    },
+    "o501_32": {
+      "role": "NONE",
+      "tags": [
+        "unused_because:sheet_caption"
+      ]
+    },
+    "o622_32": {
+      "role": "NONE",
+      "tags": [
+        "unused_because:sheet_caption"
+      ]
+    },
+    "o774_32": {
+      "role": "NONE",
+      "tags": [
+        "unused_because:sheet_caption"
+      ]
+    },
+    "o897_32": {
+      "role": "NONE",
+      "tags": [
+        "unused_because:sheet_caption"
+      ]
+    }
+  },
+  "ab00ef0afb798b546974a3ce75228c23a29e9a173a62d82d05752884e9688cb4": {
+    "o673_579": {
+      "animations": {
+        "idle_down": {
+          "fps": 1.0,
+          "frames": [
+            [
+              0,
+              0
+            ]
+          ],
+          "loop": true
+        },
+        "walk_down": {
+          "fps": 1.0,
+          "frames": [
+            [
+              0,
+              0
+            ]
+          ],
+          "loop": true
+        }
+      },
+      "grid": {
+        "cell": [
+          47,
+          42
+        ],
+        "margin": [
+          0,
+          0
+        ],
+        "separation": [
+          0,
+          0
+        ]
+      },
+      "role": "ANIMAL",
+      "usage": "sprite"
+    },
+    "o674_633": {
+      "animations": {
+        "idle_down": {
+          "fps": 1.0,
+          "frames": [
+            [
+              0,
+              0
+            ]
+          ],
+          "loop": true
+        },
+        "walk_down": {
+          "fps": 1.0,
+          "frames": [
+            [
+              0,
+              0
+            ]
+          ],
+          "loop": true
+        }
+      },
+      "grid": {
+        "cell": [
+          46,
+          38
+        ],
+        "margin": [
+          0,
+          0
+        ],
+        "separation": [
+          0,
+          0
+        ]
+      },
+      "role": "ANIMAL",
+      "usage": "sprite"
+    }
+  },
+  "adad3dfbf2bccd5e8da127baeba03ec00c1b68d91db275900c0fab357802a449": {
+    "": {
+      "grid": {
+        "cell": [
+          16,
+          16
+        ],
+        "margin": [
+          0,
+          0
+        ],
+        "separation": [
+          0,
+          0
+        ]
+      },
+      "role": "INTERIOR",
+      "tags": [
+        "terrain:manual",
+        "objects:manual"
+      ],
+      "usage": "tiles"
+    }
+  },
+  "af8d8a3ecddf78530458facc00c61760e8235857755b728d5ca94406b3c8fbf1": {
+    "o0_0": {
+      "grid": {
+        "cell": [
+          48,
+          48
+        ],
+        "margin": [
+          0,
+          0
+        ],
+        "separation": [
+          0,
+          0
+        ]
+      },
+      "role": "GROUND",
+      "tileset": "overworld",
+      "usage": "tiles"
+    }
+  },
+  "b0995c605b71e7b73d7aa66bd1ef352c6c88345bb601936b369d84b59aa8e268": {
+    "o102_786": {
+      "role": "DECORATION"
+    }
+  },
+  "b1842be6f06496137be4d9c1a5c9df6aa3c9a89842cdb50933a4af5d93e07913": {
+    "": {
+      "grid": {
+        "cell": [
+          32,
+          32
+        ],
+        "margin": [
+          0,
+          0
+        ],
+        "separation": [
+          0,
+          0
+        ]
+      },
+      "role": "INTERIOR",
+      "tags": [
+        "terrain:manual",
+        "objects:manual"
+      ],
+      "usage": "tiles"
+    }
+  },
+  "b1b204d09d1d63082f2a7fc244004326a4b4e1fd6fd4e80734c1527778d4f405": {
+    "o715_415": {
+      "role": "DECORATION"
+    }
+  },
+  "b2345523bd443e1a082565b58aa0e08589992c45d57e609d73d81869822bdd90": {
+    "o1008_45": {
+      "role": "NONE",
+      "tags": [
+        "unused_because:sheet_caption"
+      ]
+    },
+    "o519_45": {
+      "role": "NONE",
+      "tags": [
+        "unused_because:sheet_caption"
+      ]
+    },
+    "o624_45": {
+      "role": "NONE",
+      "tags": [
+        "unused_because:sheet_caption"
+      ]
+    },
+    "o694_45": {
+      "role": "NONE",
+      "tags": [
+        "unused_because:sheet_caption"
+      ]
+    },
+    "o837_45": {
+      "role": "NONE",
+      "tags": [
+        "unused_because:sheet_caption"
+      ]
+    },
+    "o906_45": {
+      "role": "NONE",
+      "tags": [
+        "unused_because:sheet_caption"
+      ]
+    }
+  },
+  "b28031c1679a960ea4b7590dba4bba8146c7ed9e01cb8a328bf09ddf9b034188": {
+    "": {
+      "role": "CROP"
+    }
+  },
+  "b4088833b35f9ca4fa0f1917b76f08a2314d2a00817c00c90e1fd9ea017b7f90": {
+    "": {
+      "role": "CROP"
+    }
+  },
+  "b578b3f0e03ad29916955169080f2e692458d36ec31c641f2f97719758d2f2bf": {
+    "o2_181": {
+      "role": "BUILDING"
+    },
+    "o528_289": {
+      "role": "BUILDING"
+    }
+  },
+  "b94aa0579deeb873fa50849f0bbc3d78760b908ea994a09661e3275c32125d93": {
+    "o11_9": {
+      "role": "BUILDING"
+    },
+    "o120_410": {
+      "role": "BUILDING"
+    },
+    "o194_288": {
+      "role": "BUILDING"
+    },
+    "o1_162": {
+      "role": "BUILDING"
+    },
+    "o1_308": {
+      "role": "BUILDING"
+    },
+    "o210_0": {
+      "role": "BUILDING"
+    },
+    "o210_169": {
+      "role": "BUILDING"
+    },
+    "o289_171": {
+      "role": "BUILDING"
+    },
+    "o290_288": {
+      "role": "BUILDING"
+    },
+    "o386_154": {
+      "role": "BUILDING"
+    },
+    "o397_288": {
+      "role": "BUILDING"
+    },
+    "o481_145": {
+      "role": "BUILDING"
+    },
+    "o481_266": {
+      "role": "BUILDING"
+    },
+    "o482_384": {
+      "role": "BUILDING"
+    },
+    "o577_162": {
+      "role": "BUILDING"
+    },
+    "o672_0": {
+      "role": "BUILDING"
+    },
+    "o687_144": {
+      "role": "BUILDING"
+    },
+    "o6_386": {
+      "role": "BUILDING"
+    },
+    "o97_279": {
+      "role": "BUILDING"
+    },
+    "o98_170": {
+      "role": "BUILDING"
+    }
+  },
+  "bb7e82e3e78b742ef05ec15fab2c5a6ca327f42dfe3ba9f41bf6ce6470ec40c0": {
+    "": {
+      "animations": {
+        "idle_down": {
+          "fps": 8.0,
+          "frames": [
+            [
+              3,
+              0
+            ]
+          ],
+          "loop": true
+        },
+        "idle_left": {
+          "fps": 8.0,
+          "frames": [
+            [
+              2,
+              0
+            ]
+          ],
+          "loop": true
+        },
+        "idle_right": {
+          "fps": 8.0,
+          "frames": [
+            [
+              0,
+              0
+            ]
+          ],
+          "loop": true
+        },
+        "idle_up": {
+          "fps": 8.0,
+          "frames": [
+            [
+              1,
+              0
+            ]
+          ],
+          "loop": true
+        }
+      },
+      "frame": [
+        48,
+        96
+      ],
+      "grid": {
+        "cell": [
+          48,
+          96
+        ],
+        "margin": [
+          0,
+          0
+        ],
+        "separation": [
+          0,
+          0
+        ]
+      },
+      "role": "NPC",
+      "usage": "sprite"
+    }
+  },
+  "bbb6c7ed6c1a6b6bbda61c65d34b282af80a3c9258ccc9f0d6ba6a1140726ec1": {
+    "": {
+      "grid": {
+        "cell": [
+          16,
+          16
+        ],
+        "margin": [
+          0,
+          0
+        ],
+        "separation": [
+          0,
+          0
+        ]
+      },
+      "role": "INTERIOR",
+      "tags": [
+        "terrain:manual",
+        "objects:manual"
+      ],
+      "usage": "tiles"
+    }
+  },
+  "bd422dee123a4093728a5c571a03a96fc54172e485ec4c4374ac03d7e788a73b": {
+    "o111_336": {
+      "role": "TOOL"
+    },
+    "o113_292": {
+      "role": "TOOL"
+    },
+    "o13_336": {
+      "role": "TOOL"
+    },
+    "o159_292": {
+      "role": "TOOL"
+    },
+    "o161_336": {
+      "role": "TOOL"
+    },
+    "o198_291": {
+      "role": "TOOL"
+    },
+    "o201_336": {
+      "role": "TOOL"
+    },
+    "o225_336": {
+      "role": "TOOL"
+    },
+    "o257_336": {
+      "role": "TOOL"
+    },
+    "o394_240": {
+      "role": "TOOL"
+    },
+    "o448_240": {
+      "role": "TOOL"
+    },
+    "o60_336": {
+      "role": "TOOL"
+    }
+  },
+  "bf460825ca60fe6d6290b5e858e620c08444d5ecaf95a4461fd848a6b97c0148": {
+    "": {
+      "grid": {
+        "cell": [
+          48,
+          48
+        ],
+        "margin": [
+          0,
+          0
+        ],
+        "separation": [
+          0,
+          0
+        ]
+      },
+      "role": "GROUND",
+      "tags": [
+        "terrain:manual",
+        "objects:manual"
+      ],
+      "usage": "tiles"
+    }
+  },
+  "c06ecc11a578b599de3df16ad13063e111a86331097b4a33bd74a189dcc9b6fb": {
+    "o0_5": {
+      "role": "BUILDING"
+    },
+    "o106_509": {
+      "role": "BUILDING"
+    },
+    "o386_672": {
+      "role": "BUILDING"
+    },
+    "o387_387": {
+      "role": "BUILDING"
+    },
+    "o389_577": {
+      "role": "BUILDING"
+    },
+    "o3_295": {
+      "role": "BUILDING"
+    },
+    "o483_390": {
+      "role": "BUILDING"
+    },
+    "o536_485": {
+      "role": "BUILDING"
+    },
+    "o580_675": {
+      "role": "BUILDING"
+    },
+    "o5_194": {
+      "role": "BUILDING"
+    }
+  },
+  "c0f102ff32fcdea48d1d6c25e3e44bacc8d4e6a9b2c10a530f231b63b1dcdcc0": {
+    "": {
+      "animations": {
+        "walk_down": {
+          "fps": 8.0,
+          "frames": [
+            [
+              0,
+              0
+            ],
+            [
+              1,
+              0
+            ],
+            [
+              2,
+              0
+            ]
+          ],
+          "loop": true
+        },
+        "walk_left": {
+          "fps": 8.0,
+          "frames": [
+            [
+              0,
+              1
+            ],
+            [
+              1,
+              1
+            ],
+            [
+              2,
+              1
+            ]
+          ],
+          "loop": true
+        },
+        "walk_right": {
+          "fps": 8.0,
+          "frames": [
+            [
+              0,
+              2
+            ],
+            [
+              1,
+              2
+            ],
+            [
+              2,
+              2
+            ]
+          ],
+          "loop": true
+        },
+        "walk_up": {
+          "fps": 8.0,
+          "frames": [
+            [
+              0,
+              3
+            ],
+            [
+              1,
+              3
+            ],
+            [
+              2,
+              3
+            ]
+          ],
+          "loop": true
+        }
+      },
+      "frame": [
+        16,
+        32
+      ],
+      "grid": {
+        "cell": [
+          16,
+          32
+        ],
+        "margin": [
+          0,
+          0
+        ],
+        "separation": [
+          0,
+          0
+        ]
+      },
+      "role": "NPC",
+      "usage": "sprite"
+    }
+  },
+  "c2ee062c7837939d9269988164ccc0ad4a461231d957bac6d4f62fcce5ad9d88": {
+    "": {
+      "grid": {
+        "cell": [
+          48,
+          48
+        ],
+        "margin": [
+          0,
+          0
+        ],
+        "separation": [
+          0,
+          0
+        ]
+      },
+      "role": "INTERIOR",
+      "tags": [
+        "terrain:manual",
+        "objects:manual"
+      ],
+      "usage": "tiles"
+    }
+  },
+  "c300de9f58a794df4ffd2243a957bbf4c481eaa17415596c13d2c6b7148e4bbf": {
+    "o1015_569": {
+      "role": "NONE",
+      "tags": [
+        "unused_because:sheet_caption"
+      ]
+    },
+    "o1058_149": {
+      "role": "NONE",
+      "tags": [
+        "unused_because:sheet_caption"
+      ]
+    },
+    "o170_40": {
+      "role": "NONE",
+      "tags": [
+        "unused_because:sheet_caption"
+      ]
+    },
+    "o21_29": {
+      "role": "NONE",
+      "tags": [
+        "unused_because:sheet_caption"
+      ]
+    },
+    "o270_40": {
+      "role": "NONE",
+      "tags": [
+        "unused_because:sheet_caption"
+      ]
+    },
+    "o428_40": {
+      "role": "NONE",
+      "tags": [
+        "unused_because:sheet_caption"
+      ]
+    },
+    "o44_741": {
+      "role": "NONE",
+      "tags": [
+        "unused_because:sheet_caption"
+      ]
+    },
+    "o45_150": {
+      "role": "NONE",
+      "tags": [
+        "unused_because:sheet_caption"
+      ]
+    },
+    "o502_40": {
+      "role": "NONE",
+      "tags": [
+        "unused_because:sheet_caption"
+      ]
+    },
+    "o70_569": {
+      "role": "NONE",
+      "tags": [
+        "unused_because:sheet_caption"
+      ]
+    },
+    "o854_352": {
+      "role": "NONE",
+      "tags": [
+        "unused_because:sheet_caption"
+      ]
+    },
+    "o874_569": {
+      "role": "NONE",
+      "tags": [
+        "unused_because:sheet_caption"
+      ]
+    },
+    "o956_149": {
+      "role": "NONE",
+      "tags": [
+        "unused_because:sheet_caption"
+      ]
+    }
+  },
+  "c72b00e8316bd43849351c9a3146dcb8f55e14d6ecdb51a5797491c80fe3abe6": {
+    "o729_428": {
+      "role": "ITEM"
+    }
+  },
+  "c7451ab77ed014302631a0fc9e20c2be4e650982b8de5358babcadf7e648f694": {
+    "": {
+      "animations": {
+        "walk_down": {
+          "fps": 8.0,
+          "frames": [
+            [
+              18,
+              0
+            ],
+            [
+              19,
+              0
+            ],
+            [
+              20,
+              0
+            ],
+            [
+              21,
+              0
+            ],
+            [
+              22,
+              0
+            ],
+            [
+              23,
+              0
+            ]
+          ],
+          "loop": true
+        },
+        "walk_left": {
+          "fps": 8.0,
+          "frames": [
+            [
+              12,
+              0
+            ],
+            [
+              13,
+              0
+            ],
+            [
+              14,
+              0
+            ],
+            [
+              15,
+              0
+            ],
+            [
+              16,
+              0
+            ],
+            [
+              17,
+              0
+            ]
+          ],
+          "loop": true
+        },
+        "walk_right": {
+          "fps": 8.0,
+          "frames": [
+            [
+              0,
+              0
+            ],
+            [
+              1,
+              0
+            ],
+            [
+              2,
+              0
+            ],
+            [
+              3,
+              0
+            ],
+            [
+              4,
+              0
+            ],
+            [
+              5,
+              0
+            ]
+          ],
+          "loop": true
+        },
+        "walk_up": {
+          "fps": 8.0,
+          "frames": [
+            [
+              6,
+              0
+            ],
+            [
+              7,
+              0
+            ],
+            [
+              8,
+              0
+            ],
+            [
+              9,
+              0
+            ],
+            [
+              10,
+              0
+            ],
+            [
+              11,
+              0
+            ]
+          ],
+          "loop": true
+        }
+      },
+      "frame": [
+        32,
+        64
+      ],
+      "grid": {
+        "cell": [
+          32,
+          64
+        ],
+        "margin": [
+          0,
+          0
+        ],
+        "separation": [
+          0,
+          0
+        ]
+      },
+      "role": "NPC",
+      "usage": "sprite"
+    }
+  },
+  "cbad75c9bf9cea1b1fdd933a9fef9d2e0dba11b35eb98cb21aa1df964f0619b1": {
+    "": {
+      "grid": {
+        "cell": [
+          48,
+          48
+        ],
+        "margin": [
+          0,
+          0
+        ],
+        "separation": [
+          0,
+          0
+        ]
+      },
+      "role": "GROUND",
+      "tags": [
+        "terrain:manual",
+        "objects:manual"
+      ],
+      "usage": "tiles"
+    }
+  },
+  "cc358af5f628f30716c74f125dedf6fac054bdc68bab444a9f2a94808738edaf": {
+    "": {
+      "grid": {
+        "cell": [
+          16,
+          16
+        ],
+        "margin": [
+          0,
+          0
+        ],
+        "separation": [
+          0,
+          0
+        ]
+      },
+      "role": "GROUND",
+      "tags": [
+        "terrain:manual",
+        "objects:manual"
+      ],
+      "usage": "tiles"
+    }
+  },
+  "cc4aea1bc3d39062e61aa54066df12acac79d694df2df4d8a82c2c73024ca6b3": {
+    "o1165_47": {
+      "role": "DECORATION"
+    },
+    "o1171_339": {
+      "role": "DECORATION"
+    },
+    "o1180_584": {
+      "role": "DECORATION"
+    },
+    "o136_579": {
+      "role": "DECORATION"
+    },
+    "o155_339": {
+      "role": "DECORATION"
+    },
+    "o174_61": {
+      "role": "DECORATION"
+    },
+    "o360_339": {
+      "role": "DECORATION"
+    },
+    "o377_58": {
+      "role": "DECORATION"
+    },
+    "o386_579": {
+      "role": "DECORATION"
+    },
+    "o568_339": {
+      "role": "DECORATION"
+    },
+    "o570_53": {
+      "role": "DECORATION"
+    },
+    "o570_584": {
+      "role": "DECORATION"
+    },
+    "o773_339": {
+      "role": "DECORATION"
+    },
+    "o773_48": {
+      "role": "DECORATION"
+    },
+    "o790_584": {
+      "role": "DECORATION"
+    },
+    "o798_785": {
+      "role": "DECORATION"
+    },
+    "o985_47": {
+      "role": "DECORATION"
+    },
+    "o989_578": {
+      "role": "DECORATION"
+    }
+  },
+  "cf30e9f030456aef11dade10e94e05f3468b5e3f7e5c1814cff06d47e2e035fc": {
+    "o194_392": {
+      "role": "ITEM"
+    },
+    "o291_388": {
+      "role": "ITEM"
+    },
+    "o386_441": {
+      "role": "ITEM"
+    },
+    "o387_390": {
+      "role": "ITEM"
+    },
+    "o3_390": {
+      "role": "ITEM"
+    },
+    "o436_390": {
+      "role": "ITEM"
+    },
+    "o436_440": {
+      "role": "ITEM"
+    },
+    "o483_391": {
+      "role": "ITEM"
+    },
+    "o484_438": {
+      "role": "ITEM"
+    },
+    "o51_387": {
+      "role": "ITEM"
+    },
+    "o531_390": {
+      "role": "ITEM"
+    },
+    "o532_437": {
+      "role": "ITEM"
+    },
+    "o675_296": {
+      "role": "ITEM"
+    },
+    "o722_55": {
+      "role": "ITEM"
+    }
+  },
+  "d264f3303e94c72205fe8df2c5bfef493fe728391b421d246759107868c507b8": {
+    "": {
+      "animations": {
+        "idle_down": {
+          "fps": 8.0,
+          "frames": [
+            [
+              3,
+              0
+            ]
+          ],
+          "loop": true
+        },
+        "idle_left": {
+          "fps": 8.0,
+          "frames": [
+            [
+              2,
+              0
+            ]
+          ],
+          "loop": true
+        },
+        "idle_right": {
+          "fps": 8.0,
+          "frames": [
+            [
+              0,
+              0
+            ]
+          ],
+          "loop": true
+        },
+        "idle_up": {
+          "fps": 8.0,
+          "frames": [
+            [
+              1,
+              0
+            ]
+          ],
+          "loop": true
+        }
+      },
+      "frame": [
+        32,
+        64
+      ],
+      "grid": {
+        "cell": [
+          32,
+          64
+        ],
+        "margin": [
+          0,
+          0
+        ],
+        "separation": [
+          0,
+          0
+        ]
+      },
+      "role": "NPC",
+      "usage": "sprite"
+    }
+  },
+  "d7742bfd06b99d42f7cd197ba48d812a28fb384cc3d1dc7150bdc730f88c9e5f": {
+    "": {
+      "grid": {
+        "cell": [
+          16,
+          16
+        ],
+        "margin": [
+          0,
+          0
+        ],
+        "separation": [
+          0,
+          0
+        ]
+      },
+      "role": "INTERIOR",
+      "tags": [
+        "terrain:manual",
+        "objects:manual"
+      ],
+      "usage": "tiles"
+    }
+  },
+  "d8d3ba0257d2685d8a7571d638ce659d2d38dcf65df3980422a28e8f0f89e429": {
+    "": {
+      "grid": {
+        "cell": [
+          48,
+          48
+        ],
+        "margin": [
+          0,
+          0
+        ],
+        "separation": [
+          0,
+          0
+        ]
+      },
+      "role": "GROUND",
+      "tags": [
+        "terrain:manual",
+        "objects:manual"
+      ],
+      "usage": "tiles"
+    }
+  },
+  "d8fbcd0df4f96ab4b5244f23f144ac90d04dcdd9f3d3f85dadb510d31ae66cda": {
+    "o1077_964": {
+      "role": "WEAPON"
+    },
+    "o1111_750": {
+      "role": "WEAPON"
+    },
+    "o1124_598": {
+      "role": "ITEM"
+    },
+    "o1179_800": {
+      "role": "ITEM"
+    },
+    "o1190_335": {
+      "role": "ITEM"
+    },
+    "o1241_752": {
+      "role": "WEAPON"
+    },
+    "o1271_804": {
+      "role": "WEAPON"
+    },
+    "o1316_892": {
+      "role": "ITEM"
+    },
+    "o1319_337": {
+      "role": "ITEM"
+    },
+    "o1363_271": {
+      "role": "ITEM"
+    },
+    "o1381_92": {
+      "role": "ITEM"
+    },
+    "o1388_337": {
+      "role": "ITEM"
+    },
+    "o1422_751": {
+      "role": "WEAPON"
+    },
+    "o1429_273": {
+      "role": "ITEM"
+    },
+    "o1457_337": {
+      "role": "ITEM"
+    },
+    "o1471_260": {
+      "role": "ITEM"
+    },
+    "o611_499": {
+      "role": "TOOL"
+    }
+  },
+  "dad6d21d92c2782d2b3ae6a953d84ac52f9f971b6337aa6f422aeb5a62e7f854": {
+    "": {
+      "role": "CROP"
+    }
+  },
+  "db3a1e05c9d068ac74c7ebda99f62a08daa5f807d759caab3f27b784756a1af9": {
+    "": {
+      "animations": {
+        "walk_down": {
+          "fps": 8.0,
+          "frames": [
+            [
+              18,
+              0
+            ],
+            [
+              19,
+              0
+            ],
+            [
+              20,
+              0
+            ],
+            [
+              21,
+              0
+            ],
+            [
+              22,
+              0
+            ],
+            [
+              23,
+              0
+            ]
+          ],
+          "loop": true
+        },
+        "walk_left": {
+          "fps": 8.0,
+          "frames": [
+            [
+              12,
+              0
+            ],
+            [
+              13,
+              0
+            ],
+            [
+              14,
+              0
+            ],
+            [
+              15,
+              0
+            ],
+            [
+              16,
+              0
+            ],
+            [
+              17,
+              0
+            ]
+          ],
+          "loop": true
+        },
+        "walk_right": {
+          "fps": 8.0,
+          "frames": [
+            [
+              0,
+              0
+            ],
+            [
+              1,
+              0
+            ],
+            [
+              2,
+              0
+            ],
+            [
+              3,
+              0
+            ],
+            [
+              4,
+              0
+            ],
+            [
+              5,
+              0
+            ]
+          ],
+          "loop": true
+        },
+        "walk_up": {
+          "fps": 8.0,
+          "frames": [
+            [
+              6,
+              0
+            ],
+            [
+              7,
+              0
+            ],
+            [
+              8,
+              0
+            ],
+            [
+              9,
+              0
+            ],
+            [
+              10,
+              0
+            ],
+            [
+              11,
+              0
+            ]
+          ],
+          "loop": true
+        }
+      },
+      "frame": [
+        16,
+        32
+      ],
+      "grid": {
+        "cell": [
+          16,
+          32
+        ],
+        "margin": [
+          0,
+          0
+        ],
+        "separation": [
+          0,
+          0
+        ]
+      },
+      "role": "NPC",
+      "usage": "sprite"
+    }
+  },
+  "dd8fb8846644afd4d1b014e043fbd1adfc5a087dd645f79c9458b00faa90b733": {
+    "o145_482": {
+      "role": "TOOL"
+    },
+    "o194_483": {
+      "role": "TOOL"
+    },
+    "o241_484": {
+      "role": "TOOL"
+    },
+    "o289_484": {
+      "role": "TOOL"
+    },
+    "o337_483": {
+      "role": "TOOL"
+    },
+    "o386_580": {
+      "role": "TOOL"
+    },
+    "o391_437": {
+      "role": "TOOL"
+    },
+    "o433_437": {
+      "role": "TOOL"
+    },
+    "o50_486": {
+      "role": "TOOL"
+    },
+    "o532_435": {
+      "role": "TOOL"
+    },
+    "o577_437": {
+      "role": "TOOL"
+    },
+    "o625_434": {
+      "role": "TOOL"
+    },
+    "o720_387": {
+      "role": "TOOL"
+    },
+    "o98_482": {
+      "role": "TOOL"
+    }
+  },
+  "df333ba9f08d137f17715e4b60ac35f9824d3bd0e20677fbf459de8ee791800a": {
+    "o194_148": {
+      "role": "ITEM"
+    },
+    "o199_55": {
+      "role": "ITEM"
+    },
+    "o4_448": {
+      "role": "ITEM"
+    },
+    "o578_336": {
+      "role": "ITEM"
+    },
+    "o578_49": {
+      "role": "ITEM"
+    },
+    "o580_410": {
+      "role": "ITEM"
+    }
+  },
+  "e2bd0060c2dba8c5c751f709d16d300b84d3b118bb00f11857c5c8b1aa26c935": {
+    "": {
+      "role": "DECORATION",
+      "tags": [
+        "terrain:manual",
+        "objects:manual"
+      ]
+    }
+  },
+  "e337d3e432d2fc1fc6ac705784432f65da65489aa34858e29ed254b86a067a04": {
+    "o100_435": {
+      "role": "TOOL"
+    },
+    "o145_435": {
+      "role": "TOOL"
+    },
+    "o241_543": {
+      "role": "TOOL"
+    },
+    "o242_435": {
+      "role": "TOOL"
+    },
+    "o290_434": {
+      "role": "TOOL"
+    },
+    "o338_387": {
+      "role": "TOOL"
+    },
+    "o385_388": {
+      "role": "TOOL"
+    },
+    "o674_339": {
+      "role": "TOOL"
+    },
+    "o688_626": {
+      "role": "TOOL"
+    },
+    "o722_341": {
+      "role": "TOOL"
+    }
+  },
+  "e3d592487c2883c0b54631a0466f2cbcc61b28b8dfcc8d223b003d8c4808802a": {
+    "": {
+      "role": "NONE",
+      "tags": [
+        "unused_because:preview"
+      ]
+    }
+  },
+  "e6a49cf75474df75f55f53115540d988f50046d03a8580dcf924f1134711ee27": {
+    "o104_201": {
+      "role": "TOOL"
+    },
+    "o106_153": {
+      "role": "ITEM"
+    },
+    "o109_61": {
+      "role": "ITEM"
+    },
+    "o110_105": {
+      "role": "ITEM"
+    },
+    "o111_18": {
+      "role": "ITEM"
+    },
+    "o152_152": {
+      "role": "ITEM"
+    },
+    "o153_106": {
+      "role": "ITEM"
+    },
+    "o153_201": {
+      "role": "TOOL"
+    },
+    "o158_16": {
+      "role": "ITEM"
+    },
+    "o160_61": {
+      "role": "ITEM"
+    },
+    "o194_148": {
+      "role": "TOOL"
+    },
+    "o204_108": {
+      "role": "ITEM"
+    },
+    "o207_63": {
+      "role": "ITEM"
+    },
+    "o296_729": {
+      "role": "ITEM"
+    },
+    "o341_151": {
+      "role": "ITEM"
+    },
+    "o348_682": {
+      "role": "ITEM"
+    },
+    "o350_732": {
+      "role": "ITEM"
+    },
+    "o396_684": {
+      "role": "ITEM"
+    },
+    "o397_148": {
+      "role": "TOOL"
+    },
+    "o397_736": {
+      "role": "ITEM"
+    },
+    "o446_148": {
+      "role": "TOOL"
+    },
+    "o493_148": {
+      "role": "TOOL"
+    },
+    "o532_151": {
+      "role": "TOOL"
+    },
+    "o541_195": {
+      "role": "TOOL"
+    },
+    "o578_244": {
+      "role": "TOOL"
+    },
+    "o579_148": {
+      "role": "TOOL"
+    },
+    "o581_195": {
+      "role": "TOOL"
+    },
+    "o605_196": {
+      "role": "TOOL"
+    },
+    "o617_148": {
+      "role": "TOOL"
+    },
+    "o61_109": {
+      "role": "ITEM"
+    },
+    "o626_245": {
+      "role": "TOOL"
+    },
+    "o629_195": {
+      "role": "TOOL"
+    },
+    "o63_62": {
+      "role": "ITEM"
+    },
+    "o649_148": {
+      "role": "TOOL"
+    },
+    "o674_244": {
+      "role": "TOOL"
+    },
+    "o680_196": {
+      "role": "TOOL"
+    },
+    "o682_148": {
+      "role": "TOOL"
+    },
+    "o729_244": {
+      "role": "TOOL"
+    },
+    "o732_194": {
+      "role": "TOOL"
+    }
+  },
+  "ebf1961319d86d1c299bc18bbb983dd9a8526e46414a6160927c06803035689f": {
+    "o387_625": {
+      "role": "BUILDING"
+    },
+    "o678_627": {
+      "role": "TOOL"
+    },
+    "o721_578": {
+      "role": "TOOL"
+    },
+    "o723_627": {
+      "role": "TOOL"
+    }
+  },
+  "ee3b633e1842cc0f64cb6404c514d28e809bb552c315336198920b24950c4c4c": {
+    "o618_128": {
+      "role": "DECORATION"
+    }
+  },
+  "f0afad0906c65ca03a6fbcf2999bd33051266a0a3bdb2a3265cdb822cdafb435": {
+    "": {
+      "animations": {
+        "walk_down": {
+          "fps": 8.0,
+          "frames": [
+            [
+              0,
+              0
+            ],
+            [
+              1,
+              0
+            ],
+            [
+              2,
+              0
+            ]
+          ],
+          "loop": true
+        },
+        "walk_left": {
+          "fps": 8.0,
+          "frames": [
+            [
+              0,
+              1
+            ],
+            [
+              1,
+              1
+            ],
+            [
+              2,
+              1
+            ]
+          ],
+          "loop": true
+        },
+        "walk_right": {
+          "fps": 8.0,
+          "frames": [
+            [
+              0,
+              2
+            ],
+            [
+              1,
+              2
+            ],
+            [
+              2,
+              2
+            ]
+          ],
+          "loop": true
+        },
+        "walk_up": {
+          "fps": 8.0,
+          "frames": [
+            [
+              0,
+              3
+            ],
+            [
+              1,
+              3
+            ],
+            [
+              2,
+              3
+            ]
+          ],
+          "loop": true
+        }
+      },
+      "frame": [
+        32,
+        64
+      ],
+      "grid": {
+        "cell": [
+          32,
+          64
+        ],
+        "margin": [
+          0,
+          0
+        ],
+        "separation": [
+          0,
+          0
+        ]
+      },
+      "role": "NPC",
+      "usage": "sprite"
+    }
+  },
+  "f274fd4bad802f07991510e2e98b417942e3459e13c0cdcaa5b4ba6a4c7f25c6": {
+    "": {
+      "grid": {
+        "cell": [
+          16,
+          16
+        ],
+        "margin": [
+          0,
+          0
+        ],
+        "separation": [
+          0,
+          0
+        ]
+      },
+      "role": "GROUND",
+      "tags": [
+        "terrain:manual",
+        "objects:manual"
+      ],
+      "usage": "tiles"
+    }
+  },
+  "f642100d90237d8540ab0f7f52564223743653e6f4e29d36ae604dd46ab808ff": {
+    "o1071_926": {
+      "role": "DECORATION"
+    },
+    "o1121_384": {
+      "role": "DECORATION"
+    },
+    "o1136_511": {
+      "role": "DECORATION"
+    },
+    "o1167_943": {
+      "role": "DECORATION"
+    },
+    "o1255_525": {
+      "role": "DECORATION"
+    },
+    "o1256_928": {
+      "role": "DECORATION"
+    },
+    "o1259_372": {
+      "role": "DECORATION"
+    },
+    "o1339_925": {
+      "role": "DECORATION"
+    },
+    "o1383_379": {
+      "role": "DECORATION"
+    },
+    "o1403_537": {
+      "role": "DECORATION"
+    },
+    "o1416_917": {
+      "role": "DECORATION"
+    },
+    "o186_503": {
+      "role": "DECORATION"
+    },
+    "o323_547": {
+      "role": "DECORATION"
+    },
+    "o33_495": {
+      "role": "DECORATION"
+    },
+    "o412_528": {
+      "role": "DECORATION"
+    },
+    "o521_518": {
+      "role": "DECORATION"
+    },
+    "o599_378": {
+      "role": "DECORATION"
+    },
+    "o653_497": {
+      "role": "DECORATION"
+    },
+    "o690_918": {
+      "role": "DECORATION"
+    },
+    "o719_382": {
+      "role": "DECORATION"
+    },
+    "o756_420": {
+      "role": "DECORATION"
+    },
+    "o778_937": {
+      "role": "DECORATION"
+    },
+    "o811_379": {
+      "role": "DECORATION"
+    },
+    "o811_510": {
+      "role": "DECORATION"
+    },
+    "o849_947": {
+      "role": "DECORATION"
+    },
+    "o914_945": {
+      "role": "DECORATION"
+    },
+    "o976_507": {
+      "role": "DECORATION"
+    },
+    "o987_379": {
+      "role": "DECORATION"
+    }
+  },
+  "f6b75bc9e950a5468bfddaa77aeb47cdec6fdab832c5dbdfb56d3f74b57370af": {
+    "": {
+      "role": "CROP"
+    }
+  },
+  "fae09e6eb67e06bf37c22e59a3bfd5d7fb0d5dec59250c8fefce21071d2f6855": {
+    "o1107_407": {
+      "role": "DECORATION"
+    },
+    "o1329_185": {
+      "role": "DECORATION"
+    },
+    "o1332_367": {
+      "role": "DECORATION"
+    },
+    "o179_391": {
+      "role": "DECORATION"
+    },
+    "o338_389": {
+      "role": "DECORATION"
+    },
+    "o412_186": {
+      "role": "DECORATION"
+    },
+    "o481_395": {
+      "role": "DECORATION"
+    },
+    "o588_186": {
+      "role": "DECORATION"
+    },
+    "o61_402": {
+      "role": "DECORATION"
+    },
+    "o635_410": {
+      "role": "DECORATION"
+    },
+    "o765_186": {
+      "role": "DECORATION"
+    },
+    "o817_404": {
+      "role": "DECORATION"
+    },
+    "o953_186": {
+      "role": "DECORATION"
+    },
+    "o961_407": {
+      "role": "DECORATION"
+    }
+  },
+  "fc2adab5b0480af7b41c9cfe07cb1531bf55761fc5a00744fd12b4937e657390": {
+    "o935_633": {
+      "role": "DECORATION"
+    }
+  },
+  "fec0ed15d4ffc65d3f50893fa3e919b38ac07f0fa84b531aa6d4f02a231df1b1": {
+    "o100_105": {
+      "role": "ITEM"
+    },
+    "o100_580": {
+      "role": "ITEM"
+    },
+    "o101_9": {
+      "role": "ITEM"
+    },
+    "o102_291": {
+      "role": "ITEM"
+    },
+    "o11_10": {
+      "role": "ITEM"
+    },
+    "o12_105": {
+      "role": "ITEM"
+    },
+    "o197_8": {
+      "role": "ITEM"
+    },
+    "o198_102": {
+      "role": "ITEM"
+    },
+    "o292_292": {
+      "role": "ITEM"
+    },
+    "o295_4": {
+      "role": "ITEM"
+    },
+    "o295_485": {
+      "role": "ITEM"
+    },
+    "o304_676": {
+      "role": "ITEM"
+    },
+    "o387_214": {
+      "role": "ITEM"
+    },
+    "o387_581": {
+      "role": "ITEM"
+    },
+    "o388_300": {
+      "animations": {
+        "idle_down": {
+          "fps": 1.0,
+          "frames": [
+            [
+              0,
+              0
+            ]
+          ],
+          "loop": true
+        },
+        "walk_down": {
+          "fps": 1.0,
+          "frames": [
+            [
+              0,
+              0
+            ]
+          ],
+          "loop": true
+        }
+      },
+      "grid": {
+        "cell": [
+          88,
+          78
+        ],
+        "margin": [
+          0,
+          0
+        ],
+        "separation": [
+          0,
+          0
+        ]
+      },
+      "role": "ANIMAL",
+      "usage": "sprite"
+    },
+    "o388_486": {
+      "role": "ITEM"
+    },
+    "o393_399": {
+      "role": "ITEM"
+    },
+    "o395_9": {
+      "role": "ITEM"
+    },
+    "o3_387": {
+      "role": "ITEM"
+    },
+    "o401_676": {
+      "role": "ITEM"
+    },
+    "o402_105": {
+      "role": "ITEM"
+    },
+    "o422_144": {
+      "role": "ITEM"
+    },
+    "o483_212": {
+      "role": "ITEM"
+    },
+    "o484_295": {
+      "animations": {
+        "idle_down": {
+          "fps": 1.0,
+          "frames": [
+            [
+              0,
+              0
+            ]
+          ],
+          "loop": true
+        },
+        "walk_down": {
+          "fps": 1.0,
+          "frames": [
+            [
+              0,
+              0
+            ]
+          ],
+          "loop": true
+        }
+      },
+      "grid": {
+        "cell": [
+          88,
+          83
+        ],
+        "margin": [
+          0,
+          0
+        ],
+        "separation": [
+          0,
+          0
+        ]
+      },
+      "role": "ANIMAL",
+      "usage": "sprite"
+    },
+    "o485_492": {
+      "role": "ITEM"
+    },
+    "o492_105": {
+      "role": "ITEM"
+    },
+    "o492_414": {
+      "role": "ITEM"
+    },
+    "o492_9": {
+      "role": "ITEM"
+    },
+    "o516_144": {
+      "role": "ITEM"
+    },
+    "o516_48": {
+      "role": "ITEM"
+    },
+    "o528_399": {
+      "role": "ITEM"
+    },
+    "o534_433": {
+      "role": "ITEM"
+    },
+    "o579_212": {
+      "role": "ITEM"
+    },
+    "o579_301": {
+      "animations": {
+        "idle_down": {
+          "fps": 1.0,
+          "frames": [
+            [
+              0,
+              0
+            ]
+          ],
+          "loop": true
+        },
+        "walk_down": {
+          "fps": 1.0,
+          "frames": [
+            [
+              0,
+              0
+            ]
+          ],
+          "loop": true
+        }
+      },
+      "grid": {
+        "cell": [
+          90,
+          71
+        ],
+        "margin": [
+          0,
+          0
+        ],
+        "separation": [
+          0,
+          0
+        ]
+      },
+      "role": "ANIMAL",
+      "usage": "sprite"
+    },
+    "o579_396": {
+      "role": "ITEM"
+    },
+    "o582_678": {
+      "role": "ITEM"
+    },
+    "o5_199": {
+      "role": "ITEM"
+    },
+    "o675_214": {
+      "role": "ITEM"
+    },
+    "o678_675": {
+      "role": "ITEM"
+    },
+    "o679_482": {
+      "role": "ITEM"
+    },
+    "o685_302": {
+      "role": "ITEM"
+    },
+    "o6_294": {
+      "role": "ITEM"
+    },
+    "o6_579": {
+      "role": "ITEM"
+    },
+    "o99_198": {
+      "role": "ITEM"
+    }
+  }
+}

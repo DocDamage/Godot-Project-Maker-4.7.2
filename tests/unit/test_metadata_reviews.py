@@ -1,0 +1,289 @@
+from __future__ import annotations
+
+import copy
+from pathlib import Path
+
+import pytest
+from PIL import Image, ImageDraw
+
+from rpggen import schema
+from rpggen.core import archive, catalog, inventory, metadata_reviews, profiles
+
+
+@pytest.fixture
+def reviewed(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
+    monkeypatch.setenv("RPGGEN_CACHE_DIR", str(tmp_path / "cache"))
+    root = tmp_path / "pack"
+    root.mkdir()
+    im = Image.new("RGBA", (32, 32))
+    ImageDraw.Draw(im).rectangle((8, 8, 24, 31), fill="red")
+    im.save(root / "item.png")
+    opened = archive.open_pack(root, set())
+    inv = inventory.build_inventory(opened)
+    before, _, generated = catalog.assemble([(opened, inv)], None, [])
+    a = next(a for a in before.assets if a.kind == "image" and a.detected["role"] != "NONE")
+    path = Path(generated[a.path]) if a.path in generated else root / "item.png"
+    approved = {
+        **catalog.effective(a),
+        "usage": "object",
+        "role": "ITEM",
+        "size": list(im.size),
+        "frame": list(im.size),
+        "origin": [16, 31],
+        "animations": {},
+        "collision": {"profile": "NONE"},
+    }
+    record = {
+        "input": catalog.effective(a),
+        "approved": approved,
+        "pixel_sha256": metadata_reviews.pixel_hash(path),
+    }
+    data = {"assets": {a.sha256: {a.id.partition("#")[2]: record}}}
+    monkeypatch.setattr(metadata_reviews, "readings", lambda: data)
+    return opened, inv, before, a, path, record
+
+
+def test_confirmation_applies_without_inflating_confidence(reviewed) -> None:
+    opened, inv, _, old, _, record = reviewed
+    cat, _, _ = catalog.assemble([(opened, inv)], None, [])
+    a = cat.asset(old.id)
+    assert a.status == "CONFIRMED" and a.confidence == old.confidence
+    assert catalog.effective(a) == record["approved"]
+    assert a.metadata_review == metadata_reviews.record_hash(a.sha256, a.id.partition("#")[2])
+    assert catalog.Catalog.from_json(cat.to_json()).asset(a.id).metadata_review == a.metadata_review
+    schema.validate("catalog", cat.to_json())
+
+
+@pytest.mark.parametrize("legacy", [False, True])
+@pytest.mark.parametrize("changed_approval", [False, True])
+def test_regeneration_rechecks_automatic_confirmation_instead_of_carrying_status(
+    reviewed, legacy, changed_approval
+) -> None:
+    opened, inv, _, original, _, record = reviewed
+    previous, _, _ = catalog.assemble([(opened, inv)], None, [])
+    assert previous.asset(original.id).status == "CONFIRMED"
+    if legacy:
+        previous.asset(original.id).metadata_review = None
+    record["pixel_sha256"] = "0" * 64
+    if changed_approval:
+        record["approved"]["role"] = "TOOL"
+    current, _, _ = catalog.assemble([(opened, inv)], previous, [])
+    assert current.asset(original.id).status != "CONFIRMED"
+    assert current.asset(original.id).metadata_review is None
+
+
+def test_removed_automatic_record_does_not_survive_regeneration(reviewed, monkeypatch) -> None:
+    opened, inv, _, original, _, _ = reviewed
+    previous, _, _ = catalog.assemble([(opened, inv)], None, [])
+    monkeypatch.setattr(metadata_reviews, "readings", lambda: {"assets": {}})
+    current, _, _ = catalog.assemble([(opened, inv)], previous, [])
+    assert current.asset(original.id).status != "CONFIRMED"
+    # An explicit saved user override remains authoritative, even with the record gone.
+    previous.asset(original.id).overrides = {"role": "EFFECT"}
+    current, _, _ = catalog.assemble([(opened, inv)], previous, [])
+    assert current.asset(original.id).status == "CONFIRMED"
+    assert catalog.effective(current.asset(original.id))["role"] == "EFFECT"
+
+
+@pytest.mark.parametrize(
+    "kind,role,tag",
+    [
+        ("static_battler", "ENEMY", "static_battler"),
+        ("static_animal", "ANIMAL", "static_animal"),
+    ],
+)
+def test_static_sprite_confirmation_is_explicit_and_not_a_moving_actor_review(
+    reviewed, kind, role, tag
+):
+    opened, inv, before, old, path, record = reviewed
+    approved = {k: copy.deepcopy(record["approved"][k]) for k in ("size", "frame", "origin")}
+    approved.update(
+        usage="sprite",
+        role=role,
+        tags=[tag],
+        grid={"cell": approved["size"], "margin": [0, 0], "separation": [0, 0]},
+        animations={"idle_down": {"fps": 1.0, "frames": [[0, 0]], "loop": True}},
+    )
+    record.update(kind=kind, approved=approved)
+    cat, _, _ = catalog.assemble([(opened, inv)], None, [])
+    assert cat.asset(old.id).status == "CONFIRMED"
+    assert cat.asset(old.id).confidence == old.confidence
+    for change in [
+        {"animations": {"walk_down": {"fps": 8, "frames": [[0, 0], [1, 0]], "loop": True}}},
+        {"collision": {"profile": "FULL"}},
+        {"origin": [-1, 0]},
+        {"tags": []},
+    ]:
+        record["approved"] = {**approved, **change}
+        assert (
+            metadata_reviews.decision(old.sha256, old.id.partition("#")[2], record["input"], path)
+            is None
+        )
+    record["approved"] = approved
+    record["kind"] = "unknown"
+    assert (
+        metadata_reviews.decision(old.sha256, old.id.partition("#")[2], record["input"], path)
+        is None
+    )
+
+
+def test_source_render_and_input_facets_all_guard_confirmation(reviewed) -> None:
+    _, _, _, a, path, record = reviewed
+    variant = a.id.partition("#")[2]
+    assert metadata_reviews.decision("0" * 64, variant, record["input"], path) is None
+    assert metadata_reviews.decision(a.sha256, "unknown", record["input"], path) is None
+    changed = {**record["input"], "origin": [0, 0]}
+    assert metadata_reviews.decision(a.sha256, variant, changed, path) is None
+    im = Image.open(path).convert("RGBA")
+    im.putpixel((0, 0), (0, 0, 255, 255))
+    im.save(path)
+    assert metadata_reviews.decision(a.sha256, variant, record["input"], path) is None
+
+
+def test_partial_or_invalid_metadata_never_confirms(reviewed) -> None:
+    _, _, _, a, path, record = reviewed
+    for key in ("role", "usage", "frame", "size", "animations", "origin", "collision"):
+        saved = record["approved"]
+        record["approved"] = {k: v for k, v in saved.items() if k != key}
+        assert (
+            metadata_reviews.decision(a.sha256, a.id.partition("#")[2], record["input"], path)
+            is None
+        )
+        record["approved"] = saved
+
+
+def test_user_override_has_priority(reviewed) -> None:
+    opened, inv, before, a, _, _ = reviewed
+    before.asset(a.id).overrides = {"origin": [3, 5]}
+    cat, _, _ = catalog.assemble([(opened, inv)], before, [])
+    assert catalog.effective(cat.asset(a.id))["origin"] == [3, 5]
+    assert cat.asset(a.id).detected == a.detected
+
+
+def test_packaged_confirmations_are_complete_valid_and_independent() -> None:
+    data = metadata_reviews.readings()
+    assert data["review_version"] == 1
+    for sha, variants in data["assets"].items():
+        assert len(sha) == 64
+        for record in variants.values():
+            assert metadata_reviews.complete(
+                record["approved"], record.get("kind", "static_object")
+            )
+            a = catalog.Asset(
+                "test.picture",
+                "test",
+                "assets/packs/test/picture.png",
+                sha,
+                "image",
+                "CONFIRMED",
+                copy.deepcopy(record["approved"]),
+            )
+            schema.validate("catalog", catalog.Catalog(assets=[a]).to_json())
+
+
+def test_actor_art_rejects_unreviewed_behavior_sources_and_geometry() -> None:
+    record = next(
+        record
+        for variants in metadata_reviews.readings()["assets"].values()
+        for record in variants.values()
+        if record.get("kind") == "actor_art" and "character_index" in record["approved"]
+    )
+    approved = record["approved"]
+    assert metadata_reviews.complete(approved, "actor_art")
+    for changes in (
+        {"collision": {"profile": "SOLID"}},
+        {"move_speed": 100},
+        {"role": "PLAYER"},
+        {"tags": []},
+        {"origin": [0, 0]},
+        {"character_index": True},
+        {"character_index": 8},
+        {"frame": [False, 32]},
+    ):
+        assert not metadata_reviews.complete({**approved, **changes}, "actor_art")
+    for changes in (
+        {"source": "other.png"},
+        {"rects": [[0, 0, 16, 32]]},
+        {"fps": float("nan")},
+        {"fps": True},
+        {"loop": "true"},
+        {"frames": []},
+        {"frames": [[-1, 0]]},
+        {"frames": [[12, 0]]},
+        {"frames": [[0, 8]]},
+        {"frames": [[True, 0]]},
+        {"frames": [[(approved["character_index"] % 4 * 3 + 3) % 12, 0]]},
+    ):
+        altered = copy.deepcopy(approved)
+        name = next(iter(altered["animations"]))
+        altered["animations"][name].update(changes)
+        assert not metadata_reviews.complete(altered, "actor_art"), changes
+    altered = copy.deepcopy(approved)
+    altered["animations"]["attack_down"] = altered["animations"].pop(
+        next(iter(altered["animations"]))
+    )
+    assert not metadata_reviews.complete(altered, "actor_art")
+
+
+def test_profile_keys_refer_to_original_source_and_recreate_helpers(reviewed) -> None:
+    opened, inv, before, a, _, _ = reviewed
+    a.status = "CONFIRMED"
+    a.path = "generated/sheet_parts/crop.png"
+    data = profiles.export_profile(before, opened.pack_id, inv, {"title": "reviewed"})
+    key = "item.png" + ("#" + a.id.partition("#")[2] if "#" in a.id else "")
+    assert key in data["assets"]
+    assert data["rendered_assets"] == [key]
+    assert data["asset_hashes"]["item.png"] == a.sha256
+
+
+def test_profile_reimport_regenerates_a_real_sheet_crop(tmp_path: Path, monkeypatch) -> None:
+    monkeypatch.setenv("RPGGEN_CACHE_DIR", str(tmp_path / "cache"))
+    root = tmp_path / "Furniture Tileset"
+    root.mkdir()
+    im = Image.new("RGBA", (512, 512))
+    draw = ImageDraw.Draw(im)
+    draw.rectangle((64, 64, 90, 108), fill="red")
+    draw.rectangle((256, 256, 284, 300), fill="blue")
+    im.save(root / "furniture.png")
+    opened = archive.open_pack(root, set())
+    inv = inventory.build_inventory(opened)
+    before, _, gen = catalog.assemble([(opened, inv)], None, [])
+    crops = [a for a in before.assets if "#" in a.id and a.path in gen]
+    assert crops, "fixture must exercise the real sheet cutter"
+    crop = crops[0]
+    crop.status = "CONFIRMED"
+    crop.overrides = {"origin": [4, 7], "collision": {"profile": "NONE"}}
+    profile = profiles.export_profile(before, opened.pack_id, inv, {"title": "crops"})
+    monkeypatch.setattr(profiles, "best_match", lambda _inv: (1.0, profile))
+    fresh, _, files = catalog.assemble([(opened, inv)], None, [])
+    got = fresh.asset(crop.id)
+    assert got is not None and got.detected_by == "profile"
+    assert catalog.effective(got)["origin"] == [4, 7]
+    assert got.path in files and Path(files[got.path]).is_file()
+    assert metadata_reviews.pixel_hash(Path(files[got.path])) == metadata_reviews.pixel_hash(
+        Path(gen[crop.path])
+    )
+
+
+def test_fire_review_preserves_columns_styles_and_authored_timing() -> None:
+    from rpggen.core import pack_readings
+
+    first = pack_readings.region_facts(
+        "16eff4750364b9da6163d5a13b678cb61fb3501378e68f0e8feb0dae169ff15b", ""
+    )
+    assert first["frame"] == [48, 48]
+    assert [a["rects"][0] for a in first["animations"].values()] == [
+        [0, 0, 32, 48],
+        [32, 0, 48, 48],
+        [80, 0, 48, 48],
+        [128, 0, 48, 48],
+    ]
+    assert first["animations"]["fire_0"]["offsets"] == [[8, 0]] * 6
+    second = pack_readings.region_facts(
+        "6ce070d52b7766d48499339619e56117447a6c4be244a02536c12fba8229d27b", ""
+    )
+    assert len(second["animations"]) == 6
+    for name, animation in second["animations"].items():
+        col, style = map(int, name.split("_")[1:])
+        assert animation["frames"] == [[col, style + phase * 2] for phase in range(3)]
+        assert animation["fps"] == pytest.approx(1000 / 150)

@@ -12,7 +12,9 @@ import json
 import sys
 from pathlib import Path
 
+import numpy as np
 import pytest
+from PIL import Image, ImageDraw
 
 from rpggen import jsonio
 from rpggen.core import config, orchestrator, profiles
@@ -120,3 +122,66 @@ def test_the_things_of_a_sheet_of_tiles_are_placed_from_the_dock(
     placed = [p for p in run.report["places"] if p["role"] == "DECORATION"]
     assert len(placed) == 4
     assert sum(1 for p in placed if p["shapes"] > 0) == 3, "all but the flower collide"
+
+
+def test_corner_terrain_outer_edges_are_not_reported_as_bad_joins(
+    godot_exe: Path, tmp_path: Path
+) -> None:
+    """A complete corner terrain: Tiled's zero corners are legal outside the painted area.
+
+    The old judge required all four corners on every cell, falsely flagging the perimeter
+    of LPC Floors despite Godot successfully painting its authored corner pieces.
+    """
+    pack = tmp_path / "Corner Floors"
+    pack.mkdir()
+    sheet = Image.new("RGBA", (64, 64))
+    draw = ImageDraw.Draw(sheet)
+    tiles = []
+    for mask in range(16):
+        x, y = (mask % 4) * 16, (mask // 4) * 16
+        for bit, (dx, dy) in enumerate(((8, 0), (8, 8), (0, 8), (0, 0))):
+            if mask & (1 << bit):
+                draw.rectangle((x + dx, y + dy, x + dx + 7, y + dy + 7), fill=(90, 140, 80, 255))
+        corners = [1 if mask & (1 << b) else 0 for b in range(4)]
+        wang = ",".join(str(v) for c in corners for v in (0, c))
+        tiles.append(f'<wangtile tileid="{mask}" wangid="{wang}"/>')
+    sheet.save(pack / "floors.png")
+    (pack / "floors.tsx").write_text(
+        '<tileset name="floors" tilewidth="16" tileheight="16" columns="4" tilecount="16">'
+        '<image source="floors.png" width="64" height="64"/>'
+        '<wangsets><wangset name="floor" type="corner">'
+        '<wangcolor name="grass" color="#5a8c50" tile="15"/>'
+        + "".join(tiles)
+        + "</wangset></wangsets></tileset>",
+        encoding="utf-8",
+    )
+    result = _generate(godot_exe, tmp_path, pack, "Corner Edges")
+    run = level_probe_run.make_level(result.target, tmp_path / "corner_level", godot_exe)
+    assert run.report["ok"] and run.report["terrains"]
+    for terrain in run.report["terrains"]:
+        assert terrain["holes"] == 0 and terrain["wrong"] == 0, terrain
+
+
+def test_the_dock_is_exercised_for_character_packs_without_ground(
+    godot_exe: Path, tmp_path: Path
+) -> None:
+    pack = tmp_path / "Battlers"
+    pack.mkdir()
+    image = Image.new("RGBA", (512, 480))
+    ImageDraw.Draw(image).ellipse((10, 8, 502, 470), fill=(160, 50, 30, 255))
+    image.save(pack / "rtdragon1.png")
+    result = _generate(godot_exe, tmp_path, pack, "Battler Assets")
+    run = level_probe_run.make_level(result.target, tmp_path / "battler_level", godot_exe)
+    assert run.report["ok"], run.report.get("error")
+    assert run.report["terrains"] == []
+    assert any(p["role"] == "ENEMY" for p in run.report["places"]), run.report
+    shot = tmp_path / "battler.png"
+    ok, log = level_probe_run.picture_level(run.project, godot_exe, shot)
+    assert ok, log
+    with Image.open(shot) as rendered:
+        pixels = np.asarray(rendered.convert("RGB"), dtype=np.int16)
+        red = (pixels[:, :, 0] > 2 * pixels[:, :, 1]) & (pixels[:, :, 0] > 2 * pixels[:, :, 2])
+        assert red.any()
+        assert not (red[0].any() or red[-1].any() or red[:, 0].any() or red[:, -1].any()), (
+            "the camera must include the complete battler"
+        )

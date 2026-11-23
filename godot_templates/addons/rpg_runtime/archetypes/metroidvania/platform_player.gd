@@ -31,6 +31,7 @@ var _prompt: Label = null
 var _safe_cell := Vector2i(-99999, -99999)
 var _safe_time := 0.0
 var _return_left := -1.0
+var _tile_hazards := RpgTileHazards.new()
 var _attacking := false
 var _attack_time := 0.0
 var _attack_seconds := GENERIC_ATTACK_S
@@ -253,6 +254,7 @@ func _invulnerable() -> bool:
 ## Touching a hazard costs a hit point, gives a moment of invulnerability and, after a short fade,
 ## puts the player back on the last safe ground.
 func _step_hazards(delta: float) -> void:
+	_tile_hazards.tick(delta)
 	if _return_left >= 0.0:
 		_return_left -= delta
 		if _return_left < 0.0:
@@ -260,8 +262,11 @@ func _step_hazards(delta: float) -> void:
 		return
 	if _dead or _invulnerable() or not touching_hazard():
 		return
+	var spec := RpgTileHazards.at(layers(), _probe_points(), RpgPlatformMath.HAZARD_INVULN_S)
+	if not _tile_hazards.consume(spec):
+		return
 	var info := RpgDamageInfo.new()
-	info.amount = RpgPlatformMath.HAZARD_DAMAGE
+	info.amount = RpgUtil.to_int(spec["damage"])
 	if health != null:
 		health.take(info)
 	else:
@@ -269,7 +274,7 @@ func _step_hazards(delta: float) -> void:
 		if stats != null:
 			stats.take_damage(info.amount)
 	if hurtbox != null:
-		hurtbox.make_invulnerable(RpgPlatformMath.HAZARD_INVULN_S)
+		hurtbox.make_invulnerable(RpgUtil.to_float(spec["cooldown"], RpgPlatformMath.HAZARD_INVULN_S))
 	was_hurt.emit(info.amount)
 	if _dead or (health != null and health.is_dead()):
 		return

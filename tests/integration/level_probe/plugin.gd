@@ -80,9 +80,11 @@ func _run() -> void:
 	report["view"] = "side" if side else ("isometric" if iso else "top_down")
 	var ts := _tileset()
 	if ts == null:
-		report["error"] = "the project has no tile set in " + TILESETS
-		_finish(report)
-		return
+		# A character/prop pack is a valid assets-only project without ground art.
+		# Keep its empty layers and exercise the dock, without inventing terrain.
+		ts = TileSet.new()
+		var tile_size := maxi(8, int(config.get("base_tile_size", 16)))
+		ts.tile_size = Vector2i(tile_size, tile_size)
 	report["tileset"] = ts.resource_path
 	var err := _make_template(ts)
 	if err != OK:
@@ -485,7 +487,12 @@ func _judge(layer: TileMapLayer, cells: Array[Vector2i], set_index: int, terrain
 				# a corner is the terrain's when the cell there and the two sides beside it are
 				there = there and inside.has(layer.get_neighbor_cell(c, sides[at])) and inside.has(layer.get_neighbor_cell(c, sides[(at + 1) % 4]))
 			if mode == TileSet.TERRAIN_MODE_MATCH_CORNERS:
-				there = true  # matched by corners: a painted cell is whole, the cells round it join
+				# Painting uses ignore_empty_terrains=true. A corner touching unpainted
+				# space is unconstrained, not a request for this terrain at that corner.
+				# Check the joins inside the painted region; valid outer edges may be empty.
+				if not there:
+					continue
+				there = true
 			var says := drawn.get_terrain_peering_bit(bit) == terrain
 			if says != there:
 				bad = true

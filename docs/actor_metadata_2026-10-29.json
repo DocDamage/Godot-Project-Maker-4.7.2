@@ -1,0 +1,1423 @@
+{
+  "date": "2026-10-29",
+  "scope": "Reviewed NPC art cells, facing and sequence, with explicit editable presentation defaults; no gameplay or artist-authored timing certification",
+  "baseline_revision": "d24c61750c2e135cee43a5814f1c503457110ebe",
+  "tested_file_sha256": {
+    "rpggen/core/metadata_reviews.py": "aa36b50a335e98c3237048f9ff334700bd3c57b3b6a37132b9b5e3da669f3168",
+    "rpggen/core/licenses.py": "aef54720a0f43a58f6d763786803dc958b0fc438a352edeef0f72d938025d381",
+    "rpggen/core/adapters/pack_layouts.py": "afbe298e18567d9bedfc7ee12c653e0c43715f30838afcbb1aa4f3ec54ea3455",
+    "rpggen/data/confirmed_metadata.json": "cbfbead0f0e4b1de659ca181aff500e76b5b42db1587bd5dd8c471e3dc291c54",
+    "tests/unit/test_metadata_reviews.py": "044eda9f5670fae99a360d5b42640aa5e58a857427659036bf50c018f0daf349",
+    "tests/unit/test_licenses.py": "ec87d3f1a96231fc3c20bf6fb372d7dcce825e520cd9eec5254bd1c8c5343938",
+    "tests/unit/test_coverage_regressions.py": "48642b62e4559c669c7c047a62e20e2fc4724273d9aa34f98a18554aacee65f3"
+  },
+  "private_evidence_root": "D:\\rpggen_actor_metadata_20261029",
+  "certifications": [
+    {
+      "number": 8472,
+      "id": "modern_interiors_free_v2.modern_tiles_free.characters_free.adam_phone_16x16",
+      "source_sha256": "4afc34e2a0edbaaa58349c7682e5390c06d6926323a8d38e0e04166f3049cfc5",
+      "source_path": "Modern tiles_Free/Characters_free/Adam_phone_16x16.png",
+      "variant": "",
+      "kind": "actor_art",
+      "pixel_sha256": "5c96a9e88cfb792bf4798f2650d14cce2d2692a88b87204c2b2395bc6ef3d855",
+      "frame": [
+        16,
+        32
+      ],
+      "origin": [
+        8,
+        31
+      ],
+      "animation_names": [
+        "phone_down"
+      ],
+      "playback_frames": 9,
+      "confidence_before_and_after": 0.5
+    },
+    {
+      "number": 8473,
+      "id": "modern_interiors_free_v2.modern_tiles_free.characters_free.adam_sit2_16x16",
+      "source_sha256": "d8a3a90afa5627b6ec94a996c1fa56ee9ad0cdfe58e79584faca7669301cd310",
+      "source_path": "Modern tiles_Free/Characters_free/Adam_sit2_16x16.png",
+      "variant": "",
+      "kind": "actor_art",
+      "pixel_sha256": "dd00114be36d57b0efd85a389dcafe2e9e497a4efb2aff4af3d564d01d96a073",
+      "frame": [
+        32,
+        32
+      ],
+      "origin": [
+        16,
+        31
+      ],
+      "animation_names": [
+        "sit2_left",
+        "sit2_right"
+      ],
+      "playback_frames": 12,
+      "confidence_before_and_after": 0.5
+    },
+    {
+      "number": 8474,
+      "id": "modern_interiors_free_v2.modern_tiles_free.characters_free.adam_sit3_16x16",
+      "source_sha256": "57040f8c1a17af8d2450b23e44d76ec9860408422e79f283ef3436993f8b3c15",
+      "source_path": "Modern tiles_Free/Characters_free/Adam_sit3_16x16.png",
+      "variant": "",
+      "kind": "actor_art",
+      "pixel_sha256": "7f9edb79c8a181708acaa63637ab107b217d713fc62131c9b1f841a0027a357e",
+      "frame": [
+        16,
+        32
+      ],
+      "origin": [
+        8,
+        31
+      ],
+      "animation_names": [
+        "sit3_down",
+        "sit3_up"
+      ],
+      "playback_frames": 12,
+      "confidence_before_and_after": 0.5
+    },
+    {
+      "number": 8475,
+      "id": "modern_interiors_free_v2.modern_tiles_free.characters_free.adam_sit_16x16",
+      "source_sha256": "eac1744a9203f73544c0096dc1db7f335ae4efc23ca5f11d3be31db51a5f3e0c",
+      "source_path": "Modern tiles_Free/Characters_free/Adam_sit_16x16.png",
+      "variant": "",
+      "kind": "actor_art",
+      "pixel_sha256": "74479fb48fbe893a0e4241c6c688c206189332be9b8fca304e14e7218d2e5aca",
+      "frame": [
+        32,
+        32
+      ],
+      "origin": [
+        16,
+        31
+      ],
+      "animation_names": [
+        "sit_left",
+        "sit_right"
+      ],
+      "playback_frames": 12,
+      "confidence_before_and_after": 0.5
+    },
+    {
+      "number": 8476,
+      "id": "modern_interiors_free_v2.modern_tiles_free.characters_free.alex_phone_16x16",
+      "source_sha256": "feff00c8cf84b989ad1f64330586ef2a789ab7352f08d2a87713f474bcdea910",
+      "source_path": "Modern tiles_Free/Characters_free/Alex_phone_16x16.png",
+      "variant": "",
+      "kind": "actor_art",
+      "pixel_sha256": "12dfcd10474696932293472a931754f8778e33a45c050abae57b716140914ed6",
+      "frame": [
+        16,
+        32
+      ],
+      "origin": [
+        8,
+        31
+      ],
+      "animation_names": [
+        "phone_down"
+      ],
+      "playback_frames": 9,
+      "confidence_before_and_after": 0.5
+    },
+    {
+      "number": 8477,
+      "id": "modern_interiors_free_v2.modern_tiles_free.characters_free.alex_sit2_16x16",
+      "source_sha256": "f161f8895506daa9cdb54a17f716b1da68729b82f4d995c02fb35f7e7bcd87ac",
+      "source_path": "Modern tiles_Free/Characters_free/Alex_sit2_16x16.png",
+      "variant": "",
+      "kind": "actor_art",
+      "pixel_sha256": "0537d868274c67c3ef089d7092e0584873ffabd9fd4ff2c4825a0dbda830e320",
+      "frame": [
+        32,
+        32
+      ],
+      "origin": [
+        16,
+        31
+      ],
+      "animation_names": [
+        "sit2_left",
+        "sit2_right"
+      ],
+      "playback_frames": 12,
+      "confidence_before_and_after": 0.5
+    },
+    {
+      "number": 8478,
+      "id": "modern_interiors_free_v2.modern_tiles_free.characters_free.alex_sit3_16x16",
+      "source_sha256": "cf9fc90b4e66749f7b7fb4899a8c1c56aae2a46687f8b6f45c8511fe7ca39b6f",
+      "source_path": "Modern tiles_Free/Characters_free/Alex_sit3_16x16.png",
+      "variant": "",
+      "kind": "actor_art",
+      "pixel_sha256": "4cf9cfbb8844603d997a0b5ae6658b4f89121f66e0f76d25f0b5a3ed126512af",
+      "frame": [
+        16,
+        32
+      ],
+      "origin": [
+        8,
+        31
+      ],
+      "animation_names": [
+        "sit3_down",
+        "sit3_up"
+      ],
+      "playback_frames": 12,
+      "confidence_before_and_after": 0.5
+    },
+    {
+      "number": 8479,
+      "id": "modern_interiors_free_v2.modern_tiles_free.characters_free.alex_sit_16x16",
+      "source_sha256": "b3fe12b70fbb3246ab677aee1b84593b4affb04d0d958518b42b15a6dc7a8ccd",
+      "source_path": "Modern tiles_Free/Characters_free/Alex_sit_16x16.png",
+      "variant": "",
+      "kind": "actor_art",
+      "pixel_sha256": "a00a2fb8c6bbfa7eb3046efb8f7f88731b81a48f6b42f8b719178595ddd953e7",
+      "frame": [
+        32,
+        32
+      ],
+      "origin": [
+        16,
+        31
+      ],
+      "animation_names": [
+        "sit_left",
+        "sit_right"
+      ],
+      "playback_frames": 12,
+      "confidence_before_and_after": 0.5
+    },
+    {
+      "number": 8480,
+      "id": "modern_interiors_free_v2.modern_tiles_free.characters_free.amelia_phone_16x16",
+      "source_sha256": "83fb6ac1b033f54a669b820fcdb52bd9a2dfd3b6473fe7c2603c655fbd8c2b14",
+      "source_path": "Modern tiles_Free/Characters_free/Amelia_phone_16x16.png",
+      "variant": "",
+      "kind": "actor_art",
+      "pixel_sha256": "e43bb96a7bb924ca81ae1c2da47f6a828ccebb68817e727eb891c2380a7bcf51",
+      "frame": [
+        16,
+        32
+      ],
+      "origin": [
+        8,
+        31
+      ],
+      "animation_names": [
+        "phone_down"
+      ],
+      "playback_frames": 9,
+      "confidence_before_and_after": 0.5
+    },
+    {
+      "number": 8481,
+      "id": "modern_interiors_free_v2.modern_tiles_free.characters_free.amelia_sit2_16x16",
+      "source_sha256": "301b9263e7f77c0062f8502f1b99688d0118cdd32f82331da7173f014a93ac40",
+      "source_path": "Modern tiles_Free/Characters_free/Amelia_sit2_16x16.png",
+      "variant": "",
+      "kind": "actor_art",
+      "pixel_sha256": "c86695970271804d84f117829f2fee6c3d6cccfa89a090a31ff0dce9aef5345b",
+      "frame": [
+        32,
+        32
+      ],
+      "origin": [
+        16,
+        31
+      ],
+      "animation_names": [
+        "sit2_left",
+        "sit2_right"
+      ],
+      "playback_frames": 12,
+      "confidence_before_and_after": 0.5
+    },
+    {
+      "number": 8482,
+      "id": "modern_interiors_free_v2.modern_tiles_free.characters_free.amelia_sit3_16x16",
+      "source_sha256": "969adbe5a546f2d46f28973971e53bcc1272a18d2546cef4ef73d5b186ba4ada",
+      "source_path": "Modern tiles_Free/Characters_free/Amelia_sit3_16x16.png",
+      "variant": "",
+      "kind": "actor_art",
+      "pixel_sha256": "1dbede8dc9cd9d7dc966fd526d85d74eaaf840bc79eddd28a070e2244f31badf",
+      "frame": [
+        16,
+        32
+      ],
+      "origin": [
+        8,
+        31
+      ],
+      "animation_names": [
+        "sit3_down",
+        "sit3_up"
+      ],
+      "playback_frames": 12,
+      "confidence_before_and_after": 0.5
+    },
+    {
+      "number": 8483,
+      "id": "modern_interiors_free_v2.modern_tiles_free.characters_free.amelia_sit_16x16",
+      "source_sha256": "63c1f9f983a6d7855d52ebbed658fdf78b1feda9f55ed908aed21fe602d93f2f",
+      "source_path": "Modern tiles_Free/Characters_free/Amelia_sit_16x16.png",
+      "variant": "",
+      "kind": "actor_art",
+      "pixel_sha256": "bb8da5a22bbde42e937fdc1557005b957f6ae2a9552439ad644a34375b047e3d",
+      "frame": [
+        32,
+        32
+      ],
+      "origin": [
+        16,
+        31
+      ],
+      "animation_names": [
+        "sit_left",
+        "sit_right"
+      ],
+      "playback_frames": 12,
+      "confidence_before_and_after": 0.5
+    },
+    {
+      "number": 8484,
+      "id": "modern_interiors_free_v2.modern_tiles_free.characters_free.bob_phone_16x16",
+      "source_sha256": "30388da16c042ea2bb4472fbcb344e548f977313ff7bddf2550b5111c724307a",
+      "source_path": "Modern tiles_Free/Characters_free/Bob_phone_16x16.png",
+      "variant": "",
+      "kind": "actor_art",
+      "pixel_sha256": "f168910d46a0ff0729f5713cb94cadd70604eb5edfd3065e8c1b6609a8cddfa5",
+      "frame": [
+        16,
+        32
+      ],
+      "origin": [
+        8,
+        31
+      ],
+      "animation_names": [
+        "phone_down"
+      ],
+      "playback_frames": 9,
+      "confidence_before_and_after": 0.5
+    },
+    {
+      "number": 8485,
+      "id": "modern_interiors_free_v2.modern_tiles_free.characters_free.bob_sit2_16x16",
+      "source_sha256": "8c852792ae76bf032d111ea37193ff37313bd35df96a9a7a6c27c2fae7d22b65",
+      "source_path": "Modern tiles_Free/Characters_free/Bob_sit2_16x16.png",
+      "variant": "",
+      "kind": "actor_art",
+      "pixel_sha256": "d9eefd52d1327d1b1de6a03128cbcc3632d815ba81105a05df93cc07b6ad930b",
+      "frame": [
+        32,
+        32
+      ],
+      "origin": [
+        16,
+        31
+      ],
+      "animation_names": [
+        "sit2_left",
+        "sit2_right"
+      ],
+      "playback_frames": 12,
+      "confidence_before_and_after": 0.5
+    },
+    {
+      "number": 8486,
+      "id": "modern_interiors_free_v2.modern_tiles_free.characters_free.bob_sit3_16x16",
+      "source_sha256": "2ee54a3c15ad85abcd72774611cc92dddef56bad9c55b0ffe7c638a0072b70ce",
+      "source_path": "Modern tiles_Free/Characters_free/Bob_sit3_16x16.png",
+      "variant": "",
+      "kind": "actor_art",
+      "pixel_sha256": "fa02372f8e07aa253aa6e69f1be7ba25f47d0711a6f6364345f0ab67fada7e4a",
+      "frame": [
+        16,
+        32
+      ],
+      "origin": [
+        8,
+        31
+      ],
+      "animation_names": [
+        "sit3_down",
+        "sit3_up"
+      ],
+      "playback_frames": 12,
+      "confidence_before_and_after": 0.5
+    },
+    {
+      "number": 8487,
+      "id": "modern_interiors_free_v2.modern_tiles_free.characters_free.bob_sit_16x16",
+      "source_sha256": "d62d508e4f84792cdacf477305b261799e54bdb3473287bb0373d656891615cc",
+      "source_path": "Modern tiles_Free/Characters_free/Bob_sit_16x16.png",
+      "variant": "",
+      "kind": "actor_art",
+      "pixel_sha256": "b9265f260594d7f41cdbfced33f932ffc3168966c35b956d018085b7d1bfe11c",
+      "frame": [
+        32,
+        32
+      ],
+      "origin": [
+        16,
+        31
+      ],
+      "animation_names": [
+        "sit_left",
+        "sit_right"
+      ],
+      "playback_frames": 12,
+      "confidence_before_and_after": 0.5
+    },
+    {
+      "number": 8488,
+      "id": "modern_interiors_free_v2.modern_tiles_free.characters_free.rpgmakermv.characters_mv#c0",
+      "source_sha256": "2883f284ac66f969f81dd18a33448780655016e810a78a63e0982412d681d851",
+      "source_path": "Modern tiles_Free/Characters_free/RPGMAKERMV/Characters_MV.png",
+      "variant": "c0",
+      "kind": "actor_art",
+      "pixel_sha256": "997ab68ee00600200e9ccdd65483d3508298f23f5019750b6f27c1c719f520d9",
+      "frame": [
+        48,
+        96
+      ],
+      "origin": [
+        24,
+        95
+      ],
+      "animation_names": [
+        "idle_down",
+        "idle_left",
+        "idle_right",
+        "idle_up",
+        "walk_down",
+        "walk_left",
+        "walk_right",
+        "walk_up"
+      ],
+      "playback_frames": 20,
+      "confidence_before_and_after": 0.6
+    },
+    {
+      "number": 8489,
+      "id": "modern_interiors_free_v2.modern_tiles_free.characters_free.rpgmakermv.characters_mv#c1",
+      "source_sha256": "2883f284ac66f969f81dd18a33448780655016e810a78a63e0982412d681d851",
+      "source_path": "Modern tiles_Free/Characters_free/RPGMAKERMV/Characters_MV.png",
+      "variant": "c1",
+      "kind": "actor_art",
+      "pixel_sha256": "997ab68ee00600200e9ccdd65483d3508298f23f5019750b6f27c1c719f520d9",
+      "frame": [
+        48,
+        96
+      ],
+      "origin": [
+        24,
+        95
+      ],
+      "animation_names": [
+        "idle_down",
+        "idle_left",
+        "idle_right",
+        "idle_up",
+        "walk_down",
+        "walk_left",
+        "walk_right",
+        "walk_up"
+      ],
+      "playback_frames": 20,
+      "confidence_before_and_after": 0.6
+    },
+    {
+      "number": 8490,
+      "id": "modern_interiors_free_v2.modern_tiles_free.characters_free.rpgmakermv.characters_mv#c2",
+      "source_sha256": "2883f284ac66f969f81dd18a33448780655016e810a78a63e0982412d681d851",
+      "source_path": "Modern tiles_Free/Characters_free/RPGMAKERMV/Characters_MV.png",
+      "variant": "c2",
+      "kind": "actor_art",
+      "pixel_sha256": "997ab68ee00600200e9ccdd65483d3508298f23f5019750b6f27c1c719f520d9",
+      "frame": [
+        48,
+        96
+      ],
+      "origin": [
+        24,
+        95
+      ],
+      "animation_names": [
+        "idle_down",
+        "idle_left",
+        "idle_right",
+        "idle_up",
+        "walk_down",
+        "walk_left",
+        "walk_right",
+        "walk_up"
+      ],
+      "playback_frames": 20,
+      "confidence_before_and_after": 0.6
+    },
+    {
+      "number": 8491,
+      "id": "modern_interiors_free_v2.modern_tiles_free.characters_free.rpgmakermv.characters_mv#c3",
+      "source_sha256": "2883f284ac66f969f81dd18a33448780655016e810a78a63e0982412d681d851",
+      "source_path": "Modern tiles_Free/Characters_free/RPGMAKERMV/Characters_MV.png",
+      "variant": "c3",
+      "kind": "actor_art",
+      "pixel_sha256": "997ab68ee00600200e9ccdd65483d3508298f23f5019750b6f27c1c719f520d9",
+      "frame": [
+        48,
+        96
+      ],
+      "origin": [
+        24,
+        95
+      ],
+      "animation_names": [
+        "idle_down",
+        "idle_left",
+        "idle_right",
+        "idle_up",
+        "walk_down",
+        "walk_left",
+        "walk_right",
+        "walk_up"
+      ],
+      "playback_frames": 20,
+      "confidence_before_and_after": 0.6
+    },
+    {
+      "number": 8494,
+      "id": "modern_interiors_free_v2.modern_tiles_free.old.idle_16x16_2",
+      "source_sha256": "4014227842bb194fa2c59452ae4eb4597f510d61228f0f56eaf8e1e8c4d58982",
+      "source_path": "Modern tiles_Free/Old/idle_16x16_2.png",
+      "variant": "",
+      "kind": "actor_art",
+      "pixel_sha256": "88643c83790dae904d14aef1a2402d317c569c6c5ef94b0bc855b90386cef611",
+      "frame": [
+        16,
+        32
+      ],
+      "origin": [
+        8,
+        31
+      ],
+      "animation_names": [
+        "idle_down",
+        "idle_left",
+        "idle_right",
+        "idle_up"
+      ],
+      "playback_frames": 4,
+      "confidence_before_and_after": 0.5
+    },
+    {
+      "number": 8495,
+      "id": "modern_interiors_free_v2.modern_tiles_free.old.mv.character_2_16x16_rpgmaker",
+      "source_sha256": "c0f102ff32fcdea48d1d6c25e3e44bacc8d4e6a9b2c10a530f231b63b1dcdcc0",
+      "source_path": "Modern tiles_Free/Old/mv/Character_2_16x16_RPGMAKER.png",
+      "variant": "",
+      "kind": "actor_art",
+      "pixel_sha256": "5487a3fa74b95645f8ad47ec4050d34b8ec7a1b2fd4ab15785a658ff1650fcf7",
+      "frame": [
+        16,
+        32
+      ],
+      "origin": [
+        8,
+        31
+      ],
+      "animation_names": [
+        "walk_down",
+        "walk_left",
+        "walk_right",
+        "walk_up"
+      ],
+      "playback_frames": 12,
+      "confidence_before_and_after": 0.5
+    },
+    {
+      "number": 8496,
+      "id": "modern_interiors_free_v2.modern_tiles_free.old.run_horizontal_16x16_2",
+      "source_sha256": "db3a1e05c9d068ac74c7ebda99f62a08daa5f807d759caab3f27b784756a1af9",
+      "source_path": "Modern tiles_Free/Old/run_horizontal_16x16_2.png",
+      "variant": "",
+      "kind": "actor_art",
+      "pixel_sha256": "f4089569849aa4de81dc1275f1603eeb81b5e5efb97a40b040bb99b93834de87",
+      "frame": [
+        16,
+        32
+      ],
+      "origin": [
+        8,
+        31
+      ],
+      "animation_names": [
+        "walk_down",
+        "walk_left",
+        "walk_right",
+        "walk_up"
+      ],
+      "playback_frames": 24,
+      "confidence_before_and_after": 0.5
+    }
+  ],
+  "certified_art_entries": 23,
+  "source_images": 20,
+  "animations": 72,
+  "playback_frames": 300,
+  "distinct_source_cells": 268,
+  "archive_sha256": "1e38aae8896ec14764a5484a6d6a90a5026c233560ee97865dc8751053fba7f0",
+  "fresh_catalog_header_check": {
+    "images": 34,
+    "animations": 104,
+    "frames": 492,
+    "image_headers": 35,
+    "failures": [],
+    "passed": true
+  },
+  "fresh_active_statuses": {
+    "CONFIRMED": 23,
+    "NEEDS_REVIEW": 7,
+    "AUTO_DETECTED": 4
+  },
+  "native_gallery": {
+    "passed": true,
+    "actors": 23,
+    "native_frames": 300,
+    "native_rgba_matches": 300,
+    "scene_pivots": 23,
+    "playback_properties": "frame counts, fps and looping verified in SpriteFrames; these are importer defaults"
+  },
+  "generated_character_scenes": {
+    "frames": 300,
+    "passed": true,
+    "scenes": 23,
+    "native_rgba_matches": 300,
+    "header_check": {
+      "images": 34,
+      "animations": 104,
+      "frames": 492,
+      "image_headers": 35,
+      "failures": [],
+      "passed": true
+    },
+    "character_index": "rpggen/character_index.json",
+    "initial_harness_error": "First fixture used object_index instead of character_index; no product failure; corrected successful probe counted."
+  },
+  "assets_only_project": {
+    "ok": true,
+    "target": "D:\\rpggen_actor_metadata_20261029\\assets_project",
+    "timings": {
+      "preflight": 0.23,
+      "stage": 0.0,
+      "install": 4.31,
+      "catalog": 13.39,
+      "import": 15.38,
+      "build": 2.36,
+      "validate": 8.31,
+      "smoke": 0.0,
+      "export": 0.0,
+      "promote": 0.42,
+      "report": 0.08
+    },
+    "issues": [
+      {
+        "code": "VAL-032",
+        "severity": "info",
+        "message": "An assets-only project has no game: it was not played and not test-exported."
+      }
+    ]
+  },
+  "resource_measurements": {
+    "initial_analysis": [
+      {
+        "pack": "p22",
+        "seconds": 4.67,
+        "peak_private_bytes": 6322765824
+      }
+    ],
+    "confirmed_analysis": [
+      {
+        "pack": "p22",
+        "seconds": 3.58,
+        "peak_private_bytes": 6313529344
+      }
+    ],
+    "assets_only_generation": {
+      "exit_code": 0,
+      "peak_private_bytes": 6328938496,
+      "seconds": 47.53,
+      "stopped": ""
+    }
+  },
+  "license_detector_comparison": {
+    "inputs": 30,
+    "documents": 7,
+    "changed_inputs": [
+      "p22"
+    ],
+    "unavailable_documents": 0,
+    "rows": [
+      {
+        "pack": "p01",
+        "cached_catalog_license": {
+          "attribution_required": false,
+          "author": "",
+          "license_id": "",
+          "url": ""
+        },
+        "before_detector": {
+          "license_id": "",
+          "author": "",
+          "url": "",
+          "attribution_required": false
+        },
+        "after_detector": {
+          "license_id": "",
+          "author": "",
+          "url": "",
+          "attribution_required": false
+        },
+        "documents": []
+      },
+      {
+        "pack": "p02",
+        "cached_catalog_license": {
+          "attribution_required": false,
+          "author": "",
+          "license_id": "",
+          "url": ""
+        },
+        "before_detector": {
+          "license_id": "",
+          "author": "",
+          "url": "",
+          "attribution_required": false
+        },
+        "after_detector": {
+          "license_id": "",
+          "author": "",
+          "url": "",
+          "attribution_required": false
+        },
+        "documents": []
+      },
+      {
+        "pack": "p03",
+        "cached_catalog_license": {
+          "attribution_required": false,
+          "author": "",
+          "license_id": "",
+          "url": ""
+        },
+        "before_detector": {
+          "license_id": "",
+          "author": "",
+          "url": "",
+          "attribution_required": false
+        },
+        "after_detector": {
+          "license_id": "",
+          "author": "",
+          "url": "",
+          "attribution_required": false
+        },
+        "documents": []
+      },
+      {
+        "pack": "p04",
+        "cached_catalog_license": {
+          "attribution_required": false,
+          "author": "",
+          "license_id": "",
+          "url": ""
+        },
+        "before_detector": {
+          "license_id": "",
+          "author": "",
+          "url": "",
+          "attribution_required": false
+        },
+        "after_detector": {
+          "license_id": "",
+          "author": "",
+          "url": "",
+          "attribution_required": false
+        },
+        "documents": []
+      },
+      {
+        "pack": "p05",
+        "cached_catalog_license": {
+          "attribution_required": false,
+          "author": "",
+          "license_id": "",
+          "url": ""
+        },
+        "before_detector": {
+          "license_id": "",
+          "author": "",
+          "url": "",
+          "attribution_required": false
+        },
+        "after_detector": {
+          "license_id": "",
+          "author": "",
+          "url": "",
+          "attribution_required": false
+        },
+        "documents": []
+      },
+      {
+        "pack": "p06",
+        "cached_catalog_license": {
+          "attribution_required": false,
+          "author": "",
+          "license_id": "",
+          "url": ""
+        },
+        "before_detector": {
+          "license_id": "",
+          "author": "",
+          "url": "",
+          "attribution_required": false
+        },
+        "after_detector": {
+          "license_id": "",
+          "author": "",
+          "url": "",
+          "attribution_required": false
+        },
+        "documents": []
+      },
+      {
+        "pack": "p07",
+        "cached_catalog_license": {
+          "attribution_required": false,
+          "author": "",
+          "license_id": "",
+          "url": ""
+        },
+        "before_detector": {
+          "license_id": "",
+          "author": "",
+          "url": "",
+          "attribution_required": false
+        },
+        "after_detector": {
+          "license_id": "",
+          "author": "",
+          "url": "",
+          "attribution_required": false
+        },
+        "documents": []
+      },
+      {
+        "pack": "p08",
+        "cached_catalog_license": {
+          "attribution_required": false,
+          "author": "",
+          "license_id": "",
+          "url": ""
+        },
+        "before_detector": {
+          "license_id": "",
+          "author": "",
+          "url": "",
+          "attribution_required": false
+        },
+        "after_detector": {
+          "license_id": "",
+          "author": "",
+          "url": "",
+          "attribution_required": false
+        },
+        "documents": []
+      },
+      {
+        "pack": "p09",
+        "cached_catalog_license": {
+          "attribution_required": false,
+          "author": "",
+          "license_id": "CC0-1.0",
+          "url": ""
+        },
+        "before_detector": {
+          "license_id": "",
+          "author": "",
+          "url": "",
+          "attribution_required": false
+        },
+        "after_detector": {
+          "license_id": "",
+          "author": "",
+          "url": "",
+          "attribution_required": false
+        },
+        "documents": []
+      },
+      {
+        "pack": "p10",
+        "cached_catalog_license": {
+          "attribution_required": false,
+          "author": "",
+          "license_id": "CC0-1.0",
+          "url": ""
+        },
+        "before_detector": {
+          "license_id": "",
+          "author": "",
+          "url": "",
+          "attribution_required": false
+        },
+        "after_detector": {
+          "license_id": "",
+          "author": "",
+          "url": "",
+          "attribution_required": false
+        },
+        "documents": []
+      },
+      {
+        "pack": "p11",
+        "cached_catalog_license": {
+          "attribution_required": false,
+          "author": "",
+          "license_id": "CC0-1.0",
+          "url": ""
+        },
+        "before_detector": {
+          "license_id": "",
+          "author": "",
+          "url": "",
+          "attribution_required": false
+        },
+        "after_detector": {
+          "license_id": "",
+          "author": "",
+          "url": "",
+          "attribution_required": false
+        },
+        "documents": []
+      },
+      {
+        "pack": "p12",
+        "cached_catalog_license": {
+          "attribution_required": false,
+          "author": "",
+          "license_id": "CC0-1.0",
+          "url": ""
+        },
+        "before_detector": {
+          "license_id": "",
+          "author": "",
+          "url": "",
+          "attribution_required": false
+        },
+        "after_detector": {
+          "license_id": "",
+          "author": "",
+          "url": "",
+          "attribution_required": false
+        },
+        "documents": []
+      },
+      {
+        "pack": "p13",
+        "cached_catalog_license": {
+          "attribution_required": false,
+          "author": "",
+          "license_id": "CC0-1.0",
+          "url": ""
+        },
+        "before_detector": {
+          "license_id": "",
+          "author": "",
+          "url": "",
+          "attribution_required": false
+        },
+        "after_detector": {
+          "license_id": "",
+          "author": "",
+          "url": "",
+          "attribution_required": false
+        },
+        "documents": []
+      },
+      {
+        "pack": "p14",
+        "cached_catalog_license": {
+          "attribution_required": false,
+          "author": "",
+          "license_id": "",
+          "url": ""
+        },
+        "before_detector": {
+          "license_id": "",
+          "author": "",
+          "url": "",
+          "attribution_required": false
+        },
+        "after_detector": {
+          "license_id": "",
+          "author": "",
+          "url": "",
+          "attribution_required": false
+        },
+        "documents": []
+      },
+      {
+        "pack": "p15",
+        "cached_catalog_license": {
+          "attribution_required": false,
+          "author": "",
+          "license_id": "",
+          "url": ""
+        },
+        "before_detector": {
+          "license_id": "",
+          "author": "",
+          "url": "",
+          "attribution_required": false
+        },
+        "after_detector": {
+          "license_id": "",
+          "author": "",
+          "url": "",
+          "attribution_required": false
+        },
+        "documents": []
+      },
+      {
+        "pack": "p16",
+        "cached_catalog_license": {
+          "attribution_required": false,
+          "author": "",
+          "license_id": "",
+          "url": ""
+        },
+        "before_detector": {
+          "license_id": "",
+          "author": "",
+          "url": "",
+          "attribution_required": false
+        },
+        "after_detector": {
+          "license_id": "",
+          "author": "",
+          "url": "",
+          "attribution_required": false
+        },
+        "documents": []
+      },
+      {
+        "pack": "p17",
+        "cached_catalog_license": {
+          "attribution_required": false,
+          "author": "",
+          "license_id": "",
+          "url": ""
+        },
+        "before_detector": {
+          "license_id": "",
+          "author": "",
+          "url": "",
+          "attribution_required": false
+        },
+        "after_detector": {
+          "license_id": "",
+          "author": "",
+          "url": "",
+          "attribution_required": false
+        },
+        "documents": []
+      },
+      {
+        "pack": "p18",
+        "cached_catalog_license": {
+          "attribution_required": false,
+          "author": "",
+          "license_id": "",
+          "url": ""
+        },
+        "before_detector": {
+          "license_id": "",
+          "author": "",
+          "url": "",
+          "attribution_required": false
+        },
+        "after_detector": {
+          "license_id": "",
+          "author": "",
+          "url": "",
+          "attribution_required": false
+        },
+        "documents": []
+      },
+      {
+        "pack": "p19",
+        "cached_catalog_license": {
+          "attribution_required": false,
+          "author": "",
+          "license_id": "",
+          "url": ""
+        },
+        "before_detector": {
+          "license_id": "",
+          "author": "",
+          "url": "",
+          "attribution_required": false
+        },
+        "after_detector": {
+          "license_id": "",
+          "author": "",
+          "url": "",
+          "attribution_required": false
+        },
+        "documents": []
+      },
+      {
+        "pack": "p20",
+        "cached_catalog_license": {
+          "attribution_required": true,
+          "author": "",
+          "license_id": "OGA-BY-3.0",
+          "url": "http://opensnc.sourceforge.net"
+        },
+        "before_detector": {
+          "license_id": "OGA-BY-3.0",
+          "author": "",
+          "url": "http://opensnc.sourceforge.net",
+          "attribution_required": true
+        },
+        "after_detector": {
+          "license_id": "OGA-BY-3.0",
+          "author": "",
+          "url": "http://opensnc.sourceforge.net",
+          "attribution_required": true
+        },
+        "documents": [
+          {
+            "path": "lpc-floors/CREDITS-floors.txt",
+            "sha256": "841d1d918be5e6ec7904c8de08d44cd563974705cc688ea947139efabf3ad5b1"
+          }
+        ]
+      },
+      {
+        "pack": "p21",
+        "cached_catalog_license": {
+          "attribution_required": true,
+          "author": "",
+          "license_id": "OGA-BY-3.0",
+          "url": "https://opengameart.org/content/liberated-pixel-cup-lpc-base-assets-sprites-map-tiles"
+        },
+        "before_detector": {
+          "license_id": "OGA-BY-3.0",
+          "author": "",
+          "url": "https://opengameart.org/content/liberated-pixel-cup-lpc-base-assets-sprites-map-tiles",
+          "attribution_required": true
+        },
+        "after_detector": {
+          "license_id": "OGA-BY-3.0",
+          "author": "",
+          "url": "https://opengameart.org/content/liberated-pixel-cup-lpc-base-assets-sprites-map-tiles",
+          "attribution_required": true
+        },
+        "documents": [
+          {
+            "path": "lpc-jungle-v2/CREDITS-jungle.txt",
+            "sha256": "c981cdbdb7c1aab9f287918f060f11e48b6d9d1445203c9f930aaffccfabfc3a"
+          }
+        ]
+      },
+      {
+        "pack": "p22",
+        "cached_catalog_license": {
+          "attribution_required": false,
+          "author": "",
+          "license_id": "commercial",
+          "url": ""
+        },
+        "before_detector": {
+          "license_id": "commercial",
+          "author": "",
+          "url": "",
+          "attribution_required": false
+        },
+        "after_detector": {
+          "license_id": "noncommercial",
+          "author": "",
+          "url": "",
+          "attribution_required": false
+        },
+        "documents": [
+          {
+            "path": "Modern tiles_Free/LICENSE.txt",
+            "sha256": "a3a88dc952c3a4793bff4c29cdcfe512e5c959766f52a5cba712088fd44178d8"
+          }
+        ]
+      },
+      {
+        "pack": "p23",
+        "cached_catalog_license": {
+          "attribution_required": false,
+          "author": "",
+          "license_id": "",
+          "url": ""
+        },
+        "before_detector": {
+          "license_id": "",
+          "author": "",
+          "url": "",
+          "attribution_required": false
+        },
+        "after_detector": {
+          "license_id": "",
+          "author": "",
+          "url": "",
+          "attribution_required": false
+        },
+        "documents": []
+      },
+      {
+        "pack": "p24",
+        "cached_catalog_license": {
+          "attribution_required": false,
+          "author": "",
+          "license_id": "",
+          "url": "https://craftpix.net/file-licenses/"
+        },
+        "before_detector": {
+          "license_id": "",
+          "author": "",
+          "url": "https://craftpix.net/file-licenses/",
+          "attribution_required": false
+        },
+        "after_detector": {
+          "license_id": "",
+          "author": "",
+          "url": "https://craftpix.net/file-licenses/",
+          "attribution_required": false
+        },
+        "documents": [
+          {
+            "path": "license.txt",
+            "sha256": "0c0f673571adbb935c734ac17fbc6e51fb4368a225b915aa25031712b03960d4"
+          },
+          {
+            "path": "readme.txt",
+            "sha256": "a9d59fa8f9ba3849a73a6b1e70ea7de388688d431b4f08059bb22d6d7135ffc8"
+          }
+        ]
+      },
+      {
+        "pack": "p25",
+        "cached_catalog_license": {
+          "attribution_required": false,
+          "author": "",
+          "license_id": "CC0-1.0",
+          "url": ""
+        },
+        "before_detector": {
+          "license_id": "CC0-1.0",
+          "author": "",
+          "url": "",
+          "attribution_required": false
+        },
+        "after_detector": {
+          "license_id": "CC0-1.0",
+          "author": "",
+          "url": "",
+          "attribution_required": false
+        },
+        "documents": [
+          {
+            "path": "License.txt",
+            "sha256": "975fc2b613664add88bf853dfba92f23bc07fa7efb69d2e629d3bd4de5024a6e"
+          }
+        ]
+      },
+      {
+        "pack": "p26",
+        "cached_catalog_license": {
+          "attribution_required": false,
+          "author": "",
+          "license_id": "CC0-1.0",
+          "url": ""
+        },
+        "before_detector": {
+          "license_id": "CC0-1.0",
+          "author": "",
+          "url": "",
+          "attribution_required": false
+        },
+        "after_detector": {
+          "license_id": "CC0-1.0",
+          "author": "",
+          "url": "",
+          "attribution_required": false
+        },
+        "documents": [
+          {
+            "path": "License.txt",
+            "sha256": "bc88d785b3fa6b2e70d74644434b00d8674f1961a14225bdb4bdf5ed168354df"
+          }
+        ]
+      },
+      {
+        "pack": "p27",
+        "cached_catalog_license": {
+          "attribution_required": false,
+          "author": "",
+          "license_id": "CC0-1.0",
+          "url": ""
+        },
+        "before_detector": {
+          "license_id": "",
+          "author": "",
+          "url": "",
+          "attribution_required": false
+        },
+        "after_detector": {
+          "license_id": "",
+          "author": "",
+          "url": "",
+          "attribution_required": false
+        },
+        "documents": []
+      },
+      {
+        "pack": "p28",
+        "cached_catalog_license": {
+          "attribution_required": false,
+          "author": "",
+          "license_id": "CC0-1.0",
+          "url": ""
+        },
+        "before_detector": {
+          "license_id": "",
+          "author": "",
+          "url": "",
+          "attribution_required": false
+        },
+        "after_detector": {
+          "license_id": "",
+          "author": "",
+          "url": "",
+          "attribution_required": false
+        },
+        "documents": []
+      },
+      {
+        "pack": "p29",
+        "cached_catalog_license": {
+          "attribution_required": false,
+          "author": "",
+          "license_id": "CC0-1.0",
+          "url": ""
+        },
+        "before_detector": {
+          "license_id": "",
+          "author": "",
+          "url": "",
+          "attribution_required": false
+        },
+        "after_detector": {
+          "license_id": "",
+          "author": "",
+          "url": "",
+          "attribution_required": false
+        },
+        "documents": []
+      },
+      {
+        "pack": "p30",
+        "cached_catalog_license": {
+          "attribution_required": false,
+          "author": "",
+          "license_id": "CC0-1.0",
+          "url": ""
+        },
+        "before_detector": {
+          "license_id": "",
+          "author": "",
+          "url": "",
+          "attribution_required": false
+        },
+        "after_detector": {
+          "license_id": "",
+          "author": "",
+          "url": "",
+          "attribution_required": false
+        },
+        "documents": []
+      }
+    ]
+  },
+  "saved_choices_check": {
+    "actual_saved_choices": {
+      "H1": {
+        "choice": "Harvested produce (ITEM)",
+        "note": ""
+      },
+      "H2": {
+        "choice": "Use orchard crops (CROP)",
+        "note": ""
+      },
+      "H3": {
+        "choice": "I want to define hazards for my game",
+        "note": ""
+      },
+      "H4": {
+        "choice": "Visual effect (EFFECT)",
+        "note": ""
+      }
+    },
+    "saved_choices_sha256": "52294b9655fb46c2165751c05cb0d2245baf5f798d3dbcd3965a224458901128",
+    "calibration_sha256": "73abface1d895568205ddc41c917dbfb0558daf7e6ca95e0ca2fcaf1a269b588",
+    "owner_entry_count": 44,
+    "new_source_overlap": 0
+  },
+  "calibration_published": false,
+  "ledger_delta": {
+    "previous_unresolved": 2488,
+    "new_art_dispositions": 23,
+    "remaining": 2465,
+    "fresh_all_30_pack_analysis": false,
+    "blockers": {
+      "crop": 10,
+      "building": 133,
+      "segmentation_or_state": 2012,
+      "terrain": 310
+    }
+  },
+  "validation": {
+    "python_full_units_passed": 2620,
+    "python_full_units_skipped": 3,
+    "python_full_unit_seconds": 756.28,
+    "final_focused_passed": 83,
+    "unique_current_unit_cases_passed_across_runs": 2623,
+    "final_focused_scope": "Final resale wording guards and three additional cases after the full suite; metadata, layout and license suites rerun together",
+    "pack_license_gui_passed": 4,
+    "ruff": "passed",
+    "format_files": 508,
+    "mypy_modules": 217,
+    "native_gallery_frames": 300,
+    "actual_character_scene_frames": 300,
+    "new_repository_gdscript_changes": false
+  },
+  "remaining": [
+    "unresolved semantic metadata",
+    "multi-source actor art outside this confirmation contract",
+    "independent calibration labels",
+    "qualified commercial/Tiled held-out sample and human release measurements"
+  ]
+}

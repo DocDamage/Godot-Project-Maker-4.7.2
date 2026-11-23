@@ -92,6 +92,33 @@ def test_non_rpgmaker_packs_do_not_match() -> None:
         assert adapter.match(inv, root) < 0.5, pack
 
 
+@pytest.mark.parametrize("tile", [32, 48])
+def test_suffixed_coherent_family_keeps_native_grid_and_sheet_roles(tmp_path, tile):
+    for name, size in [
+        ("zone_A1_ruins", (16, 12)),
+        ("zone_A2_ruins", (16, 12)),
+        ("zone_A5_ruins1", (8, 16)),
+        ("zone_B_ruins2", (16, 16)),
+    ]:
+        Image.new("RGBA", (size[0] * tile, size[1] * tile), "green").save(tmp_path / f"{name}.png")
+    adapter, inv, root, result = _run(tmp_path)
+    assert adapter.match(inv, root) >= 0.5
+    assert len(result.assets) == 4
+    assert all(f.facets["grid"]["cell"] == [tile, tile] for f in result.assets)
+    assert _by(result, "zone_A2_ruins.png").facets["role"] == "AUTOTILE"
+    assert _by(result, "zone_A5_ruins1.png").facets["role"] == "GROUND"
+    assert _by(result, "zone_B_ruins2.png").facets["role"] == "DECORATION"
+
+
+def test_isolated_or_inconsistent_suffixed_names_do_not_establish_a_format(tmp_path):
+    Image.new("RGBA", (768, 768), "green").save(tmp_path / "plan_B_ruins.png")
+    Image.new("RGBA", (768, 576), "green").save(tmp_path / "plan_A1_ruins.png")
+    Image.new("RGBA", (512, 384), "green").save(tmp_path / "plan_A2_ruins.png")
+    adapter, inv, root, result = _run(tmp_path)
+    assert adapter.match(inv, root) < 0.5
+    assert not result.assets, "different native sizes cannot substantiate each other"
+
+
 def test_vx_ace_tile_size_and_empty_blocks(tmp_path: Path) -> None:
     pk = tmp_path / "pk" / "img"
     (pk / "tilesets").mkdir(parents=True)

@@ -368,7 +368,9 @@ class FarmPackAdapter:
                     taken.add(f.path)
                 continue
             if (folder_words | stem_words) & TREE_WORDS:
-                continue  # a fruit tree grows over years, not in a field
+                if self._orchard(root, f, work, result):
+                    taken.add(f.path)
+                continue
             if (folder_words & CROP_FOLDER_WORDS) or stem_words & _crop_names():
                 crops.append((f, bool(folder_words & CROP_FOLDER_WORDS)))
         # the smallest first: a season's sheet of every crop comes after the crops it repeats,
@@ -387,6 +389,40 @@ class FarmPackAdapter:
             self._grid_crops(root, files, taken, work, result, issues)
         result.issues = list(issues)
         return result
+
+    def _orchard(self, root: Path, f: InventoryFile, work: Path, result: AdapterResult) -> bool:
+        from rpggen.core.adapters.orchard import reviewed
+
+        layout = reviewed(f.sha256)
+        if layout is None:
+            return False
+        a = _load(root, f.path)
+        width, height = layout["frame"]
+        columns = a.shape[1] // width
+        cells = [
+            a[
+                (i // columns) * height : (i // columns + 1) * height,
+                (i % columns) * width : (i % columns + 1) * width,
+            ]
+            for i in layout["cells"]
+        ]
+        strip = np.ascontiguousarray(np.concatenate(cells, axis=1))
+        dest = _save(strip, work, strip_name(self.pack_id, f.path))
+        target = f"{CROP_DIR}/{dest.name}"
+        facets = _crop_facets(len(cells), width, height, layout["name"], "reviewed_orchard")
+        facets["tags"] = sorted(
+            {
+                *facets["tags"],
+                "orchard",
+                "mature_stage:" + str(layout["mature_stage"]),
+                "harvest_season:" + layout["season"],
+                SOURCE_TAG + f.path,
+            }
+        )
+        result.assets.append(AssetFragment(f.path, facets, 0.8, "full"))
+        result.generated[target] = str(dest)
+        result.rendered[f.path] = target
+        return True
 
     def _aside(self, f: InventoryFile, reason: str, result: AdapterResult) -> None:
         from rpggen.core import classifier

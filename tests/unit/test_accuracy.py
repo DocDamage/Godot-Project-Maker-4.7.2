@@ -84,6 +84,100 @@ def test_perfect_score() -> None:
     assert accuracy.check_thresholds(report) == []
 
 
+def test_draft_and_owner_role_choices_are_not_full_calibration_evidence() -> None:
+    cat = _catalog()
+    key = "chars/b.png#c1"
+    facts = {
+        "usage": "sprite",
+        "role": "NPC",
+        "frame": [16, 24],
+        "animations": ["idle_down", "walk_down"],
+    }
+    entry = {
+        "profile": {"assets": {key: facts}},
+        "fingerprint": {"chars/b.png": {"sha256": cat.assets[1].sha256}},
+        "reviewed": ["some-contact-sheet-group"],
+        "owner_reviewed_fields": {key: ["role"]},
+    }
+    report = accuracy.score_private(cat, entry, "p")
+    assert report["review_coverage"]["calibration_eligible"] == 0
+    assert report["pictures"][0]["reviewed_fields"] == ["role"]
+    entry["reviewed_fields"] = {key: ["usage", "role", "frame", "anims"]}
+    assert accuracy.score_private(cat, entry, "p")["review_coverage"]["calibration_eligible"] == 1
+    cat.assets[1].status = "CONFIRMED"
+    assert accuracy.score_private(cat, entry, "p")["review_coverage"]["calibration_eligible"] == 0
+
+
+def test_an_excluded_or_missing_asset_is_never_sure() -> None:
+    asset = _catalog().assets[0]
+    for status in ("UNUSED", "MISSING", "CONFLICT"):
+        asset.status = status
+        asset.confidence = 1.0
+        assert not accuracy.is_sure(asset)
+
+
+def test_private_scoring_resolves_generated_strips_by_their_original_source() -> None:
+    from rpggen.core.inventory import Inventory, InventoryFile
+
+    asset = _asset(
+        "p.crops.apple",
+        "unused.png",
+        {
+            "usage": "growth_strip",
+            "role": "CROP",
+            "frame": [32, 48],
+            "animations": {},
+        },
+    )
+    asset.path = "generated/farm_crops/apple.png"
+    inv = Inventory(
+        "p", "f" * 64, [InventoryFile("Crops/Apple.png", asset.sha256, 100, ".png", "image")]
+    )
+    cat = catalog.Catalog(assets=[asset])
+    entry = {"profile": {"assets": {"Crops/Apple.png": asset.detected}}}
+    report = accuracy.score_private(cat, entry, "p", inv)
+    assert report["misses"] == []
+    assert report["roles"]["CROP"]["correct"] == 1
+    assert report["pictures"][0]["source_sha256"] == asset.sha256
+
+
+def test_applied_corrections_cannot_be_used_to_calibrate_the_reader(monkeypatch) -> None:
+    from rpggen.core import pack_readings
+
+    cat = _catalog()
+    key = "chars/b.png#c1"
+    entry = {
+        "profile": {"assets": {key: cat.assets[1].detected}},
+        "fingerprint": {"chars/b.png": {"sha256": cat.assets[1].sha256}},
+        "reviewed_fields": {key: ["usage", "role", "frame", "anims"]},
+    }
+    assert accuracy.score_private(cat, entry, "p")["pictures"][0]["calibration_eligible"]
+    monkeypatch.setattr(pack_readings, "region_facts", lambda *_: {"role": "NPC"})
+    assert not accuracy.score_private(cat, entry, "p")["pictures"][0]["calibration_eligible"]
+
+
+def test_reviewed_fields_do_not_follow_a_changed_source_image() -> None:
+    cat = _catalog()
+    key = "chars/b.png#c1"
+    entry = {
+        "profile": {"assets": {key: cat.assets[1].detected}},
+        "fingerprint": {"chars/b.png": {"sha256": "1" * 64}},
+        "reviewed_fields": {key: ["usage", "role", "frame", "anims"]},
+    }
+    assert not accuracy.score_private(cat, entry, "p")["pictures"][0]["calibration_eligible"]
+
+
+def test_listing_reviewed_fields_cannot_replace_missing_expected_values() -> None:
+    cat = _catalog()
+    key = "chars/b.png#c1"
+    entry = {
+        "profile": {"assets": {key: {"usage": "sprite", "role": "NPC", "frame": [16, 24]}}},
+        "fingerprint": {"chars/b.png": {"sha256": cat.assets[1].sha256}},
+        "reviewed_fields": {key: ["usage", "role", "frame", "anims"]},
+    }
+    assert not accuracy.score_private(cat, entry, "p")["pictures"][0]["calibration_eligible"]
+
+
 def test_misses_and_unlisted_paths() -> None:
     expected = {
         "tiles/a.png": {

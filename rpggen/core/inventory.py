@@ -4,6 +4,7 @@ import concurrent.futures
 import hashlib
 import logging
 import os
+import sys
 from collections.abc import Callable
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -20,7 +21,7 @@ from rpggen.errors import Issue, IssueList, RpgGenError
 log = logging.getLogger(__name__)
 
 INVENTORY_VERSION = 1
-POOL_THRESHOLD = 32  # use a process pool only for packs with at least this many files
+POOL_THRESHOLD = 32  # use a pool only for packs with at least this many files
 
 EXT_KIND = {
     ".png": "image",
@@ -182,7 +183,7 @@ def _scan_all(
     already_done: int = 0,
     total: int | None = None,
 ) -> list[tuple[str, str, int, dict[str, Any] | None]]:
-    """Hash and probe every file in ``jobs``. A big pack uses a process pool; progress arrives as
+    """Hash and probe every file in ``jobs``. A big pack uses a pool; progress arrives as
     results complete (``already_done`` files came from the cache, ``total`` is the pack's size),
     and a cancel drops the tasks that have not started."""
     count = len(jobs)
@@ -191,7 +192,15 @@ def _scan_all(
     results: list[tuple[str, str, int, dict[str, Any] | None]] = []
     if count >= POOL_THRESHOLD:
         workers = min(8, os.cpu_count() or 1)
-        pool = concurrent.futures.ProcessPoolExecutor(max_workers=workers)
+        # Windows spawn reloads the application's imports in every process. Eight copies
+        # can exhaust system commit even for a small pack. Hashing releases the GIL and
+        # header probes are I/O bound, so share imports in a bounded thread pool there.
+        pool_type = (
+            concurrent.futures.ThreadPoolExecutor
+            if sys.platform == "win32"
+            else concurrent.futures.ProcessPoolExecutor
+        )
+        pool = pool_type(max_workers=workers)
         try:
             futures = [
                 pool.submit(_scan_batch, jobs[i : i + CHUNK]) for i in range(0, count, CHUNK)

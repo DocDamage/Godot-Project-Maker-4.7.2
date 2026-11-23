@@ -54,7 +54,7 @@ def _expected_value(field: str, value: Any) -> Any:
 def is_sure(asset: catalog_mod.Asset | None) -> bool:
     """True for a picture the analyzer reads with confidence (T17.34): confirmed, or detected
     at the confidence of Auto-detected or more."""
-    if asset is None:
+    if asset is None or asset.status in ("UNUSED", "MISSING", "CONFLICT"):
         return False
     return asset.status == "CONFIRMED" or asset.confidence >= catalog_mod.AUTO_CONFIDENCE
 
@@ -73,7 +73,11 @@ def sure_numbers(row: dict[str, int]) -> dict[str, float | None]:
     }
 
 
-def score(catalog: catalog_mod.Catalog, expected: dict[str, dict[str, Any]]) -> dict[str, Any]:
+def score(
+    catalog: catalog_mod.Catalog,
+    expected: dict[str, dict[str, Any]],
+    source_keys: dict[str, catalog_mod.Asset] | None = None,
+) -> dict[str, Any]:
     """Per-field ``correct/total`` over the paths listed in ``expected`` plus an overall value,
     and per picture whether it was read as sure and was right in every field (``sure``; per
     reader under ``readers`` and picture by picture under ``pictures``: what calibration fits)."""
@@ -83,7 +87,7 @@ def score(catalog: catalog_mod.Catalog, expected: dict[str, dict[str, Any]]) -> 
     readers: dict[str, dict[str, int]] = {}
     pictures: list[dict[str, Any]] = []
     for key, facts in sorted(expected.items()):
-        asset = _find_asset(catalog, key)
+        asset = (source_keys or {}).get(key) or _find_asset(catalog, key)
         right = True
         for field in FIELDS:
             if field not in facts:
@@ -111,6 +115,8 @@ def score(catalog: catalog_mod.Catalog, expected: dict[str, dict[str, Any]]) -> 
                 "confidence": round(asset.confidence, 4) if asset is not None else 0.0,
                 "sure": sure_here,
                 "right": right,
+                "fields": [f for f in FIELDS if f in facts],
+                "source_sha256": asset.sha256 if asset is not None else "",
             }
         )
     fields = {
@@ -259,7 +265,9 @@ def match(entry: dict[str, Any], inv: Inventory) -> float:
 
 
 def roles_report(
-    catalog: catalog_mod.Catalog, expected: dict[str, dict[str, Any]]
+    catalog: catalog_mod.Catalog,
+    expected: dict[str, dict[str, Any]],
+    source_keys: dict[str, catalog_mod.Asset] | None = None,
 ) -> dict[str, Any]:
     """Per-role precision and recall and the confusion matrix (expected role -> detected role)
     over the assets that have an expected role."""
@@ -267,7 +275,7 @@ def roles_report(
     for key, facts in expected.items():
         if "role" not in facts:
             continue
-        asset = _find_asset(catalog, key)
+        asset = (source_keys or {}).get(key) or _find_asset(catalog, key)
         detected = _actual(asset, "role") if asset is not None else None
         confusion.setdefault(str(facts["role"]), Counter())[str(detected)] += 1
     detected_totals: Counter[str] = Counter()
@@ -322,20 +330,72 @@ def objects_report(
 
 
 def score_private(
-    catalog: catalog_mod.Catalog, entry: dict[str, Any], pack_id: str
+    catalog: catalog_mod.Catalog,
+    entry: dict[str, Any],
+    pack_id: str,
+    inventory: Inventory | None = None,
 ) -> dict[str, Any]:
     """The report of one pack of the private corpus."""
     profile = entry.get("profile") or {}
     expected = expected_from_profile(profile)
-    report = score(catalog, expected)
+    from rpggen.core import pack_readings, profiles
+
+    source_keys = (
+        {
+            profiles.asset_key(a, pack_id, inventory): a
+            for a in catalog.assets
+            if a.pack_id == pack_id
+        }
+        if inventory is not None
+        else {}
+    )
+    report = score(catalog, expected, source_keys)
     from rpggen.core import calibration
 
     pack = next((p for p in catalog.packs if p.pack_id == pack_id), None)
     report["publisher_id"] = calibration.publisher_id(pack.license if pack else None)
     for picture in report["pictures"]:
         picture["publisher"] = report["publisher_id"]
+        key = picture["path"]
+        # Old `reviewed` values name contact-sheet groups, not independently checked fields.
+        # Only explicit per-picture field provenance authorizes a calibration observation.
+        reviewed_fields = set((entry.get("reviewed_fields") or {}).get(key, []))
+        owner_fields = set((entry.get("owner_reviewed_fields") or {}).get(key, []))
+        picture["reviewed_fields"] = sorted((reviewed_fields | owner_fields) & set(FIELDS))
+        required = {"usage", "role", "anims"} | (
+            set(GRID_FIELDS) if expected[key].get("usage") == "tiles" else {"frame"}
+        )
+        picture["calibration_eligible"] = (
+            required <= set(picture["fields"]) and set(picture["fields"]) <= reviewed_fields
+        )
+        asset = source_keys.get(key) or _find_asset(catalog, key)
+        if asset is None or asset.status in ("CONFIRMED", "UNUSED", "MISSING", "CONFLICT"):
+            picture["calibration_eligible"] = False
+        if picture["reader"] in calibration.USER_READERS:
+            picture["calibration_eligible"] = False
+        if asset is not None and (
+            asset.overrides
+            or asset.rule
+            or pack_readings.region_facts(asset.sha256, asset.id.partition("#")[2])
+        ):
+            picture["calibration_eligible"] = False
+        source_key = profiles.asset_key(asset, pack_id, inventory) if asset is not None else key
+        expected_hash = (entry.get("fingerprint") or {}).get(source_key.partition("#")[0], {})
+        if asset is not None and (
+            expected_hash.get("sha256") != asset.sha256
+            or not asset.path.startswith(f"assets/packs/{pack_id}/")
+        ):
+            # A matching pack fingerprint can tolerate a changed individual image. Its old
+            # labels cannot train calibration. Generated helpers also need pixel-bound labels
+            # before a renderer change can be distinguished from a detector error.
+            picture["calibration_eligible"] = False
+    report["review_coverage"] = {
+        "pictures": len(report["pictures"]),
+        "with_reviewed_fields": sum(bool(p["reviewed_fields"]) for p in report["pictures"]),
+        "calibration_eligible": sum(p["calibration_eligible"] for p in report["pictures"]),
+    }
     report["groups"] = grouped(report)
-    report.update(roles_report(catalog, expected))
+    report.update(roles_report(catalog, expected, source_keys))
     report["objects"] = objects_report(catalog, profile, pack_id)
     return report
 
