@@ -86,6 +86,7 @@ class OpenedPack:
     root: Path  # directory to read files from (extracted cache dir or the folder)
     source_sha256: str  # archive file hash; "" for folders (filled in by the inventory)
     issues: list[Issue]
+    licence_root: Path | None = None  # original wrapper, when its archive is opened instead
 
 
 @dataclass(frozen=True)
@@ -751,7 +752,7 @@ def _extract_nested(root: Path, issues: IssueList, ctl: Control) -> None:
 
 # --------------------------------------------------------------------------- a zip in a folder
 
-LONE_ARCHIVES = (".zip", ".7z")
+LONE_ARCHIVES = (".zip", ".7z", ".rar")
 BESIDE_KINDS = ("license", "doc")  # what may lie beside the archive and is no part of a pack
 
 
@@ -869,7 +870,7 @@ def open_pack(
     wizard names such a pack by a path that does not exist, ``<archive>/<folder>``
     (``pack_sniff.member_path``); it is opened the same way.
     """
-    from rpggen.core import pack_sniff
+    from rpggen.core import inventory, pack_sniff
 
     ctl = Control(progress, is_cancelled)
     source = Path(source)
@@ -889,12 +890,26 @@ def open_pack(
     if kind == "folder":  # never written to
         root = source.joinpath(*PurePosixPath(inner).parts) if inner else source
         lone = None if inner else lone_archive(root)
+        if lone is None and not inner:
+            children = sorted(root.iterdir(), key=lambda p: _sort_key(p.name))
+            archives = [p for p in children if p.is_file() and p.suffix.lower() in LONE_ARCHIVES]
+            if len(archives) > 1 and all(
+                p in archives or (p.is_file() and inventory.classify_kind(p.name) in BESIDE_KINDS)
+                for p in children
+            ):
+                raise RpgGenError(
+                    "ARCH-001",
+                    path=str(source),
+                    reason="contains several archives; select a pack archive: "
+                    + ", ".join(p.name for p in archives),
+                )
         if lone is not None:
             # the pack is an archive in its folder, beside its previews (T17.12): it is opened
             # as that archive, under the folder's name
-            return open_pack(
+            opened = open_pack(
                 lone, existing_ids, pack_id, progress=progress, is_cancelled=is_cancelled
             )
+            return replace(opened, licence_root=root)
         return OpenedPack(pack_id, "folder", root, "", [])
 
     if inner:  # the pack's own identity: the archive's and the folder's

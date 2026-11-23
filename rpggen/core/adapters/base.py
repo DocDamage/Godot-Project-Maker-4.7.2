@@ -40,6 +40,8 @@ class AdapterResult:
     # export, T16.21): pack path of the source -> project-relative path of the picture, which
     # is in ``generated`` too. The catalog makes the asset of the fragment with that picture.
     rendered: dict[str, str] = field(default_factory=dict)
+    # Profile sources whose helper pictures must be recreated by the normal readers.
+    recreate: set[str] = field(default_factory=set)
     # FolderRule dicts and the matched profile id: only the profile adapter sets them.
     folder_rules: list[dict[str, Any]] = field(default_factory=list)
     profile_id: str | None = None

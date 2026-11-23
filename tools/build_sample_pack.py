@@ -2607,6 +2607,9 @@ def _farm_overrides(cat, edits, name):  # noqa: ANN001, ANN202
             [f"{name}.tilesets.{soil}"],
             {"usage": "tiles", "grid": grid, "role": "DECORATION", "frame": None, "origin": None},
         )
+    # The village smoke run bumps into this rock. Author its footprint explicitly;
+    # decorations with no collision remain ordinary, non-blocking props.
+    cat = edits.set_override(cat, f"{name}.props.rock", "collision", {"profile": "BOTTOM_HALF"})
     return edits.set_override(cat, f"{name}.items.chest", "tags", ["chest"])
 
 

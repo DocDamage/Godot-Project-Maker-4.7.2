@@ -42,6 +42,15 @@
         "$ref": "#/$defs/FacetsPartial"
       }
     },
+    "asset_hashes": {
+      "type": "object",
+      "additionalProperties": {"type": "string", "pattern": "^[0-9a-f]{64}$"}
+    },
+    "rendered_assets": {
+      "type": "array",
+      "items": {"type": "string"},
+      "uniqueItems": true
+    },
     "objects": {
       "type": "array",
       "items": {

@@ -29,6 +29,7 @@ func test_template_selection_order(t) -> void:
 	t.eq(r.template_for(_entry("DECORATION", ["chest"], "FULL", []), 16), "chest")
 	t.eq(r.template_for(_entry("ITEM", ["sign"], "NONE", []), 16), "sign")
 	t.eq(r.template_for(_entry("DECORATION", [], "FULL", []), 16), "obstacle", "a collision profile makes an obstacle")
+	t.eq(r.template_for(_entry("DECORATION", [], "NONE", []), 16), "prop", "NONE and no footprint stays non-blocking at any picture size")
 	t.eq(r.template_for(_entry("DECORATION", [], "NONE", [0, 0, 16, 8]), 16), "obstacle", "footprint of half a tile")
 	t.eq(r.template_for(_entry("DECORATION", [], "NONE", [0, 0, 8, 8]), 16), "prop", "small footprint stays a prop")
 	t.eq(r.template_for(_entry("ITEM", [], "NONE", [0, 0, 80, 40]), 16), "prop", "only decorations qualify by area")
